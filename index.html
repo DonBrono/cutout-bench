@@ -189,6 +189,13 @@ body { transition: background-color .2s; }
 #resize select:focus-visible { outline: 2px solid var(--mat); outline-offset: 2px; }
 #resize .icon { width: 40px; padding: 0; }
 #resize .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+#resize .res small.def { color: var(--mat); font-weight: 600; }
+#resize .field input[type=text] { width: 100%; font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink); min-height: 40px; }
+.fname { display: grid; gap: 4px; font-size: 13px; }
+.fname-box { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); }
+.fname-box:focus-within { outline: 2px solid var(--mat); outline-offset: 1px; }
+.fname-box input { min-width: 0; width: 100%; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 14px; padding: 8px 10px; min-height: 38px; outline: none; }
+.fname-box span { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); padding-right: 10px; }
 #resize .tabs button { flex-direction: column; gap: 4px; padding: 10px 6px; }
 #resize .tabs button small { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); font-weight: 400; }
 #resize [aria-pressed="true"]:not(.sw) { background: var(--mat-soft); border-color: var(--mat); font-weight: 600; }
@@ -322,6 +329,9 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
           <button class="sw custom" id="customSw" data-bg="custom" data-picker="customColor" aria-pressed="false" aria-haspopup="dialog" title="Pick a color" aria-label="Pick a color"></button>
           <input type="hidden" id="customColor" value="#f4c542">
         </div>
+        <label class="fname" for="fname">File name
+          <span class="fname-box"><input type="text" id="fname" spellcheck="false" autocomplete="off"><span id="fnameExt">.png</span></span>
+        </label>
         <div class="row">
           <button class="primary" id="savePng">Save PNG</button>
           <button id="saveJpg" disabled title="JPG has no transparency; pick a background color first">Save JPG</button>
@@ -334,7 +344,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
   <footer>Cutout model: IS-Net via the open-source <a href="https://github.com/imgly/background-removal-js" target="_blank" rel="noopener">@imgly/background-removal</a> project (AGPL-3.0), run with ONNX Runtime Web. Very large photos are scaled to 4096 px on the long side while editing.</footer>
   </section>
   <section id="resize" aria-label="Resize video" hidden>
-    <p class="tag">Reframe a video for YouTube Shorts or long-form, pick a resolution, and export. It all happens in your browser; your video is never uploaded.</p>
+    <p class="tag">Reframe a video for YouTube, TikTok or Instagram, pick a resolution, and export. It all happens in your browser; your video is never uploaded.</p>
   <div class="bench rz">
     <div class="stage-wrap">
       <div class="stage" id="rz-stage">
@@ -361,16 +371,20 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
       </section>
 
       <section class="card" aria-labelledby="rz-h-fmt">
-        <h2 id="rz-h-fmt">Format</h2>
-        <div class="tabs" role="group" aria-label="YouTube format">
-          <button id="rz-fmtShort" aria-pressed="true"><span class="shape v" aria-hidden="true"></span>Shorts<small>9:16 vertical</small></button>
-          <button id="rz-fmtLong" aria-pressed="false"><span class="shape h" aria-hidden="true"></span>Long-form<small>16:9 landscape</small></button>
+        <h2 id="rz-h-fmt">Platform</h2>
+        <div class="tabs" role="group" aria-label="Platform">
+          <button data-fmt="short" aria-pressed="true"><span class="shape v" aria-hidden="true"></span>YouTube Shorts<small>9:16 vertical</small></button>
+          <button data-fmt="long" aria-pressed="false"><span class="shape h" aria-hidden="true"></span>YouTube<small>16:9 landscape</small></button>
+          <button data-fmt="tiktok" aria-pressed="false"><span class="shape v" aria-hidden="true"></span>TikTok<small>9:16 vertical</small></button>
+          <button data-fmt="instagram" aria-pressed="false"><span class="shape v" aria-hidden="true"></span>Instagram<small>Reels · posts</small></button>
         </div>
         <div class="res" id="rz-res" role="group" aria-label="Resolution"></div>
         <div class="two" id="rz-customRow" hidden>
           <label class="field">Width (px)<input type="number" id="rz-cw" min="64" max="3840" step="2" value="1080"></label>
           <label class="field">Height (px)<input type="number" id="rz-ch" min="64" max="3840" step="2" value="1920"></label>
         </div>
+        <button id="rz-makeDefault" title="Open with this platform and resolution next time">Set as my default</button>
+        <p class="hint" id="rz-defHint" hidden></p>
       </section>
 
       <section class="card" aria-labelledby="rz-h-frame">
@@ -419,6 +433,9 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
             <select id="rz-quality"><option value="0.5">Smaller file</option><option value="1" selected>YouTube recommended</option><option value="1.5">High</option></select>
           </label>
         </div>
+        <label class="fname" for="rz-fname">File name
+          <span class="fname-box"><input type="text" id="rz-fname" spellcheck="false" autocomplete="off"><span id="rz-fnameExt">.mp4</span></span>
+        </label>
         <p class="note" id="rz-lenNote" hidden></p>
         <button class="primary" id="rz-exportBtn">Export video</button>
         <div class="progress" id="rz-progress" hidden>
@@ -436,7 +453,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     </aside>
   </div>
 
-  <footer>Bitrates follow YouTube's recommended upload settings for standard (24–30 fps) and high (60 fps) frame rates. Chrome and Edge export MP4 (H.264 + AAC); Firefox exports WebM, which YouTube also accepts. Vertical videos up to 3 minutes are treated as Shorts.</footer>
+  <footer>Bitrates follow YouTube's recommended upload settings for standard (24–30 fps) and high (60 fps) frame rates. Chrome and Edge export MP4 (H.264 + AAC); Firefox exports WebM, which YouTube also accepts. Vertical videos up to 3 minutes are treated as Shorts. TikTok and Instagram exports use the same bitrate guide for their resolution.</footer>
   </section>
 
 </div>
@@ -578,6 +595,8 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
 
   // ---------- helpers ----------
   function makeCanvas(w, h) { const c = document.createElement("canvas"); c.width = w; c.height = h; return c; }
+  function cleanName(v, fallback) { v = (v || "").replace(/[\\/:*?"<>|\u0000-\u001f]+/g, "-").replace(/\.(png|jpe?g)$/i, "").trim(); return v || fallback; }
+  let fnameTouched = false;
   function fmtBytes(b) { if (!b) return "—"; return b > 1048576 ? (b / 1048576).toFixed(1) + " MB" : Math.round(b / 1024) + " KB"; }
   function setBusy(label, frac) {
     const b = $("busy");
@@ -595,7 +614,8 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     src = c; srcData = null; name = label; fileBytes = bytes || 0;
     mask = makeCanvas(c.width, c.height); mctx = mask.getContext("2d", { willReadFrequently: true });
     mctx.fillStyle = "#fff"; mctx.fillRect(0, 0, c.width, c.height);
-    undoStack = []; syncButtons(); if (typeof polyReset === "function") { poly = []; polyClosed = false; }
+    undoStack = []; syncButtons();
+    fnameTouched = false; $("fname").value = label + "-cutout"; if (typeof polyReset === "function") { poly = []; polyClosed = false; }
     layout(); render(); updateMeta();
   }
   async function decode(file) {
@@ -915,6 +935,11 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     $("saveJpg").disabled = v === "transparent"; render();
   }
   sws.forEach((s) => s.addEventListener("click", () => setBg(s.dataset.bg)));
+  $("fname").addEventListener("input", () => { fnameTouched = true; });
+  $("savePng").addEventListener("focus", () => { $("fnameExt").textContent = ".png"; });
+  $("saveJpg").addEventListener("focus", () => { $("fnameExt").textContent = ".jpg"; });
+  $("savePng").addEventListener("mouseenter", () => { $("fnameExt").textContent = ".png"; });
+  $("saveJpg").addEventListener("mouseenter", () => { $("fnameExt").textContent = ".jpg"; });
   $("customColor").addEventListener("input", () => setBg("custom"));
 
   // ---------- AI model ----------
@@ -1008,7 +1033,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     const blob = await exportBlob(ext === "png" ? "image/png" : "image/jpeg");
     setBusy(null);
     if (!blob) { note("saveNote", "The browser couldn't encode this image. Try PNG instead.", "err"); return; }
-    const filename = `${name}-cutout.${ext}`;
+    const filename = `${cleanName($("fname").value, name + "-cutout")}.${ext}`;
     if (downloads) {
       try { await downloads.save({ filename, data: blob }); note("saveNote", `Saved ${filename} (${fmtBytes(blob.size)}).`); return; }
       catch (e) {
@@ -1047,10 +1072,29 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     long: [
       { w: 3840, h: 2160, label: "4K" }, { w: 2560, h: 1440, label: "1440p" }, { w: 1920, h: 1080, label: "1080p", def: true },
       { w: 1280, h: 720, label: "720p" }, { w: 854, h: 480, label: "480p" }, { w: 640, h: 360, label: "360p" }, { custom: true, label: "Custom" }
+    ],
+    tiktok: [
+      { w: 1080, h: 1920, label: "1080p", def: true }, { w: 720, h: 1280, label: "720p" }, { custom: true, label: "Custom" }
+    ],
+    instagram: [
+      { w: 1080, h: 1920, label: "Reels / Story", def: true }, { w: 1080, h: 1350, label: "Portrait post" },
+      { w: 1080, h: 1080, label: "Square post" }, { w: 1080, h: 566, label: "Landscape post" }, { custom: true, label: "Custom" }
     ]
   };
+  const FMT_NAMES = { short: "YouTube Shorts", long: "YouTube", tiktok: "TikTok", instagram: "Instagram" };
+  const DEF_KEY = "cutout-resize-default";
+  function readDefault() { try { const d = JSON.parse(localStorage.getItem(DEF_KEY) || "null"); return d && PRESETS[d.fmt] ? d : null; } catch { return null; } }
+  let savedDef = readDefault();
+  function presetFor(f) {
+    if (savedDef && savedDef.fmt === f) { const p = PRESETS[f].find((x) => x.label === savedDef.label); if (p) return p; }
+    return PRESETS[f].find((p) => p.def);
+  }
 
-  let fmt = "short", preset = PRESETS.short[2], mode = "fill", bars = "blur";
+  let fmt = savedDef ? savedDef.fmt : "short", preset = presetFor(fmt), mode = "fill", bars = "blur";
+  if (savedDef && preset.custom && savedDef.w) {
+    const cw = document.getElementById("rz-cw"), ch = document.getElementById("rz-ch"); cw.value = savedDef.w; ch.value = savedDef.h;
+  }
+  let rzNameTouched = false;
   let out = { w: 1080, h: 1920 };
   let video = null, srcName = "test-clip", sampleT = 0, isSample = true;
   let playing = false, exporting = null;
@@ -1141,7 +1185,8 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     PRESETS[fmt].forEach((p) => {
       const b = document.createElement("button");
       b.setAttribute("aria-pressed", p === preset);
-      b.innerHTML = `<b>${p.label}</b><small>${p.custom ? "your size" : p.w + "×" + p.h}</small>`;
+      const isDef = savedDef && savedDef.fmt === fmt && savedDef.label === p.label;
+      b.innerHTML = `<b>${p.label}</b><small>${p.custom ? (isDef ? savedDef.w + "×" + savedDef.h : "your size") : p.w + "×" + p.h}</small>` + (isDef ? `<small class="def">★ default</small>` : "");
       b.addEventListener("click", () => { preset = p; applyPreset(); });
       box.appendChild(b);
     });
@@ -1153,15 +1198,29 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
       const h = Math.max(64, Math.min(3840, Math.round(+$("rz-ch").value / 2) * 2 || 1920));
       out = { w, h };
     } else out = { w: preset.w, h: preset.h };
-    buildRes(); sizePreview(); render(); updateMeta();
+    buildRes(); sizePreview(); render(); updateMeta(); rzDefaultName(); if (typeof syncDefaultUI === "function") syncDefaultUI();
+  }
+  function rzDefaultName() { if (!rzNameTouched) $("rz-fname").value = `${srcName}-${out.w}x${out.h}`; }
+  function syncDefaultUI() {
+    const same = savedDef && savedDef.fmt === fmt && savedDef.label === preset.label && (!preset.custom || (savedDef.w === out.w && savedDef.h === out.h));
+    $("rz-makeDefault").textContent = same ? "★ This is your default" : "Set as my default";
+    $("rz-makeDefault").disabled = !!same;
+    $("rz-defHint").hidden = !savedDef;
+    if (savedDef) $("rz-defHint").textContent = `Default: ${FMT_NAMES[savedDef.fmt]}, ${savedDef.label === "Custom" ? "custom" : savedDef.label} (${savedDef.w} × ${savedDef.h}).`;
   }
   function setFmt(f) {
-    fmt = f; $("rz-fmtShort").setAttribute("aria-pressed", f === "short"); $("rz-fmtLong").setAttribute("aria-pressed", f === "long");
-    if (preset.custom) { $("rz-cw").value = f === "short" ? 1080 : 1920; $("rz-ch").value = f === "short" ? 1920 : 1080; }
-    preset = PRESETS[f].find((p) => p.def); applyPreset(); checkLength();
+    fmt = f; document.querySelectorAll("[data-fmt]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.fmt === f));
+    preset = presetFor(f);
+    if (preset.custom && savedDef && savedDef.fmt === f) { $("rz-cw").value = savedDef.w; $("rz-ch").value = savedDef.h; }
+    else { $("rz-cw").value = f === "long" ? 1920 : 1080; $("rz-ch").value = f === "long" ? 1080 : 1920; }
+    applyPreset(); checkLength();
   }
-  $("rz-fmtShort").addEventListener("click", () => setFmt("short"));
-  $("rz-fmtLong").addEventListener("click", () => setFmt("long"));
+  document.querySelectorAll("[data-fmt]").forEach((b) => b.addEventListener("click", () => setFmt(b.dataset.fmt)));
+  $("rz-makeDefault").addEventListener("click", () => {
+    savedDef = { fmt, label: preset.label, w: out.w, h: out.h };
+    try { localStorage.setItem(DEF_KEY, JSON.stringify(savedDef)); } catch {}
+    buildRes(); syncDefaultUI();
+  });
   $("rz-cw").addEventListener("change", applyPreset); $("rz-ch").addEventListener("change", applyPreset);
 
   // ---------- UI: framing ----------
@@ -1251,8 +1310,12 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
       v.addEventListener("seeked", render); v.addEventListener("timeupdate", () => { if (!playing) render(); });
       v.addEventListener("ended", () => setPlaying(false));
       // Suggest the format that matches the source shape
-      if (v.videoHeight > v.videoWidth && fmt !== "short") setFmt("short");
-      else if (v.videoWidth > v.videoHeight && fmt === "short" && v.duration > 180) setFmt("long");
+      rzNameTouched = false;
+      if (!savedDef) {
+        if (v.videoHeight > v.videoWidth && fmt === "long") setFmt("short");
+        else if (v.videoWidth > v.videoHeight && fmt === "short" && v.duration > 180) setFmt("long");
+      }
+      rzDefaultName();
       v.currentTime = Math.min(0.1, v.duration / 2);
       checkLength(); render();
     };
@@ -1288,6 +1351,9 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     return list.find((m) => MediaRecorder.isTypeSupported(m)) || null;
   }
   let resultBlob = null, resultName = "";
+  function rzClean(v, fallback) { v = (v || "").replace(/[\\/:*?"<>|\u0000-\u001f]+/g, "-").replace(/\.(mp4|webm|mov)$/i, "").trim(); return v || fallback; }
+  $("rz-fname").addEventListener("input", () => { rzNameTouched = true; });
+  (() => { const m = pickMime(); $("rz-fnameExt").textContent = m && m.startsWith("video/webm") ? ".webm" : ".mp4"; })();
   async function startExport() {
     const mime = pickMime();
     if (!mime) { note("rz-outNote", "This browser can't record video. Use a recent Chrome, Edge, Firefox or Safari.", "err"); return; }
@@ -1335,7 +1401,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     exporting = null; $("rz-exportBtn").disabled = false; $("rz-progress").hidden = true;
     if (job.cancelled) { note("rz-outNote", "Export cancelled."); render(); return; }
     const type = mime.split(";")[0], ext = type === "video/mp4" ? "mp4" : "webm";
-    resultBlob = new Blob(chunks, { type }); resultName = `${srcName}-${out.w}x${out.h}.${ext}`;
+    resultBlob = new Blob(chunks, { type }); resultName = `${rzClean($("rz-fname").value, srcName + "-" + out.w + "x" + out.h)}.${ext}`;
     const rv = $("rz-resultVideo"); if (rv.src) URL.revokeObjectURL(rv.src); rv.src = URL.createObjectURL(resultBlob);
     $("rz-result").hidden = false; $("rz-saveHint").hidden = true; $("rz-saveBtn").hidden = false;
     note("rz-outNote", `Ready: ${resultName}, ${(resultBlob.size / 1048576).toFixed(1)} MB.`, "ok");
@@ -1362,7 +1428,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
 
   // ---------- start ----------
   $("rz-tEnd").value = SAMPLE_DUR;
-  buildRes(); sizePreview(); setMode("fill"); checkLength(); render();
+  setFmt(fmt); setMode("fill"); checkLength(); render();
 })();
 </script>
 <script>
