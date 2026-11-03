@@ -133,9 +133,12 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .filebtn input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 .filebtn { position: relative; }
 
-.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.poly-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.poly-actions button { font-size: 13px; padding: 8px 6px; }
+.poly-actions .wide { grid-column: 1 / -1; }
 .seg button[aria-pressed="true"] { background: var(--mat-soft); border-color: var(--mat); color: var(--ink); font-weight: 600; }
-.seg button { padding: 8px 6px; font-size: 13px; flex-direction: column; gap: 2px; }
+.seg button { padding: 8px 4px; font-size: 12.5px; flex-direction: column; gap: 2px; }
 .seg svg { width: 18px; height: 18px; }
 
 .slider { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; font-size: 13px; }
@@ -262,8 +265,16 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 20c4-1 6-3 7-6l6-9 2 1-5 10c-2 3-5 4-10 4z" stroke-linejoin="round"/></svg>Restore</button>
           <button id="tWand" aria-pressed="true" title="Magic eraser (W)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 20 15 9M14 4v3M19 9h-3M17.5 5.5l-2 2" stroke-linecap="round"/></svg>Magic</button>
+          <button id="tPoly" aria-pressed="false" title="Polygon (P)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 7l8-3 7 6-3 9-11-2z" stroke-linejoin="round" stroke-dasharray="3 2"/><circle cx="5" cy="7" r="1.6" fill="currentColor"/><circle cx="13" cy="4" r="1.6" fill="currentColor"/><circle cx="20" cy="10" r="1.6" fill="currentColor"/><circle cx="17" cy="19" r="1.6" fill="currentColor"/><circle cx="6" cy="17" r="1.6" fill="currentColor"/></svg>Polygon</button>
         </div>
         <p class="hint" id="toolHint"></p>
+        <div class="poly-actions" id="polyRow" hidden>
+          <button id="polyKeep" class="primary" disabled title="Keep only what's inside the shape (Enter)">Keep inside</button>
+          <button id="polyErase" disabled title="Erase what's inside the shape (Delete)">Erase inside</button>
+          <button id="polyUndoPt" disabled title="Remove the last point (Backspace)">Remove last point</button>
+          <button id="polyClear" disabled title="Start the shape over (Esc)">Clear shape</button>
+        </div>
         <div class="slider" id="sizeRow">
           <label for="size">Brush size</label><output id="sizeOut" for="size"></output>
           <input type="range" id="size" min="4" max="300" value="40">
@@ -308,7 +319,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     <p class="tag">Reframe a video for YouTube Shorts or long-form, pick a resolution, and export. It all happens in your browser; your video is never uploaded.</p>
   <div class="bench rz">
     <div class="stage-wrap">
-      <div class="rz-stage" id="rz-stage">
+      <div class="stage" id="rz-stage">
         <canvas id="rz-preview" width="1080" height="1920"></canvas>
         <div class="frame-label" id="rz-frameLabel"></div>
         <div class="drop-hint" id="rz-dropHint" hidden>Drop the video to load it</div>
@@ -318,15 +329,15 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
           <svg id="rz-playIcon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg>
         </button>
         <input type="range" id="rz-scrub" min="0" max="1000" value="0" aria-label="Position">
-        <span class="rz-time" id="rz-time">0:00 / 0:00</span>
+        <span class="time" id="rz-time">0:00 / 0:00</span>
       </div>
-      <div class="rz-meta" id="rz-meta"></div>
+      <div class="meta" id="rz-meta"></div>
     </div>
 
     <aside class="rail">
       <section class="card" aria-labelledby="rz-h-src">
         <h2 id="rz-h-src">Video</h2>
-        <label class="filebtn primary" for="rz-file">Open video<input type="rz-file" id="rz-file" accept="video/*"></label>
+        <label class="filebtn primary" for="rz-file">Open video<input type="file" id="rz-file" accept="video/*"></label>
         <p class="hint" id="rz-srcHint">Showing a built-in test clip. Open your own MP4, MOV or WebM, or drag it onto the mat.</p>
         <p class="note" id="rz-srcNote" hidden></p>
       </section>
@@ -337,7 +348,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
           <button id="rz-fmtShort" aria-pressed="true"><span class="shape v" aria-hidden="true"></span>Shorts<small>9:16 vertical</small></button>
           <button id="rz-fmtLong" aria-pressed="false"><span class="shape h" aria-hidden="true"></span>Long-form<small>16:9 landscape</small></button>
         </div>
-        <div class="rz-res" id="rz-res" role="group" aria-label="Resolution"></div>
+        <div class="res" id="rz-res" role="group" aria-label="Resolution"></div>
         <div class="two" id="rz-customRow" hidden>
           <label class="field">Width (px)<input type="number" id="rz-cw" min="64" max="3840" step="2" value="1080"></label>
           <label class="field">Height (px)<input type="number" id="rz-ch" min="64" max="3840" step="2" value="1920"></label>
@@ -391,13 +402,13 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
         </div>
         <p class="note" id="rz-lenNote" hidden></p>
         <button class="primary" id="rz-exportBtn">Export video</button>
-        <div class="rz-progress" id="rz-progress" hidden>
+        <div class="progress" id="rz-progress" hidden>
           <div class="bar"><i id="rz-progBar"></i></div>
-          <div class="row"><span class="rz-time" id="rz-progText">0%</span><button id="rz-cancelBtn">Cancel</button></div>
+          <div class="row"><span class="time" id="rz-progText">0%</span><button id="rz-cancelBtn">Cancel</button></div>
           <p class="hint">Export runs at playback speed. Keep this tab open and visible until it finishes.</p>
         </div>
         <p class="note" id="rz-outNote" hidden></p>
-        <div class="rz-result" id="rz-result" hidden>
+        <div class="result" id="rz-result" hidden>
           <video id="rz-resultVideo" controls playsinline></video>
           <button id="rz-saveBtn" class="primary">Save file</button>
           <p class="hint" id="rz-saveHint" hidden>Saving directly isn't available in this view. Right-click the video above and choose “Save video as…”.</p>
@@ -464,7 +475,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     src = c; srcData = null; name = label; fileBytes = bytes || 0;
     mask = makeCanvas(c.width, c.height); mctx = mask.getContext("2d", { willReadFrequently: true });
     mctx.fillStyle = "#fff"; mctx.fillRect(0, 0, c.width, c.height);
-    undoStack = []; syncButtons();
+    undoStack = []; syncButtons(); if (typeof polyReset === "function") { poly = []; polyClosed = false; }
     layout(); render(); updateMeta();
   }
   async function decode(file) {
@@ -567,6 +578,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     else { vctx.fillStyle = bgColor(); vctx.fillRect(x, y, w, h); }
     composite(wctx, w, h, fit.s);
     vctx.drawImage(work, x, y);
+    if (tool === "poly") drawCursor(lastPt);
   }
   let raf = 0;
   const schedule = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; render(); }); };
@@ -596,18 +608,74 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
   const toolHints = {
     erase: "Paint over anything the model left behind.",
     restore: "Paint back parts of the subject that got cut away.",
-    wand: "Click a background area to erase every connected pixel of a similar color. Good for plain studio or sky backgrounds."
+    wand: "Click a background area to erase every connected pixel of a similar color. Good for plain studio or sky backgrounds.",
+    poly: "Click around the subject to place points; a guideline follows your clicks. Click the first point (or double-click) to close the shape, then keep or erase what's inside."
   };
+  // ---------- polygon tool ----------
+  let poly = [], polyClosed = false;
+  function polySync() {
+    const n = poly.length;
+    $("polyKeep").disabled = $("polyErase").disabled = n < 3;
+    $("polyUndoPt").disabled = !n || polyClosed; $("polyClear").disabled = !n;
+  }
+  function polyReset() { poly = []; polyClosed = false; polySync(); drawCursor(lastPt); }
+  function toScreen(p) { return { x: fit.x + p.x * fit.s, y: fit.y + p.y * fit.s }; }
+  function drawPoly(cursor) {
+    if (!poly.length || !src) return;
+    const pts = poly.map(toScreen), css = getComputedStyle(document.documentElement);
+    const accent = css.getPropertyValue("--mat").trim() || "#1f5e4b";
+    octx.save();
+    octx.beginPath(); octx.moveTo(pts[0].x, pts[0].y);
+    for (const q of pts.slice(1)) octx.lineTo(q.x, q.y);
+    if (polyClosed) { octx.closePath(); octx.fillStyle = "rgba(255,255,255,.18)"; octx.fill(); }
+    else if (cursor) octx.lineTo(cursor.px, cursor.py);
+    octx.lineJoin = "round";
+    octx.lineWidth = 3 * dpr; octx.strokeStyle = "rgba(0,0,0,.55)"; octx.setLineDash([]); octx.stroke();
+    octx.lineWidth = 1.6 * dpr; octx.strokeStyle = "#fff"; octx.setLineDash([6 * dpr, 4 * dpr]); octx.stroke();
+    octx.setLineDash([]);
+    pts.forEach((q, i) => {
+      const r = (i === 0 && !polyClosed && poly.length >= 3 ? 6 : 4) * dpr;
+      octx.beginPath(); octx.arc(q.x, q.y, r, 0, 7);
+      octx.fillStyle = i === 0 ? accent : "#fff"; octx.fill();
+      octx.lineWidth = 1.5 * dpr; octx.strokeStyle = "rgba(0,0,0,.7)"; octx.stroke();
+    });
+    octx.restore();
+  }
+  function polyPath(ctx) { ctx.beginPath(); ctx.moveTo(poly[0].x, poly[0].y); for (const q of poly.slice(1)) ctx.lineTo(q.x, q.y); ctx.closePath(); }
+  function polyApply(keep) {
+    if (poly.length < 3) return;
+    pushUndo();
+    mctx.save();
+    mctx.globalCompositeOperation = keep ? "destination-in" : "destination-out";
+    polyPath(mctx); mctx.fillStyle = "#fff"; mctx.fill();
+    mctx.restore();
+    polyReset(); render();
+  }
+  function polyClick(p) {
+    if (polyClosed) { polyReset(); }
+    const x = Math.max(0, Math.min(src.width, p.x)), y = Math.max(0, Math.min(src.height, p.y));
+    if (poly.length >= 3) {
+      const f = toScreen(poly[0]);
+      if (Math.hypot(p.px - f.x, p.py - f.y) <= 10 * dpr) { polyClosed = true; polySync(); drawCursor(lastPt); return; }
+    }
+    poly.push({ x, y }); polySync(); drawCursor(p);
+  }
+  $("polyKeep").addEventListener("click", () => polyApply(true));
+  $("polyErase").addEventListener("click", () => polyApply(false));
+  $("polyUndoPt").addEventListener("click", () => { poly.pop(); polySync(); drawCursor(lastPt); });
+  $("polyClear").addEventListener("click", polyReset);
   function setTool(t) {
+    if (t !== "poly" && tool === "poly") polyReset();
     tool = t;
-    $("tErase").setAttribute("aria-pressed", t === "erase"); $("tRestore").setAttribute("aria-pressed", t === "restore"); $("tWand").setAttribute("aria-pressed", t === "wand");
-    $("sizeRow").hidden = t === "wand"; $("tolRow").hidden = t !== "wand";
+    $("tErase").setAttribute("aria-pressed", t === "erase"); $("tRestore").setAttribute("aria-pressed", t === "restore"); $("tWand").setAttribute("aria-pressed", t === "wand"); $("tPoly").setAttribute("aria-pressed", t === "poly");
+    $("sizeRow").hidden = t === "wand" || t === "poly"; $("tolRow").hidden = t !== "wand"; $("polyRow").hidden = t !== "poly";
     $("toolHint").textContent = toolHints[t];
     drawCursor(lastPt);
   }
   $("tErase").addEventListener("click", () => setTool("erase"));
   $("tRestore").addEventListener("click", () => setTool("restore"));
   $("tWand").addEventListener("click", () => setTool("wand"));
+  $("tPoly").addEventListener("click", () => setTool("poly"));
   const outs = () => { $("sizeOut").textContent = sizeEl.value + " px"; $("tolOut").textContent = tolEl.value; $("featherOut").textContent = featherEl.value + " px"; };
   sizeEl.addEventListener("input", () => { outs(); drawCursor(lastPt); });
   tolEl.addEventListener("input", outs);
@@ -622,6 +690,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
   let lastPt = null;
   function drawCursor(p) {
     octx.clearRect(0, 0, overlay.width, overlay.height);
+    if (tool === "poly") { drawPoly(p); return; }
     if (!p || !src || tool === "wand") return;
     const r = (+sizeEl.value / 2) * fit.s;
     octx.lineWidth = 1.5 * dpr;
@@ -645,6 +714,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
   view.addEventListener("pointerdown", (e) => {
     if (!src || e.button > 0) return;
     const p = toImg(e);
+    if (tool === "poly") { polyClick(p); return; }
     if (tool === "wand") {
       if (p.x < 0 || p.y < 0 || p.x >= src.width || p.y >= src.height) return;
       pushUndo(); magic(Math.floor(p.x), Math.floor(p.y)); render(); return;
@@ -656,9 +726,17 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     const p = toImg(e); lastPt = p; drawCursor(p);
     if (drawing) { const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e]; for (const ev of evs) { const q = toImg(ev); stroke(drawing, q); drawing = q; } schedule(); }
   });
+  view.addEventListener("dblclick", (e) => {
+    if (tool !== "poly" || polyClosed) return;
+    e.preventDefault();
+    // the two clicks of a double-click each added a point; drop the duplicate and close
+    if (poly.length >= 2) { const a = poly[poly.length - 1], b = poly[poly.length - 2]; if (Math.hypot(a.x - b.x, a.y - b.y) * fit.s < 6 * dpr) poly.pop(); }
+    if (poly.length >= 3) { polyClosed = true; polySync(); drawCursor(lastPt); }
+  });
   const endStroke = () => { drawing = null; };
   view.addEventListener("pointerup", endStroke); view.addEventListener("pointercancel", endStroke);
   view.addEventListener("pointerleave", () => { if (!drawing) { lastPt = null; drawCursor(null); } });
+  stage.addEventListener("contextmenu", (e) => { if (tool === "poly" && poly.length) { e.preventDefault(); poly.pop(); polySync(); drawCursor(lastPt); } });
 
   function magic(sx, sy) {
     const w = src.width, h = src.height;
@@ -696,7 +774,13 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); undo(); return; }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const k = e.key.toLowerCase();
-    if (k === "e") setTool("erase"); else if (k === "r") setTool("restore"); else if (k === "w") setTool("wand");
+    if (tool === "poly" && poly.length) {
+      if (k === "enter") { e.preventDefault(); if (!polyClosed && poly.length >= 3) { polyClosed = true; polySync(); drawCursor(lastPt); } else polyApply(true); return; }
+      if (k === "delete") { e.preventDefault(); polyApply(false); return; }
+      if (k === "backspace") { e.preventDefault(); if (!polyClosed) { poly.pop(); polySync(); drawCursor(lastPt); } return; }
+      if (k === "escape") { e.preventDefault(); polyReset(); return; }
+    }
+    if (k === "e") setTool("erase"); else if (k === "r") setTool("restore"); else if (k === "w") setTool("wand"); else if (k === "p") setTool("poly");
     else if (k === "[") { sizeEl.value = Math.max(4, +sizeEl.value - 6); outs(); drawCursor(lastPt); }
     else if (k === "]") { sizeEl.value = Math.min(300, +sizeEl.value + 6); outs(); drawCursor(lastPt); }
     else if (k === " " && !e.repeat && e.target === document.body) { e.preventDefault(); cmpOn(); }
