@@ -10,8 +10,8 @@ Everything runs in the visitor's browser. No server, no uploads, no build step.
 ## Files
 
 - `index.html`: the whole app
-- `model/part0-3.wasm`: the IS-Net cutout model, split into four parts (loaded on first use)
-- `ort/ort-wasm-simd.wasm`: ONNX Runtime Web engine that runs the model
+- `model/part0-7.wasm`: the IS-Net cutout model, split into eight parts (loaded on first use)
+- `ort/engine0-1.bin.wasm`: ONNX Runtime Web engine (ort-wasm-simd.wasm, 1.17.3) split in two
 
 ## Run locally
 

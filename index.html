@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<title>Cutout Bench</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="Remove photo backgrounds with AI and resize videos for YouTube Shorts or long-form, all in your browser.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231f5e4b'/%3E%3Cg fill='none' stroke='white' stroke-width='2.4'%3E%3Ccircle cx='10' cy='10' r='4'/%3E%3Ccircle cx='10' cy='22' r='4'/%3E%3Cpath d='M13 12l13 12M13 20l13-12'/%3E%3C/g%3E%3C/svg%3E">
@@ -714,8 +715,8 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
   // ---------- AI model ----------
   let session = null, loading = null;
   async function fetchParts(onProg) {
-    const parts = ["model/part0.wasm", "model/part1.wasm", "model/part2.wasm", "model/part3.wasm"];
-    const PART = 11085609, total = PART * parts.length;
+    const parts = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => `model/part${i}.wasm`);
+    const total = 44342436;
     const got = new Array(parts.length).fill(0);
     const bufs = await Promise.all(parts.map(async (p, i) => {
       const res = await fetch(p);
@@ -734,7 +735,8 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     if (loading) return loading;
     loading = (async () => {
       if (!window.ort) throw new Error("runtime");
-      ort.env.wasm.wasmPaths = new URL("ort/", location.href).href;
+      const eng = await Promise.all(["ort/engine0.bin.wasm", "ort/engine1.bin.wasm"].map(async (u) => { const r = await fetch(u); if (!r.ok) throw new Error("engine download failed (" + r.status + ")"); return r.blob(); }));
+      ort.env.wasm.wasmPaths = { "ort-wasm-simd.wasm": URL.createObjectURL(new Blob(eng, { type: "application/wasm" })) };
       ort.env.wasm.numThreads = 1; ort.env.wasm.proxy = false;
       setBusy("Downloading cutout model…", 0);
       const bytes = await fetchParts((f) => setBusy(`Downloading cutout model… ${Math.round(f * 100)}%`, f));
