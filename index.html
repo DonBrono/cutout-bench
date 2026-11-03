@@ -498,7 +498,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
         <div class="progress" id="rz-progress" hidden>
           <div class="bar"><i id="rz-progBar"></i></div>
           <div class="row"><span class="time" id="rz-progText">0%</span><button id="rz-cancelBtn">Cancel</button></div>
-          <p class="hint">Export runs at playback speed. Keep this tab open and visible until it finishes.</p>
+          <p class="hint">Every frame is rendered one by one, so nothing is dropped. Keep this tab open until it finishes.</p>
         </div>
         <p class="note" id="rz-outNote" hidden></p>
         <div class="result" id="rz-result" hidden>
@@ -510,7 +510,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     </aside>
   </div>
 
-  <footer>Bitrates follow YouTube's recommended upload settings for standard (24–30 fps) and high (60 fps) frame rates. Chrome and Edge export MP4 (H.264 + AAC); Firefox exports WebM, which YouTube also accepts. Vertical videos up to 3 minutes are treated as Shorts. TikTok and Instagram exports use the same bitrate guide for their resolution.</footer>
+  <footer>Bitrates follow YouTube's recommended upload settings for standard (24–30 fps) and high (60 fps) frame rates. Exports are constant-frame-rate MP4 files (H.264 + AAC, BT.709) that open in DaVinci Resolve, Premiere and CapCut. Vertical videos up to 3 minutes are treated as Shorts. TikTok and Instagram exports use the same bitrate guide for their resolution.</footer>
   </section>
 
 </div>
@@ -626,6 +626,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
 })();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.3/dist/ort.wasm.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mp4-muxer@5.2.1/build/mp4-muxer.js"></script>
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -1662,6 +1663,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
   }
   let rzNameTouched = false;
   let out = { w: 1080, h: 1920 };
+  let srcFile = null;
   let video = null, srcName = "test-clip", sampleT = 0, isSample = true;
   let playing = false, exporting = null;
   const SAMPLE_DUR = 12;
@@ -1890,7 +1892,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     const url = URL.createObjectURL(file);
     v.onloadedmetadata = () => {
       if (video) { URL.revokeObjectURL(video.src); }
-      video = v; isSample = false; srcName = (file.name || "video").replace(/\.[^.]+$/, "");
+      video = v; isSample = false; srcFile = file; srcName = (file.name || "video").replace(/\.[^.]+$/, "");
       audio = null;
       $("rz-tStart").value = 0; $("rz-tEnd").value = v.duration.toFixed(1); $("rz-tEnd").max = v.duration.toFixed(1);
       $("rz-srcHint").textContent = `${file.name} · ${(file.size / 1048576).toFixed(1)} MB`;
@@ -1948,8 +1950,142 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     if (!v.endsWith("-" + part) && !v.includes("-" + part + "-")) inp.value = (v ? v + "-" : "") + part;
     rzNameTouched = true; inp.focus();
   }));
-  (() => { const m = pickMime(); $("rz-fnameExt").textContent = m && m.startsWith("video/webm") ? ".webm" : ".mp4"; })();
+  (() => { const m = pickMime(); $("rz-fnameExt").textContent = window.VideoEncoder || !(m && m.startsWith("video/webm")) ? ".mp4" : ".webm"; })();
+  // ---------- frame-accurate MP4 export (WebCodecs) ----------
+  // Renders every frame one by one, so nothing is dropped, and writes a standard MP4:
+  // constant frame rate, H.264 High with BT.709 video-range color, AAC audio, index at the front.
+  const COLOR709 = { primaries: "bt709", transfer: "bt709", matrix: "bt709", fullRange: false };
+  async function pickVideoCodec(w, h, fps, bitrate) {
+    if (!window.VideoEncoder || !window.Mp4Muxer) return null;
+    for (const codec of ["avc1.640033", "avc1.4d0033", "avc1.42e033", "avc1.640028", "avc1.42001f"]) {
+      const cfg = { codec, width: w, height: h, bitrate, framerate: fps, latencyMode: "quality", avc: { format: "avc" } };
+      try { const r = await VideoEncoder.isConfigSupported(cfg); if (r.supported) return cfg; } catch {}
+      try { const c2 = Object.assign({}, cfg); delete c2.latencyMode; const r = await VideoEncoder.isConfigSupported(c2); if (r.supported) return c2; } catch {}
+    }
+    return null;
+  }
+  // RGBA canvas pixels -> I420 (BT.709, video range 16–235)
+  function toI420(px, w, h) {
+    const ySize = w * h, cw = w >> 1, ch = h >> 1, buf = new Uint8Array(ySize + 2 * cw * ch);
+    const U = ySize, V = ySize + cw * ch;
+    for (let i = 0, j = 0; i < ySize; i++, j += 4) buf[i] = 16.5 + 0.1826 * px[j] + 0.6142 * px[j + 1] + 0.0620 * px[j + 2];
+    for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) {
+      const a = ((2 * y) * w + 2 * x) * 4, b = a + 4, c = a + w * 4, d = c + 4;
+      const r = (px[a] + px[b] + px[c] + px[d]) / 4, g = (px[a + 1] + px[b + 1] + px[c + 1] + px[d + 1]) / 4, bl = (px[a + 2] + px[b + 2] + px[c + 2] + px[d + 2]) / 4;
+      buf[U + y * cw + x] = 128.5 - 0.1006 * r - 0.3386 * g + 0.4392 * bl;
+      buf[V + y * cw + x] = 128.5 + 0.4392 * r - 0.3989 * g - 0.0403 * bl;
+    }
+    return buf;
+  }
+  function seekVideo(t) {
+    return new Promise((res) => {
+      if (Math.abs(video.currentTime - t) < 1e-4 && video.readyState >= 2) return res();
+      const done = () => { clearTimeout(to); res(); };
+      const to = setTimeout(done, 3000);
+      video.addEventListener("seeked", done, { once: true });
+      video.currentTime = t;
+    });
+  }
+  async function decodeAudio(s, e) {
+    if (isSample || !srcFile || !window.AudioEncoder) return null;
+    try {
+      const ac = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 48000 });
+      const buf = await ac.decodeAudioData(await srcFile.arrayBuffer());
+      ac.close && ac.close();
+      const chn = Math.min(2, buf.numberOfChannels), from = Math.round(s * buf.sampleRate), to = Math.min(buf.length, Math.round(e * buf.sampleRate));
+      if (to <= from) return null;
+      return { chn, rate: buf.sampleRate, data: [...Array(chn)].map((_, c) => buf.getChannelData(c).subarray(from, to)) };
+    } catch (err) { return { error: true }; }
+  }
+  async function exportMp4(job) {
+    const { s, e } = trim(), fps = +$("rz-fps").value, total = Math.max(1, Math.round((e - s) * fps));
+    const W = out.w, H = out.h, bitrate = Math.round(bitrateFor(W, H, fps));
+    const vcfg = await pickVideoCodec(W, H, fps, bitrate);
+    if (!vcfg) return false;                                   // fall back to real-time recording
+    $("rz-progText").textContent = "Preparing audio…";
+    const aud = await decodeAudio(s, e);
+    let acfg = null, audioNote = "";
+    if (aud && !aud.error) {
+      const c = { codec: "mp4a.40.2", sampleRate: aud.rate, numberOfChannels: aud.chn, bitrate: 192000 };
+      try { if ((await AudioEncoder.isConfigSupported(c)).supported) acfg = c; } catch {}
+      if (!acfg) audioNote = " Sound was left out: this browser can't make AAC audio. Chrome or Edge on Windows or Mac can.";
+    } else if (aud && aud.error) audioNote = " Sound was left out: the browser couldn't read this video's audio.";
+    const muxer = new Mp4Muxer.Muxer({
+      target: new Mp4Muxer.ArrayBufferTarget(),
+      video: { codec: "avc", width: W, height: H, frameRate: fps },
+      audio: acfg ? { codec: "aac", numberOfChannels: acfg.numberOfChannels, sampleRate: acfg.sampleRate } : undefined,
+      fastStart: "in-memory", firstTimestampBehavior: "offset"
+    });
+    let failed = null;
+    const venc = new VideoEncoder({
+      output: (chunk, meta) => {
+        if (meta && meta.decoderConfig) meta = Object.assign({}, meta, { decoderConfig: Object.assign({}, meta.decoderConfig, { colorSpace: COLOR709 }) });
+        muxer.addVideoChunk(chunk, meta);
+      },
+      error: (err) => { failed = err; }
+    });
+    venc.configure(vcfg);
+    if (acfg) {
+      const aenc = new AudioEncoder({ output: (chunk, meta) => muxer.addAudioChunk(chunk, meta), error: (err) => { failed = err; } });
+      aenc.configure(acfg);
+      const n = aud.data[0].length, step = 4800;
+      for (let i = 0; i < n; i += step) {
+        const len = Math.min(step, n - i), planar = new Float32Array(len * aud.chn);
+        for (let c = 0; c < aud.chn; c++) planar.set(aud.data[c].subarray(i, i + len), c * len);
+        const ad = new AudioData({ format: "f32-planar", sampleRate: aud.rate, numberOfFrames: len, numberOfChannels: aud.chn, timestamp: Math.round(i * 1e6 / aud.rate), data: planar });
+        aenc.encode(ad); ad.close();
+      }
+      await aenc.flush(); aenc.close();
+    }
+    const canvas = makeCanvasRz(W, H), cctx = canvas.getContext("2d", { willReadFrequently: true });
+    const dur = Math.round(1e6 / fps), t0 = performance.now();
+    for (let i = 0; i < total; i++) {
+      if (job.cancelled || failed) break;
+      const t = Math.min(e - 0.001, s + (i + 0.5) / fps);
+      if (isSample) sampleT = t; else await seekVideo(t);
+      drawFrame(cctx, W, H);
+      const frame = new VideoFrame(toI420(cctx.getImageData(0, 0, W, H).data, W, H), {
+        format: "I420", codedWidth: W, codedHeight: H, timestamp: i * dur, duration: dur, colorSpace: COLOR709
+      });
+      venc.encode(frame, { keyFrame: i % (fps * 2) === 0 }); frame.close();
+      while (venc.encodeQueueSize > 3) await new Promise((r) => setTimeout(r, 2));
+      if (i % 3 === 0 || i === total - 1) {
+        drawFrame(pctx, preview.width, preview.height);
+        const f = (i + 1) / total, el = (performance.now() - t0) / 1000, left = el / f - el;
+        $("rz-progBar").style.width = (f * 100).toFixed(1) + "%";
+        $("rz-progText").textContent = `${Math.round(f * 100)}% · frame ${i + 1} of ${total}` + (i > 10 ? ` · about ${fmtTime(left)} left` : "");
+        await new Promise((r) => setTimeout(r, 0));
+      }
+    }
+    if (failed) throw failed;
+    if (job.cancelled) { try { venc.close(); } catch {} return "cancelled"; }
+    await venc.flush(); venc.close();
+    muxer.finalize();
+    return { blob: new Blob([muxer.target.buffer], { type: "video/mp4" }), audioNote };
+  }
+  function makeCanvasRz(w, h) { const c = document.createElement("canvas"); c.width = w; c.height = h; return c; }
+  function finishExport(blob, ext, extra) {
+    resultBlob = blob; resultName = `${rzClean($("rz-fname").value, rzAuto())}.${ext}`;
+    const rv = $("rz-resultVideo"); if (rv.src) URL.revokeObjectURL(rv.src); rv.src = URL.createObjectURL(resultBlob);
+    $("rz-result").hidden = false; $("rz-saveHint").hidden = true; $("rz-saveBtn").hidden = false;
+    note("rz-outNote", `Ready: ${resultName}, ${(resultBlob.size / 1048576).toFixed(1)} MB.${extra || ""}`, "ok");
+    render();
+  }
   async function startExport() {
+    setPlaying(false); $("rz-result").hidden = true; note("rz-outNote", "");
+    const job = { cancelled: false };
+    exporting = job;
+    $("rz-exportBtn").disabled = true; $("rz-progress").hidden = false; $("rz-progBar").style.width = "0%";
+    $("rz-progText").textContent = "Starting…";
+    let res = null;
+    try { res = await exportMp4(job); }
+    catch (err) { console.error(err); res = { error: err }; }
+    if (res && res.blob) { exporting = null; $("rz-exportBtn").disabled = false; $("rz-progress").hidden = true; finishExport(res.blob, "mp4", " Constant frame rate MP4, ready for DaVinci Resolve, Premiere and CapCut." + res.audioNote); return; }
+    if (res === "cancelled") { exporting = null; $("rz-exportBtn").disabled = false; $("rz-progress").hidden = true; note("rz-outNote", "Export cancelled."); render(); return; }
+    exporting = null;
+    await startExportRealtime(res && res.error ? "The frame-by-frame export failed, so this was recorded in real time instead. Editing apps like DaVinci Resolve may not open it." : "This browser can't export frame by frame, so the video is recorded in real time. For DaVinci Resolve, export in Chrome or Edge.");
+  }
+  async function startExportRealtime(why) {
     const mime = pickMime();
     if (!mime) { note("rz-outNote", "This browser can't record video. Use a recent Chrome, Edge, Firefox or Safari.", "err"); return; }
     if (!preview.captureStream) { note("rz-outNote", "This browser can't capture canvas video. Use a recent Chrome, Edge or Firefox.", "err"); return; }
@@ -1995,6 +2131,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     if (a) a.monitor.gain.value = 1;
     exporting = null; $("rz-exportBtn").disabled = false; $("rz-progress").hidden = true;
     if (job.cancelled) { note("rz-outNote", "Export cancelled."); render(); return; }
+    if (why) { const type0 = mime.split(";")[0]; finishExport(new Blob(chunks, { type: type0 }), type0 === "video/mp4" ? "mp4" : "webm", " " + why); $("rz-outNote").className = "note warn"; return; }
     const type = mime.split(";")[0], ext = type === "video/mp4" ? "mp4" : "webm";
     resultBlob = new Blob(chunks, { type }); resultName = `${rzClean($("rz-fname").value, rzAuto())}.${ext}`;
     const rv = $("rz-resultVideo"); if (rv.src) URL.revokeObjectURL(rv.src); rv.src = URL.createObjectURL(resultBlob);
