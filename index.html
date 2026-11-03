@@ -210,6 +210,24 @@ body { transition: background-color .2s; }
 #resize .bar i { transition: width .2s; }
 #resize .result { display: grid; gap: 8px; }
 #resize .result video { width: 100%; max-height: 40vh; background: #000; border-radius: 6px; }
+
+/* In-app color picker */
+.sw.custom { background: conic-gradient(#e74c3c, #f1c40f, #2ecc71, #3498db, #9b59b6, #e74c3c); position: relative; }
+.sw.custom.picked { background: var(--picked); }
+.sw.custom.picked::after { content: ""; position: absolute; right: -3px; bottom: -3px; width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--panel); background: conic-gradient(#e74c3c, #f1c40f, #2ecc71, #3498db, #9b59b6, #e74c3c); }
+.cp { position: fixed; z-index: 30; width: 248px; background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 10px; box-shadow: 0 12px 36px rgb(0 0 0 / .28); }
+.cp-sv { position: relative; height: 150px; border-radius: 7px; cursor: crosshair; touch-action: none; background-image: linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, transparent); }
+.cp-hue { position: relative; height: 14px; border-radius: 7px; cursor: pointer; touch-action: none; background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00); }
+.cp-knob { position: absolute; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgb(0 0 0 / .5), inset 0 0 0 1px rgb(0 0 0 / .3); transform: translate(-50%, -50%); pointer-events: none; }
+.cp-hue .cp-knob { top: 50%; }
+.cp-row { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 8px; align-items: center; }
+.cp-preview { width: 34px; height: 34px; border-radius: 7px; border: 1px solid var(--line); }
+.cp-hex { width: 100%; font-family: var(--font-mono); font-size: 14px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink); text-transform: uppercase; min-height: 36px; }
+.cp-hex:focus-visible { outline: 2px solid var(--mat); outline-offset: 1px; }
+.cp-presets { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+.cp-presets button { min-height: 0; aspect-ratio: 1; padding: 0; border-radius: 6px; border: 1px solid var(--line); }
+.cp-done { min-height: 36px; }
+.cp-label { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin: 0; }
 footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
 </style>
 
@@ -301,8 +319,8 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
           <button class="sw" data-bg="#ffffff" style="background:#ffffff" aria-pressed="false" title="White" aria-label="White"></button>
           <button class="sw" data-bg="#000000" style="background:#000000" aria-pressed="false" title="Black" aria-label="Black"></button>
           <button class="sw" data-bg="#1f5e4b" style="background:#1f5e4b" aria-pressed="false" title="Green" aria-label="Green"></button>
-          <button class="sw custom" id="customSw" data-bg="custom" aria-pressed="false" title="Pick a color" aria-label="Pick a color"
-            style="background:conic-gradient(#e74c3c,#f1c40f,#2ecc71,#3498db,#9b59b6,#e74c3c)"><input type="color" id="customColor" value="#f4c542" aria-label="Custom background color"></button>
+          <button class="sw custom" id="customSw" data-bg="custom" data-picker="customColor" aria-pressed="false" aria-haspopup="dialog" title="Pick a color" aria-label="Pick a color"></button>
+          <input type="hidden" id="customColor" value="#f4c542">
         </div>
         <div class="row">
           <button class="primary" id="savePng">Save PNG</button>
@@ -381,7 +399,8 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
             <button class="sw blur" data-bars="blur" aria-pressed="true" title="Blurred copy of the video" aria-label="Blurred copy of the video"></button>
             <button class="sw" data-bars="#000000" style="background:#000" aria-pressed="false" title="Black" aria-label="Black"></button>
             <button class="sw" data-bars="#ffffff" style="background:#fff" aria-pressed="false" title="White" aria-label="White"></button>
-            <button class="sw custom" data-bars="custom" aria-pressed="false" title="Pick a color" aria-label="Pick a color"><input type="color" id="rz-barColor" value="#1c5266" aria-label="Bar color"></button>
+            <button class="sw custom" data-bars="custom" data-picker="rz-barColor" aria-pressed="false" aria-haspopup="dialog" title="Pick a color" aria-label="Pick a color"></button>
+            <input type="hidden" id="rz-barColor" value="#1c5266">
           </div>
         </div>
       </section>
@@ -431,6 +450,107 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
   </div>
 </div>
 
+<script>
+(() => {
+  // In-app color picker: replaces the operating system's color dialog
+  const PRESETS = ["#ffffff", "#f2efe8", "#d9d9d9", "#7f8c8d", "#2c3e50", "#000000", "#c0392b", "#e67e22",
+                   "#f4c542", "#27ae60", "#1f5e4b", "#16a085", "#1c5266", "#2980b9", "#8e44ad", "#e84393"];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  function hsvToHex(h, s, v) {
+    const f = (n) => { const k = (n + h / 60) % 6; return v - v * s * Math.max(0, Math.min(k, 4 - k, 1)); };
+    return "#" + [f(5), f(3), f(1)].map((x) => Math.round(x * 255).toString(16).padStart(2, "0")).join("");
+  }
+  function hexToHsv(hex) {
+    const m = /^#?([0-9a-f]{6})$/i.exec(hex || ""); if (!m) return null;
+    const n = parseInt(m[1], 16), r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+    const max = Math.max(r, g, b), d = max - Math.min(r, g, b);
+    let h = 0;
+    if (d) h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    return { h: (h * 60 + 360) % 360, s: max ? d / max : 0, v: max };
+  }
+  function normHex(t) {
+    t = (t || "").trim().replace(/^#/, "");
+    if (/^[0-9a-f]{3}$/i.test(t)) t = t.split("").map((c) => c + c).join("");
+    return /^[0-9a-f]{6}$/i.test(t) ? "#" + t.toLowerCase() : null;
+  }
+
+  const el = document.createElement("div");
+  el.className = "cp"; el.hidden = true; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", "Pick a color");
+  el.innerHTML = `
+    <div class="cp-sv" id="cpSv"><span class="cp-knob" id="cpSvKnob"></span></div>
+    <div class="cp-hue" id="cpHue" role="slider" aria-label="Hue" aria-valuemin="0" aria-valuemax="360" tabindex="0"><span class="cp-knob" id="cpHueKnob"></span></div>
+    <div class="cp-row"><span class="cp-preview" id="cpPreview"></span><input class="cp-hex" id="cpHex" maxlength="7" spellcheck="false" autocomplete="off" aria-label="Hex color"></div>
+    <p class="cp-label">Presets</p>
+    <div class="cp-presets" id="cpPresets"></div>
+    <button class="cp-done primary" id="cpDone">Done</button>`;
+  document.body.appendChild(el);
+  const q = (id) => el.querySelector("#" + id);
+  const sv = q("cpSv"), hue = q("cpHue"), hex = q("cpHex");
+  PRESETS.forEach((c) => {
+    const b = document.createElement("button"); b.style.background = c; b.title = c; b.setAttribute("aria-label", c);
+    b.addEventListener("click", () => { state = hexToHsv(c); paint(true); });
+    q("cpPresets").appendChild(b);
+  });
+
+  let state = { h: 0, s: 1, v: 1 }, target = null, anchor = null;
+  function paint(emit, fromHex) {
+    const c = hsvToHex(state.h, state.s, state.v);
+    sv.style.backgroundColor = hsvToHex(state.h, 1, 1);
+    q("cpSvKnob").style.left = state.s * 100 + "%"; q("cpSvKnob").style.top = (1 - state.v) * 100 + "%";
+    q("cpSvKnob").style.background = c;
+    q("cpHueKnob").style.left = (state.h / 360) * 100 + "%"; q("cpHueKnob").style.background = hsvToHex(state.h, 1, 1);
+    hue.setAttribute("aria-valuenow", Math.round(state.h));
+    q("cpPreview").style.background = c;
+    if (!fromHex) hex.value = c.toUpperCase();
+    if (emit && target) {
+      target.value = c;
+      target.dispatchEvent(new Event("input", { bubbles: true }));
+      if (anchor) { anchor.classList.add("picked"); anchor.style.setProperty("--picked", c); }
+    }
+  }
+  function drag(area, onMove) {
+    area.addEventListener("pointerdown", (e) => {
+      e.preventDefault(); area.setPointerCapture(e.pointerId);
+      const move = (ev) => { const r = area.getBoundingClientRect(); onMove(clamp((ev.clientX - r.left) / r.width, 0, 1), clamp((ev.clientY - r.top) / r.height, 0, 1)); paint(true); };
+      move(e);
+      const up = () => { area.removeEventListener("pointermove", move); area.removeEventListener("pointerup", up); area.removeEventListener("pointercancel", up); };
+      area.addEventListener("pointermove", move); area.addEventListener("pointerup", up); area.addEventListener("pointercancel", up);
+    });
+  }
+  drag(sv, (x, y) => { state.s = x; state.v = 1 - y; });
+  drag(hue, (x) => { state.h = x * 359.9; });
+  hue.addEventListener("keydown", (e) => {
+    const d = e.key === "ArrowRight" || e.key === "ArrowUp" ? 5 : e.key === "ArrowLeft" || e.key === "ArrowDown" ? -5 : 0;
+    if (d) { e.preventDefault(); state.h = (state.h + d + 360) % 360; paint(true); }
+  });
+  hex.addEventListener("input", () => { const c = normHex(hex.value); if (c) { state = hexToHsv(c); paint(true, true); } });
+  hex.addEventListener("keydown", (e) => { if (e.key === "Enter") close(); });
+  q("cpDone").addEventListener("click", close);
+
+  function place() {
+    if (!anchor) return;
+    const r = anchor.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight, m = 12;
+    let left = r.left + r.width / 2 - w / 2, top = r.bottom + 8;
+    if (top + h > innerHeight - m) top = r.top - h - 8;
+    el.style.left = clamp(left, m, innerWidth - w - m) + "px";
+    el.style.top = clamp(top, m, Math.max(m, innerHeight - h - m)) + "px";
+  }
+  function open(btn) {
+    anchor = btn; target = document.getElementById(btn.dataset.picker);
+    state = hexToHsv(target && target.value) || { h: 0, s: 1, v: 1 };
+    el.hidden = false; paint(true); place(); hex.focus(); hex.select();
+  }
+  function close() { if (el.hidden) return; el.hidden = true; if (anchor) anchor.focus(); anchor = null; target = null; }
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-picker]");
+    if (btn) { if (!el.hidden && anchor === btn) close(); else open(btn); return; }
+    if (!el.hidden && !el.contains(e.target)) close();
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !el.hidden) { e.stopPropagation(); close(); } }, true);
+  addEventListener("resize", place); addEventListener("scroll", place, true);
+  addEventListener("hashchange", close);
+})();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.3/dist/ort.wasm.min.js"></script>
 <script>
 (() => {
@@ -770,7 +890,8 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
   // keyboard
   document.addEventListener("keydown", (e) => {
     if (!benchOn()) return;
-    if (e.target.matches("input[type=range], input[type=color]")) return;
+    if (e.target.closest(".cp") || e.target.matches("input:not([type=range]), select, textarea")) return;
+    if (e.target.matches("input[type=range]") && !["z"].includes(e.key.toLowerCase())) return;
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); undo(); return; }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const k = e.key.toLowerCase();
