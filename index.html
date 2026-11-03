@@ -680,7 +680,7 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
   <footer>Bitrates follow YouTube's recommended upload settings for standard (24–30 fps) and high (60 fps) frame rates. Exports are constant-frame-rate MOV or MP4 files (H.264 + AAC, BT.709) that open in DaVinci Resolve, Premiere, Final Cut and CapCut. Vertical videos up to 3 minutes are treated as Shorts. TikTok and Instagram exports use the same bitrate guide for their resolution.</footer>
   </section>
   <section id="edit" aria-label="Edit" hidden>
-    <p class="tag">Text match cut: one highlighted phrase stays locked in the middle while the pages around it flash past. Everything is rendered in your browser.</p>
+    <p class="tag" id="ed-tag">Text match cut: one highlighted phrase stays locked in the middle while the pages around it flash past. Everything is rendered in your browser.</p>
   <div class="bench">
     <div class="stage-wrap">
       <div class="namebar">
@@ -707,17 +707,76 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
     </div>
 
     <aside class="rail">
+      <section class="card" aria-labelledby="ed-h-mode">
+        <h2 id="ed-h-mode">Match cut</h2>
+        <div class="seg2" role="group" aria-label="Match cut type">
+          <button data-mode2="text" aria-pressed="true">Text</button>
+          <button data-mode2="photo" aria-pressed="false">Photo</button>
+        </div>
+      </section>
       <section class="card" aria-labelledby="ed-h-text">
         <h2 id="ed-h-text">Text</h2>
-        <label class="field">Highlighted word or phrase
-          <input type="text" id="ed-word" maxlength="23" value="nobody saw it coming" spellcheck="false" autocomplete="off">
-        </label>
-        <p class="hint" id="ed-wordCount"></p>
+        <div id="ed-phraseRow" class="wand-opts">
+          <label class="field">Highlighted word or phrase
+            <input type="text" id="ed-word" maxlength="23" value="nobody saw it coming" spellcheck="false" autocomplete="off">
+          </label>
+          <p class="hint" id="ed-wordCount"></p>
+        </div>
         <label class="field">Text around it
           <textarea id="ed-context" rows="3" placeholder="Leave empty for random article text"></textarea>
         </label>
       </section>
 
+      <section class="card" id="ed-photoCard" aria-labelledby="ed-h-photo" hidden>
+        <h2 id="ed-h-photo">Photo</h2>
+        <label class="filebtn primary" for="ed-photoFile">Add photo<input type="file" id="ed-photoFile" accept="image/*"></label>
+        <p class="hint" id="ed-photoHint">Showing a sample photo. Add your own JPG, PNG or WebP, or drop it on the stage.</p>
+        <label class="field">Headline
+          <input type="text" id="ed-headline" maxlength="36" value="The day everything changed" spellcheck="false" autocomplete="off">
+        </label>
+        <p class="hint" id="ed-headCount"></p>
+        <div class="field"><span>Quick style</span>
+          <div class="chipset" role="group" aria-label="Quick style">
+            <button data-preset="classic" aria-pressed="false">Broadsheet</button>
+            <button data-preset="reel" aria-pressed="false">Viral reel</button>
+            <button data-preset="noir" aria-pressed="false">Noir minimal</button>
+            <button data-preset="archival" aria-pressed="false">Archival</button>
+          </div>
+        </div>
+        <div class="field"><span>Print look</span>
+          <div class="seg3" role="group" aria-label="Print look">
+            <button data-print="color" aria-pressed="false">Color</button>
+            <button data-print="bw" aria-pressed="true">Black &amp; white</button>
+            <button data-print="halftone" aria-pressed="false">Halftone</button>
+          </div>
+        </div>
+        <div class="slider"><label for="ed-photoSize">Photo size</label><output id="ed-photoSizeOut" for="ed-photoSize"></output>
+          <input type="range" id="ed-photoSize" min="40" max="95" step="1" value="72"></div>
+        <div class="field"><span>Page slides in from</span>
+          <div class="seg3" role="group" aria-label="Slide-in direction">
+            <button data-entry="left" aria-pressed="true">Left</button>
+            <button data-entry="right" aria-pressed="false">Right</button>
+            <button data-entry="none" aria-pressed="false">No slide</button>
+          </div>
+        </div>
+        <div class="slider" id="ed-introRow"><label for="ed-intro">Slide-in length</label><output id="ed-introOut" for="ed-intro"></output>
+          <input type="range" id="ed-intro" min="0.4" max="2.5" step="0.1" value="1.2"></div>
+        <div class="field"><span>Behind the page</span>
+          <div class="seg3" role="group" aria-label="Background">
+            <button data-bgd="black" aria-pressed="true">Black</button>
+            <button data-bgd="green" aria-pressed="false">Green screen</button>
+            <button data-bgd="paper" aria-pressed="false">Desk paper</button>
+          </div>
+        </div>
+        <label class="field">Paper
+          <select id="ed-paper"><option value="newsprint" selected>Classic newsprint</option><option value="sepia">Aged sepia</option><option value="cream">Cream</option><option value="white">Bleached white</option></select>
+        </label>
+        <div class="slider"><label for="ed-grain">Paper grain</label><output id="ed-grainOut" for="ed-grain"></output>
+          <input type="range" id="ed-grain" min="0" max="100" step="5" value="50"></div>
+        <div class="slider"><label for="ed-crease">Fold creases</label><output id="ed-creaseOut" for="ed-crease"></output>
+          <input type="range" id="ed-crease" min="0" max="100" step="5" value="40"></div>
+        <label class="check" for="ed-automix"><input type="checkbox" id="ed-automix" checked> Auto mix: change masthead and headline type on every cut</label>
+      </section>
       <section class="card" aria-labelledby="ed-h-look">
         <h2 id="ed-h-look">Look</h2>
         <div class="seg3" role="group" aria-label="Aspect ratio">
@@ -725,6 +784,7 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
           <button data-ratio="1:1" aria-pressed="false">1:1<small>Square post</small></button>
           <button data-ratio="16:9" aria-pressed="false">16:9<small>YouTube · X</small></button>
         </div>
+        <div id="ed-textLook" class="wand-opts">
         <div class="field"><span>Page styles</span>
           <div class="chipset" role="group" aria-label="Page styles">
             <button data-style="newspaper" aria-pressed="true">Newspaper</button>
@@ -750,6 +810,7 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
           <button class="sw custom" data-hlc="custom" data-picker="ed-hlColor" aria-pressed="false" aria-haspopup="dialog" title="Pick a color" aria-label="Pick a color"></button>
           <input type="hidden" id="ed-hlColor" value="#7fd4ff">
         </div>
+        </div>
         <button id="ed-shuffle" title="Make a new random set of pages">Shuffle pages</button>
       </section>
 
@@ -761,7 +822,7 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
           <input type="range" id="ed-len" min="1" max="10" step="0.5" value="3"></div>
         <div class="slider"><label for="ed-hold">Hold the last page</label><output id="ed-holdOut" for="ed-hold"></output>
           <input type="range" id="ed-hold" min="0" max="3" step="0.1" value="1"></div>
-        <div class="slider"><label for="ed-zoom">Zoom</label><output id="ed-zoomOut" for="ed-zoom"></output>
+        <div class="slider" id="ed-zoomRow"><label for="ed-zoom">Zoom</label><output id="ed-zoomOut" for="ed-zoom"></output>
           <input type="range" id="ed-zoom" min="1" max="3" step="0.1" value="1.5"></div>
         <div class="slider"><label for="ed-blur">Blur around the word</label><output id="ed-blurOut" for="ed-blur"></output>
           <input type="range" id="ed-blur" min="0" max="3" step="0.1" value="1"></div>
@@ -2685,7 +2746,8 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
     return { ww: ww * zoom, fs: fs * zoom };
   }
   // page + depth-of-field blur (sharp around the phrase, soft further out)
-  function renderCut(k, W, H) {
+  function renderCut(k, W, H) { return mode === "photo" ? renderPhotoCut(k, W, H) : renderTextCut(k, W, H); }
+  function renderTextCut(k, W, H) {
     const a = document.createElement("canvas"); a.width = W; a.height = H;
     const ax = a.getContext("2d");
     const info = drawPage(ax, W, H, k);
@@ -2717,10 +2779,247 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
       const sum = w.reduce((p, q) => p + q, 0); let t = 0;
       for (let k = 0; k < n; k++) { starts.push(t); t += w[k] / sum * len; }
     }
-    const cutsEnd = ramp ? len : n / cps;
-    return { n, starts, cutsEnd, total: cutsEnd + hold };
+    const cutsEnd = ramp ? len : n / cps, intro = introLength();
+    return { n, starts: starts.map((s) => s + intro), cutsEnd: cutsEnd + intro, total: cutsEnd + intro + hold, intro };
   }
-  function cutAt(t, tl) { let k = 0; while (k + 1 < tl.n && tl.starts[k + 1] <= t) k++; return k; }
+  function cutAt(t, tl) { if (t < tl.intro) return -1; let k = 0; while (k + 1 < tl.n && tl.starts[k + 1] <= t) k++; return k; }
+
+  // ---------- photo match cut ----------
+  // A newspaper page is built around the photo. The photo keeps the exact same spot in every
+  // page cut; masthead, headline type and columns change. Optional 3D slide-in at the start.
+  let mode = "text", photo = null, printLook = "bw", entry = "left", bgd = "black";
+  const PAPER = { newsprint: "#e7e2d4", sepia: "#e0cda4", cream: "#f3e9d0", white: "#fafaf7" };
+  const MASTHEADS = ["The Morning Ledger", "The Evening Dispatch", "Harbour City Gazette", "The Weekly Almanac", "Northfield Record", "The Sunday Lantern", "Metro Bulletin", "The Riverside Herald", "The Daily Compass", "Valley Courier"];
+  const HEADFONTS = [['"Playfair Display", Georgia, serif', 700, ""], ['"Old Standard TT", Georgia, serif', 700, ""], ['"Old Standard TT", Georgia, serif', 400, "italic "], ['"Source Serif 4", Georgia, serif', 700, ""], ['"Archivo Black", "Arial Black", sans-serif', 400, ""], ['"Playfair Display", Georgia, serif', 400, "italic "], ['Roboto, Arial, sans-serif', 700, ""]];
+  const headline = () => ($("ed-headline").value.trim() || "The day everything changed");
+  let samplePhoto = null;
+  function getPhoto() {
+    if (photo) return photo;
+    if (samplePhoto) return samplePhoto;
+    const c = document.createElement("canvas"); c.width = 1200; c.height = 800; const x = c.getContext("2d"), r = rng(42);
+    const sky = x.createLinearGradient(0, 0, 0, 520); sky.addColorStop(0, "#2b3d6b"); sky.addColorStop(0.55, "#d9775a"); sky.addColorStop(1, "#f6c27a");
+    x.fillStyle = sky; x.fillRect(0, 0, 1200, 800);
+    x.fillStyle = "#fff1c9"; x.beginPath(); x.arc(760, 430, 70, 0, 7); x.fill();
+    const ridge = (base, amp, col, seedOff) => { x.fillStyle = col; x.beginPath(); x.moveTo(0, 800); let y = base; for (let i = 0; i <= 1200; i += 20) { y += (r() - 0.5) * amp; y = Math.max(base - amp * 2, Math.min(base + amp, y)); x.lineTo(i, y); } x.lineTo(1200, 800); x.fill(); };
+    ridge(470, 40, "#6b4a63", 1); ridge(520, 34, "#4a3450", 2); ridge(575, 26, "#2c2036", 3);
+    const lake = x.createLinearGradient(0, 600, 0, 800); lake.addColorStop(0, "#c46a55"); lake.addColorStop(1, "#1d1a2b");
+    x.fillStyle = lake; x.fillRect(0, 610, 1200, 190);
+    x.fillStyle = "rgba(255,241,201,.55)"; for (let i = 0; i < 9; i++) x.fillRect(700 + (r() - 0.5) * 60, 625 + i * 16, 120 - i * 10, 3);
+    x.fillStyle = "#15111c"; x.beginPath(); x.moveTo(140, 640); x.lineTo(176, 560); x.lineTo(212, 640); x.fill(); x.fillRect(172, 640, 8, 30);
+    return (samplePhoto = c);
+  }
+  function photoGeom(W, H) {
+    const img = getPhoto(), ar = img.width / img.height, s = +$("ed-photoSize").value / 100, u = Math.min(W, H);
+    let pw = W * s, ph = pw / ar;
+    const maxH = H * 0.6 * s / 0.75;
+    if (ph > maxH) { ph = maxH; pw = ph * ar; }
+    const hs = u * 0.082;
+    const py = Math.round(H / 2 - ph / 2 + hs * 1.05);
+    return { pw: Math.round(pw), ph: Math.round(ph), px: Math.round((W - pw) / 2), py, hs, u };
+  }
+  const printCache = new Map();
+  function printedPhoto(pw, ph) {
+    const key = `${printLook}|${pw}x${ph}|${photo ? 1 : 0}`;
+    if (printCache.has(key)) return printCache.get(key);
+    const img = getPhoto(), c = document.createElement("canvas"); c.width = pw; c.height = ph; const x = c.getContext("2d");
+    if (printLook === "color") { x.filter = "saturate(0.92) contrast(1.05)"; x.drawImage(img, 0, 0, pw, ph); }
+    else if (printLook === "bw") { x.filter = "grayscale(1) contrast(1.25) brightness(1.04)"; x.drawImage(img, 0, 0, pw, ph); }
+    else {
+      const cell = Math.max(3, pw / 115), gw = Math.ceil(pw / cell), gh = Math.ceil(ph / cell);
+      const sm = document.createElement("canvas"); sm.width = gw; sm.height = gh; const sx = sm.getContext("2d", { willReadFrequently: true });
+      sx.filter = "grayscale(1) contrast(1.2)"; sx.drawImage(img, 0, 0, gw, gh);
+      const d = sx.getImageData(0, 0, gw, gh).data;
+      x.fillStyle = "#fff"; x.fillRect(0, 0, pw, ph); x.fillStyle = "#141414";
+      for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++) {
+        const l = d[(j * gw + i) * 4] / 255, rad = cell * 0.72 * Math.sqrt(1 - l);
+        if (rad > 0.25) { x.beginPath(); x.arc((i + 0.5 + (j % 2) * 0.5) * cell, (j + 0.5) * cell, rad, 0, 7); x.fill(); }
+      }
+    }
+    x.filter = "none";
+    printCache.set(key, c); if (printCache.size > 12) printCache.delete(printCache.keys().next().value);
+    return c;
+  }
+  const sheetCache = new Map();
+  function photoSheet(k, W, H) {
+    const key = `${k}|${W}x${H}`;
+    if (sheetCache.has(key)) return sheetCache.get(key);
+    const SW = Math.round(W * 1.3), SH = Math.round(H * 1.3), ox = (SW - W) / 2, oy = (SH - H) / 2;
+    const c = document.createElement("canvas"); c.width = SW; c.height = SH; const x = c.getContext("2d");
+    const mix = $("ed-automix").checked, r = rng(seed * 977 + (mix ? k * 7919 : 0) + 3), rb = rng(seed * 31 + k * 104729 + 11);
+    const G = photoGeom(W, H), u = G.u, ink = "#161412", tone = PAPER[$("ed-paper").value] || PAPER.newsprint;
+    x.fillStyle = tone; x.fillRect(0, 0, SW, SH);
+    const bodyFont = r() < 0.5 ? '"Source Serif 4", Georgia, serif' : '"Old Standard TT", Georgia, serif';
+    const fs = u * (0.021 + rb() * 0.004), lh = fs * 1.32, margin = u * 0.05;
+    // masthead + date line (mostly above the visible frame when the page is flat)
+    const mast = MASTHEADS[Math.floor(r() * MASTHEADS.length)];
+    let my = SH * 0.075;
+    x.fillStyle = ink; x.textAlign = "center"; x.textBaseline = "alphabetic";
+    let ms = u * 0.12; x.font = `${r() < 0.5 ? "700" : "400"} ${ms}px "Old Standard TT", "Playfair Display", Georgia, serif`;
+    while (x.measureText(mast).width > SW - margin * 2 && ms > 10) { ms *= 0.92; x.font = x.font.replace(/[\d.]+px/, ms + "px"); }
+    x.fillText(mast, SW / 2, my);
+    x.fillRect(margin, my + ms * 0.22, SW - margin * 2, Math.max(2, u * 0.004));
+    x.font = `600 ${fs * 0.85}px ${bodyFont}`;
+    const days = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
+    x.fillText(`VOL. ${40 + Math.floor(r() * 140)} · No. ${1 + Math.floor(r() * 300)} · ${days[Math.floor(r() * 7)]} EDITION · PRICE 2 CENTS`, SW / 2, my + ms * 0.22 + fs * 1.4);
+    x.fillRect(margin, my + ms * 0.22 + fs * 1.9, SW - margin * 2, Math.max(1, u * 0.002));
+    const top = my + ms * 0.22 + fs * 2.9;
+    // headline above the photo (font changes per cut when auto mix is on)
+    const hf = HEADFONTS[mix ? Math.floor(r() * HEADFONTS.length) : 0], text = headline();
+    let hs = G.hs * (hf[0].includes("Archivo") ? 0.82 : 1);
+    const setH = () => { x.font = `${hf[2]}${hf[1]} ${hs}px ${hf[0]}`; };
+    setH();
+    const words = text.split(/\s+/), maxW = Math.max(G.pw * 1.05, W * 0.8);
+    let lines = [text];
+    if (x.measureText(text).width > maxW) {
+      let best = null;
+      for (let i = 1; i < words.length; i++) { const a = words.slice(0, i).join(" "), b = words.slice(i).join(" "), m = Math.max(x.measureText(a).width, x.measureText(b).width); if (!best || m < best.m) best = { a, b, m }; }
+      lines = best ? [best.a, best.b] : [text];
+    }
+    while (Math.max(...lines.map((l) => x.measureText(l).width)) > maxW && hs > 8) { hs *= 0.94; setH(); }
+    const hBottom = oy + G.py - hs * 0.42, hTop = hBottom - hs * 1.08 * lines.length;
+    x.fillStyle = ink;
+    lines.forEach((l, i) => x.fillText(l, ox + W / 2, hBottom - (lines.length - 1 - i) * hs * 1.08));
+    // the photo, printed onto the paper
+    const px = ox + G.px, py = oy + G.py;
+    x.save(); x.globalCompositeOperation = "multiply"; x.drawImage(printedPhoto(G.pw, G.ph), px, py); x.restore();
+    x.strokeStyle = ink; x.lineWidth = Math.max(1, u * 0.0018); x.strokeRect(px, py, G.pw, G.ph);
+    x.font = `italic 400 ${fs * 0.9}px ${bodyFont}`; x.textAlign = "left"; x.fillStyle = ink;
+    const caps = ["Photograph by the staff correspondent.", "The scene on the morning in question.", "Photo: archive collection.", "As it appeared to onlookers that day.", "Pictured above, the view from the east."];
+    x.fillText(caps[Math.floor(rb() * caps.length)], px, py + G.ph + fs * 1.35);
+    // columns of text around everything else
+    const words2 = contextWords(); let wi = Math.floor(rb() * words2.length);
+    const ncol = W > H ? 6 : W === H ? 4 : 3, gutter = fs * 1.4, colW = (SW - margin * 2 - gutter * (ncol - 1)) / ncol;
+    const rx0 = Math.min(px, ox + W / 2 - maxW / 2) - gutter, rx1 = Math.max(px + G.pw, ox + W / 2 + maxW / 2) + gutter;
+    const ry0 = hTop - hs * 0.9, ry1 = py + G.ph + fs * 2.4;
+    x.font = `400 ${fs}px ${bodyFont}`; x.textAlign = "left";
+    const sp = x.measureText(" ").width;
+    for (let ci = 0; ci < ncol; ci++) {
+      const cx0 = margin + ci * (colW + gutter), cx1 = cx0 + colW;
+      const blocked = cx1 > rx0 && cx0 < rx1;
+      if (ci > 0) { x.fillStyle = "rgba(0,0,0,.4)"; x.fillRect(cx0 - gutter / 2, top, Math.max(1, u * 0.0012), SH - top - margin); }
+      for (let y = top + fs * 1.2; y < SH - margin; y += lh) {
+        if (blocked && y > ry0 - fs && y < ry1) continue;
+        if (rb() < 0.025) { // small subhead
+          x.font = `700 ${fs * 1.35}px ${bodyFont}`; x.fillStyle = ink;
+          const t = [0, 1, 2, 3].map(() => words2[wi++ % words2.length]).join(" ").replace(/[.,]/g, "");
+          x.fillText(t.charAt(0).toUpperCase() + t.slice(1), cx0, y + fs * 0.4, colW); x.font = `400 ${fs}px ${bodyFont}`; y += lh * 0.6; continue;
+        }
+        if (rb() < 0.012 && !blocked) { x.fillStyle = "rgba(0,0,0,.18)"; const bh = lh * (4 + Math.floor(rb() * 4)); x.fillRect(cx0, y - fs, colW, bh); y += bh; continue; }
+        let lw = 0, items = [];
+        while (true) { const w = words2[wi++ % words2.length], wd = x.measureText(w).width; if (lw + wd > colW && items.length) { wi--; break; } items.push([w, wd]); lw += wd + sp; }
+        const gap = items.length > 1 ? (colW - items.reduce((a, b) => a + b[1], 0)) / (items.length - 1) : sp;
+        let xx = cx0; x.fillStyle = ink;
+        for (const [w, wd] of items) { x.fillText(w, xx, y); xx += wd + Math.min(gap, sp * 3); }
+      }
+    }
+    // paper: grain and fold creases
+    const grain = +$("ed-grain").value / 100, crease = +$("ed-crease").value / 100;
+    if (grain > 0) { x.save(); x.globalAlpha = 0.25 * grain; x.globalCompositeOperation = "multiply"; x.fillStyle = x.createPattern(noiseCanvas(), "repeat"); x.fillRect(0, 0, SW, SH); x.restore(); }
+    if (crease > 0) {
+      const fold = (gx, gy, w, h, vertical) => {
+        const g = vertical ? x.createLinearGradient(gx - w, 0, gx + w, 0) : x.createLinearGradient(0, gy - h, 0, gy + h);
+        g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(0.47, `rgba(0,0,0,${0.16 * crease})`); g.addColorStop(0.5, `rgba(255,255,255,${0.35 * crease})`); g.addColorStop(0.56, `rgba(0,0,0,${0.08 * crease})`); g.addColorStop(1, "rgba(0,0,0,0)");
+        x.fillStyle = g; vertical ? x.fillRect(gx - w, 0, w * 2, SH) : x.fillRect(0, gy - h, SW, h * 2);
+      };
+      fold(SW * (0.5 + (r() - 0.5) * 0.04), 0, u * 0.04, 0, true);
+      fold(0, SH * (0.62 + (r() - 0.5) * 0.06), 0, u * 0.04, false);
+    }
+    const out = { c, ox, oy, SW, SH, G };
+    sheetCache.set(key, out); if (sheetCache.size > 6) sheetCache.delete(sheetCache.keys().next().value);
+    return out;
+  }
+  // soft focus everywhere except an ellipse around the photo
+  function focusBlur(src, W, H, G, amount) {
+    if (!amount || !canFilter) return src;
+    const out = document.createElement("canvas"); out.width = W; out.height = H; const ox = out.getContext("2d");
+    ox.filter = `blur(${(amount * G.u / 1080 * 4).toFixed(2)}px)`; ox.drawImage(src, 0, 0); ox.filter = "none";
+    const sh = document.createElement("canvas"); sh.width = W; sh.height = H; const sx = sh.getContext("2d"); sx.drawImage(src, 0, 0);
+    // keep the photo and its headline sharp
+    const top = G.py - G.hs * 2.4, bot = G.py + G.ph + G.hs * 0.5;
+    const cx = G.px + G.pw / 2, cy = (top + bot) / 2, rx = Math.max(G.pw, W * 0.8) * 0.56, ry = (bot - top) * 0.56;
+    sx.globalCompositeOperation = "destination-in"; sx.translate(cx, cy); sx.scale(1, ry / rx);
+    const g = sx.createRadialGradient(0, 0, rx * 0.75, 0, 0, rx * 1.5); g.addColorStop(0, "#000"); g.addColorStop(1, "rgba(0,0,0,0)");
+    sx.fillStyle = g; sx.fillRect(-W * 3, -H * 6, W * 6, H * 12);
+    ox.drawImage(sh, 0, 0); return out;
+  }
+  function renderPhotoCut(k, W, H) {
+    const s = photoSheet(k, W, H), c = document.createElement("canvas"); c.width = W; c.height = H;
+    c.getContext("2d").drawImage(s.c, -s.ox, -s.oy);
+    return focusBlur(c, W, H, s.G, +$("ed-blur").value);
+  }
+  // ----- 3D slide-in with WebGL (perspective-correct page) -----
+  let glc = null, gl = null, glProg = null, glBuf = null, glTex = null, glSrc = null, gl2 = false;
+  function glReady() {
+    if (gl) return true;
+    if (gl === false) return false;
+    try {
+      glc = document.createElement("canvas");
+      gl = glc.getContext("webgl2", { preserveDrawingBuffer: true, premultipliedAlpha: true }); gl2 = !!gl;
+      if (!gl) gl = glc.getContext("webgl", { preserveDrawingBuffer: true });
+      if (!gl) { gl = false; return false; }
+      const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
+      glProg = gl.createProgram();
+      gl.attachShader(glProg, sh(gl.VERTEX_SHADER, "attribute vec4 p; attribute vec2 uv; varying vec2 v; void main(){ v = uv; gl_Position = p; }"));
+      gl.attachShader(glProg, sh(gl.FRAGMENT_SHADER, "precision mediump float; varying vec2 v; uniform sampler2D t; void main(){ gl_FragColor = texture2D(t, v); }"));
+      gl.linkProgram(glProg);
+      if (!gl.getProgramParameter(glProg, gl.LINK_STATUS)) { gl = false; return false; }
+      glBuf = gl.createBuffer(); glTex = gl.createTexture();
+      return true;
+    } catch { gl = false; return false; }
+  }
+  function cameraAt(p, W, H, SW, SH) {
+    const e = 1 - Math.pow(1 - p, 3), dir = entry === "left" ? -1 : 1, f = H * 1.15, Z0 = f * 2.4;
+    const yaw = dir * 0.8 * (1 - e), pitch = 0.6 * (1 - e), roll = -dir * 0.1 * (1 - e);
+    const Z = Z0 + (f - Z0) * e, X = dir * 0.36 * W * (Z / f) * (1 - e), Y = 0.07 * H * (Z / f) * (1 - e);
+    const pts = [[-SW / 2, -SH / 2], [SW / 2, -SH / 2], [-SW / 2, SH / 2], [SW / 2, SH / 2]].map(([x0, y0]) => {
+      const y1 = y0 * Math.cos(pitch), z1 = -y0 * Math.sin(pitch);
+      const x2 = x0 * Math.cos(yaw) + z1 * Math.sin(yaw), z2 = -x0 * Math.sin(yaw) + z1 * Math.cos(yaw);
+      const x3 = x2 * Math.cos(roll) - y1 * Math.sin(roll), y3 = x2 * Math.sin(roll) + y1 * Math.cos(roll);
+      const Xc = x3 + X, Yc = y3 + Y, Zc = z2 + Z;
+      return { clip: [Xc * f / (W / 2), -Yc * f / (H / 2), 0, Zc], sx: W / 2 + Xc * f / Zc, sy: H / 2 + Yc * f / Zc };
+    });
+    return { e, pts };
+  }
+  function renderIntro(p, W, H) {
+    const s = photoSheet(0, W, H), out = document.createElement("canvas"); out.width = W; out.height = H; const o = out.getContext("2d");
+    if (p >= 1 || !glReady()) { o.drawImage(s.c, -s.ox, -s.oy); return out; }
+    const { e, pts } = cameraAt(p, W, H, s.SW, s.SH);
+    o.fillStyle = bgd === "green" ? "#00b140" : bgd === "paper" ? "#cdbf9f" : "#0d0d0f"; o.fillRect(0, 0, W, H);
+    if (bgd === "paper") { o.save(); o.globalAlpha = 0.25; o.globalCompositeOperation = "multiply"; o.fillStyle = o.createPattern(noiseCanvas(), "repeat"); o.fillRect(0, 0, W, H); o.restore(); }
+    const poly = [pts[0], pts[1], pts[3], pts[2]];
+    if (bgd !== "green") {
+      o.save(); if (canFilter) o.filter = `blur(${Math.round(G_u(W, H) * 0.025)}px)`;
+      o.fillStyle = `rgba(0,0,0,${0.55 * (1 - e) + 0.1})`; o.beginPath();
+      poly.forEach((q, i) => (i ? o.lineTo : o.moveTo).call(o, q.sx + W * 0.025, q.sy + H * 0.03)); o.closePath(); o.fill(); o.restore();
+    }
+    // the page as a textured quad
+    glc.width = W; glc.height = H; gl.viewport(0, 0, W, H); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.useProgram(glProg); gl.bindTexture(gl.TEXTURE_2D, glTex);
+    if (glSrc !== s.c) {
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, s.c);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      if (gl2) { gl.generateMipmap(gl.TEXTURE_2D); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); }
+      else gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      glSrc = s.c;
+    }
+    const uv = [[0, 0], [1, 0], [0, 1], [1, 1]], data = new Float32Array(24);
+    pts.forEach((q, i) => { data.set(q.clip, i * 6); data.set(uv[i], i * 6 + 4); });
+    gl.bindBuffer(gl.ARRAY_BUFFER, glBuf); gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
+    const ap = gl.getAttribLocation(glProg, "p"), au = gl.getAttribLocation(glProg, "uv");
+    gl.enableVertexAttribArray(ap); gl.vertexAttribPointer(ap, 4, gl.FLOAT, false, 24, 0);
+    gl.enableVertexAttribArray(au); gl.vertexAttribPointer(au, 2, gl.FLOAT, false, 24, 16);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    o.drawImage(glc, 0, 0);
+    // light falloff across the tilted page
+    const lg = o.createLinearGradient(poly[0].sx, poly[0].sy, poly[2].sx, poly[2].sy);
+    lg.addColorStop(0, `rgba(0,0,0,${0.28 * (1 - e)})`); lg.addColorStop(1, "rgba(255,255,255,0)");
+    o.fillStyle = lg; o.beginPath(); poly.forEach((q, i) => (i ? o.lineTo : o.moveTo).call(o, q.sx, q.sy)); o.closePath(); o.fill();
+    return focusBlur(out, W, H, s.G, +$("ed-blur").value * Math.pow(e, 4));
+  }
+  const G_u = (W, H) => Math.min(W, H);
+  function introLength() { return mode === "photo" && entry !== "none" && glReady() ? +$("ed-intro").value : 0; }
 
   // ---------- sound (synthesised: granular paper, modal mechanical clicks, room, stereo) ----------
   const bufs = new WeakMap();
@@ -2886,7 +3185,7 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
   const cache = new Map();
   let playing = false, t = 0, lastTs = 0, lastK = -1, raf = 0;
   function prevSize() { const [W, H] = RATIOS[ratio], k = Math.min(1, 720 / Math.max(W, H)); return [Math.round(W * k), Math.round(H * k)]; }
-  function invalidate() { cache.clear(); lastK = -1; draw(); updateMeta(); }
+  function invalidate() { cache.clear(); sheetCache.clear(); glSrc = null; lastK = -2; draw(); updateMeta(); }
   function cutCanvas(k) {
     if (!cache.has(k)) { const [w, h] = prevSize(); cache.set(k, renderCut(k, w, h)); if (cache.size > 80) cache.delete(cache.keys().next().value); }
     return cache.get(k);
@@ -2896,7 +3195,7 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
     if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; fitPreview(); }
     const tl = timeline(); if (t > tl.total) t = 0;
     const k = cutAt(t, tl);
-    pctx.drawImage(cutCanvas(k), 0, 0);
+    pctx.drawImage(k < 0 ? renderIntro(t / tl.intro, w, h) : cutCanvas(k), 0, 0);
     $("ed-time").textContent = `${fmt(t)} / ${fmt(tl.total)}`;
     $("ed-scrub").value = Math.round(t / tl.total * 1000);
     return k;
@@ -2915,11 +3214,12 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
     if (!playing) return;
     const tl = timeline();
     t += lastTs ? (ts - lastTs) / 1000 : 0; lastTs = ts;
-    if (t >= tl.total) { t = 0; lastK = -1; }
+    if (t >= tl.total) { t = 0; lastK = -2; }
     const k = draw();
     if (k !== lastK) {
       const type = $("ed-sound").value, end = $("ed-end").value;
-      if (liveAc && type !== "none" && t < tl.cutsEnd + 0.02) playCut(liveAc, liveOut, type, liveAc.currentTime + 0.01, k, gapOf(tl, k));
+      if (k < 0) { if (liveAc && type !== "none") playCut(liveAc, liveOut, "whoosh", liveAc.currentTime + 0.01, 0, tl.intro * 0.9); }
+      else if (liveAc && type !== "none" && t < tl.cutsEnd + 0.02) playCut(liveAc, liveOut, type, liveAc.currentTime + 0.01, k, gapOf(tl, k));
       if (liveAc && end !== "none" && k === tl.n - 1) playEnding(liveAc, liveOut, end, liveAc.currentTime + 0.01 + Math.max(0, endTime(tl) - t));
       lastK = k;
     }
@@ -2930,7 +3230,7 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
     $("ed-playIcon").innerHTML = p ? '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>' : '<path d="M7 4v16l13-8z"/>';
     $("ed-play").setAttribute("aria-label", p ? "Pause" : "Play");
     cancelAnimationFrame(raf); lastTs = 0;
-    if (p) { liveAudio(); lastK = -1; raf = requestAnimationFrame(loop); }
+    if (p) { liveAudio(); lastK = -2; raf = requestAnimationFrame(loop); }
   }
   window.edPause = () => { if (playing) setPlaying(false); };
   $("ed-play").addEventListener("click", () => { if (!exporting) setPlaying(!playing); });
@@ -2939,6 +3239,8 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
     const tl = timeline(), [W, H] = RATIOS[ratio];
     $("ed-meta").innerHTML = `<span>Cuts <b>${tl.n}</b></span><span>Length <b>${tl.total.toFixed(1)} s</b></span><span>Output <b>${W} × ${H}</b></span>`;
     const n = phrase().length; $("ed-wordCount").textContent = `${n} of 23 characters. The phrase stays in the same spot on every page.`;
+    $("ed-headCount").textContent = `${headline().length} of 36 characters. Long headlines wrap onto two lines.`;
+    if (tl.intro > 0) $("ed-meta").insertAdjacentHTML("afterbegin", `<span>Slide-in <b>${tl.intro.toFixed(1)} s</b></span>`);
     edDefaultName();
   }
 
@@ -2969,10 +3271,65 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
   $("ed-hlColor").addEventListener("input", () => setHlColor($("ed-hlColor").value, document.querySelector('[data-hlc="custom"]')));
   $("ed-shuffle").addEventListener("click", () => { seed = 1 + Math.floor(Math.random() * 1e6); invalidate(); });
 
+  // ---------- photo controls ----------
+  const TAGS = {
+    text: "Text match cut: one highlighted phrase stays locked in the middle while the pages around it flash past. Everything is rendered in your browser.",
+    photo: "Photo match cut: your photo is printed into a newspaper page that slides in, then stays locked in place while the pages cut around it."
+  };
+  function setMode(m) {
+    mode = m; document.querySelectorAll("[data-mode2]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.mode2 === m));
+    const ph = m === "photo";
+    $("ed-photoCard").hidden = !ph; $("ed-phraseRow").hidden = ph; $("ed-textLook").hidden = ph; $("ed-zoomRow").hidden = ph;
+    $("ed-tag").textContent = TAGS[m]; nameTouched = false; t = 0; invalidate();
+  }
+  document.querySelectorAll("[data-mode2]").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode2)));
+  function press(attr, v) { document.querySelectorAll(`[data-${attr}]`).forEach((b) => b.setAttribute("aria-pressed", b.dataset[attr] === v)); }
+  document.querySelectorAll("[data-print]").forEach((b) => b.addEventListener("click", () => { printLook = b.dataset.print; press("print", printLook); invalidate(); }));
+  document.querySelectorAll("[data-entry]").forEach((b) => b.addEventListener("click", () => { entry = b.dataset.entry; press("entry", entry); $("ed-introRow").hidden = entry === "none"; t = 0; invalidate(); }));
+  document.querySelectorAll("[data-bgd]").forEach((b) => b.addEventListener("click", () => { bgd = b.dataset.bgd; press("bgd", bgd); invalidate(); }));
+  const photoOuts = () => {
+    $("ed-photoSizeOut").textContent = $("ed-photoSize").value + "%"; $("ed-introOut").textContent = (+$("ed-intro").value).toFixed(1) + " s";
+    $("ed-grainOut").textContent = $("ed-grain").value + "%"; $("ed-creaseOut").textContent = $("ed-crease").value + "%";
+  };
+  photoOuts();
+  ["ed-photoSize", "ed-intro", "ed-grain", "ed-crease"].forEach((id) => { $(id).addEventListener("input", photoOuts); $(id).addEventListener("change", () => { printCache.clear(); invalidate(); }); });
+  ["ed-paper", "ed-automix"].forEach((id) => $(id).addEventListener("change", invalidate));
+  let htyping = 0;
+  $("ed-headline").addEventListener("input", () => { clearTimeout(htyping); htyping = setTimeout(invalidate, 200); });
+  async function loadPhoto(f) {
+    if (!f) return;
+    if (f.type && !f.type.startsWith("image/")) { $("ed-photoHint").textContent = "That file isn't an image. Pick a JPG, PNG or WebP."; return; }
+    try {
+      const bmp = await createImageBitmap(f, { imageOrientation: "from-image" });
+      const k = Math.min(1, 2400 / Math.max(bmp.width, bmp.height)), c = document.createElement("canvas");
+      c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k); c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+      photo = c; printCache.clear(); $("ed-photoHint").textContent = `${f.name} · ${c.width} × ${c.height} px`; t = 0; invalidate();
+    } catch { $("ed-photoHint").textContent = "This browser couldn't read that image. Try a JPG or PNG; iPhone HEIC photos need converting first."; }
+  }
+  $("ed-photoFile").addEventListener("change", (e) => { loadPhoto(e.target.files[0]); e.target.value = ""; });
+  const edStage = $("ed-stage");
+  edStage.addEventListener("dragover", (e) => { if (mode === "photo") e.preventDefault(); });
+  edStage.addEventListener("drop", (e) => { if (mode !== "photo") return; e.preventDefault(); loadPhoto(e.dataTransfer.files[0]); });
+  const PHOTO_PRESETS = {
+    classic: { ratio: "16:9", entry: "left", paper: "newsprint", bgd: "black", print: "bw", cps: 8, len: 2.5, hold: 1.2, automix: true, grain: 50, crease: 40 },
+    reel: { ratio: "9:16", entry: "right", paper: "white", bgd: "black", print: "color", cps: 12, len: 2, hold: 1, automix: true, grain: 25, crease: 15 },
+    noir: { ratio: "16:9", entry: "none", paper: "white", bgd: "black", print: "bw", cps: 6, len: 3, hold: 1.5, automix: false, grain: 15, crease: 0 },
+    archival: { ratio: "16:9", entry: "left", paper: "sepia", bgd: "paper", print: "halftone", cps: 8, len: 3, hold: 1.5, automix: true, grain: 85, crease: 75 }
+  };
+  document.querySelectorAll("[data-preset]").forEach((b) => b.addEventListener("click", () => {
+    const p = PHOTO_PRESETS[b.dataset.preset]; press("preset", b.dataset.preset);
+    ratio = p.ratio; press("ratio", p.ratio);
+    entry = p.entry; press("entry", entry); $("ed-introRow").hidden = entry === "none";
+    printLook = p.print; press("print", printLook); bgd = p.bgd; press("bgd", bgd);
+    $("ed-paper").value = p.paper; $("ed-automix").checked = p.automix;
+    $("ed-cps").value = p.cps; $("ed-len").value = p.len; $("ed-hold").value = p.hold; $("ed-grain").value = p.grain; $("ed-crease").value = p.crease;
+    outs(); photoOuts(); printCache.clear(); t = 0; invalidate(); fitPreview();
+  }));
+
   // ---------- file name ----------
   let nameTouched = false;
-  const slug = () => phrase().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 32) || "match-cut";
-  const edAuto = () => `${slug()}-match-cut`;
+  const slug = () => (mode === "photo" ? headline() : phrase()).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 32) || "match-cut";
+  const edAuto = () => `${slug()}-${mode === "photo" ? "photo-" : ""}match-cut`;
   function edDefaultName() { if (!nameTouched) $("ed-fname").value = edAuto(); }
   $("ed-fname").addEventListener("input", () => { nameTouched = true; });
   document.querySelectorAll("[data-edadd]").forEach((b) => b.addEventListener("click", () => {
@@ -3006,6 +3363,7 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
         if (ok) {
           const oac = new OfflineAudioContext(2, Math.ceil(tl.total * 48000), 48000), out = masterChain(oac);
           if (type !== "none") for (let k = 0; k < tl.n; k++) playCut(oac, out, type, tl.starts[k] + 0.001, k, gapOf(tl, k));
+          if (type !== "none" && tl.intro > 0) playCut(oac, out, "whoosh", 0.001, 0, tl.intro * 0.9);
           if (end !== "none") playEnding(oac, out, end, endTime(tl) + 0.001);
           audio = { cfg: acfg, buf: await oac.startRendering() };
         } else audioNote = " Sound was left out: this browser can't make AAC audio. Chrome or Edge on Windows or Mac can.";
@@ -3038,8 +3396,8 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
       let curK = -1, px = null;
       for (let i = 0; i < frames; i++) {
         if (job.cancelled || failed) break;
-        const k = cutAt((i + 0.5) / fps, tl);
-        if (k !== curK) { fx.drawImage(renderCut(k, W, H), 0, 0); px = E.toI420(fx.getImageData(0, 0, W, H).data, W, H); curK = k; pctx.drawImage(fc, 0, 0, cv.width, cv.height); }
+        const tt = (i + 0.5) / fps, k = cutAt(tt, tl), key = k < 0 ? "i" + i : k;
+        if (key !== curK) { fx.drawImage(k < 0 ? renderIntro(tt / tl.intro, W, H) : renderCut(k, W, H), 0, 0); px = E.toI420(fx.getImageData(0, 0, W, H).data, W, H); curK = key; pctx.drawImage(fc, 0, 0, cv.width, cv.height); }
         const frame = new VideoFrame(px, { format: "I420", codedWidth: W, codedHeight: H, timestamp: i * dur, duration: dur, colorSpace: E.COLOR709 });
         venc.encode(frame, { keyFrame: i % (fps * 2) === 0 }); frame.close();
         while (venc.encodeQueueSize > 3) await new Promise((r) => setTimeout(r, 2));
@@ -3092,7 +3450,7 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
   // ---------- start ----------
   updateMeta(); draw();
   if (document.fonts && document.fonts.load) {
-    const fams = ['"Old Standard TT"', '"Source Serif 4"', "Roboto", '"Playfair Display"', '"Special Elite"', '"Courier Prime"', "Caveat", '"IBM Plex Sans"'];
+    const fams = ['"Old Standard TT"', '"Source Serif 4"', "Roboto", '"Playfair Display"', '"Special Elite"', '"Courier Prime"', "Caveat", '"IBM Plex Sans"', '"Archivo Black"'];
     Promise.all(fams.flatMap((f) => [document.fonts.load(`400 40px ${f}`), document.fonts.load(`700 40px ${f}`)]).map((p) => p.catch(() => {}))).then(invalidate);
   }
 })();
