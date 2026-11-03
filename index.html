@@ -180,7 +180,7 @@ body { transition: background-color .2s; }
 #resize .stage { display: grid; place-items: center; padding: 20px; height: min(66vh, 660px); min-height: 340px; touch-action: auto; }
 @media (max-width: 880px) { #resize .stage { height: 58vh; } }
 #resize .stage canvas { position: static; }
-#rz-preview { max-width: 100%; max-height: 100%; background: #000; box-shadow: 0 8px 30px rgb(0 0 0 / .35); }
+#rz-preview { display: block; background: #000; box-shadow: 0 8px 30px rgb(0 0 0 / .35); }
 #resize .frame-label { position: absolute; left: 12px; top: 12px; font-family: var(--font-mono); font-size: 12px; font-variant-numeric: tabular-nums; background: color-mix(in srgb, var(--mat) 85%, black); color: var(--mat-ink); padding: 3px 8px; border-radius: 5px; }
 #resize .transport { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; }
 #resize .transport input { width: 100%; accent-color: var(--mat); }
@@ -1120,9 +1120,19 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
   function sizePreview() {
     const k = Math.min(1, 900 / Math.max(out.w, out.h));
     preview.width = Math.round(out.w * k); preview.height = Math.round(out.h * k);
-    preview.style.aspectRatio = `${out.w} / ${out.h}`;
     $("rz-frameLabel").textContent = `${out.w} × ${out.h}`;
+    fitPreview();
   }
+  // Size the preview so the whole output frame always fits inside the mat
+  function fitPreview() {
+    const st = $("rz-stage"), cs = getComputedStyle(st);
+    const aw = st.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const ah = st.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    if (aw <= 0 || ah <= 0) return;
+    const k = Math.min(aw / out.w, ah / out.h);
+    preview.style.width = Math.floor(out.w * k) + "px"; preview.style.height = Math.floor(out.h * k) + "px";
+  }
+  new ResizeObserver(fitPreview).observe($("rz-stage"));
   function render() { if (exporting) return; drawFrame(pctx, preview.width, preview.height); updateTransport(); }
 
   // ---------- UI: format & resolution ----------
