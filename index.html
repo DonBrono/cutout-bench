@@ -171,22 +171,22 @@ body { transition: background-color .2s; }
 .ok { color: var(--ok); } .note.ok { color: var(--ok); }
 
 /* Resize page */
-:is(#resize, #edit) .bench { grid-template-columns: minmax(0, 1fr) 320px; }
-@media (max-width: 880px) { :is(#resize, #edit) .bench { grid-template-columns: minmax(0, 1fr); } }
-:is(#resize, #edit) .stage { display: grid; place-items: center; padding: 20px; height: min(66vh, 660px); min-height: 340px; touch-action: auto; }
-@media (max-width: 880px) { :is(#resize, #edit) .stage { height: 58vh; } }
-:is(#resize, #edit) .stage canvas { position: static; }
-#rz-preview, #ed-preview { display: block; background: #000; box-shadow: 0 8px 30px rgb(0 0 0 / .35); }
-:is(#resize, #edit) .frame-label { position: absolute; left: 12px; top: 12px; font-family: var(--font-mono); font-size: 12px; font-variant-numeric: tabular-nums; background: color-mix(in srgb, var(--mat) 85%, black); color: var(--mat-ink); padding: 3px 8px; border-radius: 5px; }
-:is(#resize, #edit) .transport { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; }
-:is(#resize, #edit) .transport input { width: 100%; accent-color: var(--mat); }
-:is(#resize, #edit) .time { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-:is(#resize, #edit) select { font: inherit; font-weight: 500; font-size: 14px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 7px; padding: 8px 10px; min-height: 40px; cursor: pointer; width: 100%; }
-:is(#resize, #edit) select:focus-visible { outline: 2px solid var(--mat); outline-offset: 2px; }
-:is(#resize, #edit) .icon { width: 40px; padding: 0; }
-:is(#resize, #edit) .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-:is(#resize, #edit) .res small.def { color: var(--mat); font-weight: 600; }
-:is(#resize, #edit) .field input[type=text] { width: 100%; font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink); min-height: 40px; }
+:is(#resize, #edit, #animate) .bench { grid-template-columns: minmax(0, 1fr) 320px; }
+@media (max-width: 880px) { :is(#resize, #edit, #animate) .bench { grid-template-columns: minmax(0, 1fr); } }
+:is(#resize, #edit, #animate) .stage { display: grid; place-items: center; padding: 20px; height: min(66vh, 660px); min-height: 340px; touch-action: auto; }
+@media (max-width: 880px) { :is(#resize, #edit, #animate) .stage { height: 58vh; } }
+:is(#resize, #edit, #animate) .stage canvas { position: static; }
+#rz-preview, #ed-preview, #an-preview { display: block; background: #000; box-shadow: 0 8px 30px rgb(0 0 0 / .35); }
+:is(#resize, #edit, #animate) .frame-label { position: absolute; left: 12px; top: 12px; font-family: var(--font-mono); font-size: 12px; font-variant-numeric: tabular-nums; background: color-mix(in srgb, var(--mat) 85%, black); color: var(--mat-ink); padding: 3px 8px; border-radius: 5px; }
+:is(#resize, #edit, #animate) .transport { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+:is(#resize, #edit, #animate) .transport input { width: 100%; accent-color: var(--mat); }
+:is(#resize, #edit, #animate) .time { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+:is(#resize, #edit, #animate) select { font: inherit; font-weight: 500; font-size: 14px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 7px; padding: 8px 10px; min-height: 40px; cursor: pointer; width: 100%; }
+:is(#resize, #edit, #animate) select:focus-visible { outline: 2px solid var(--mat); outline-offset: 2px; }
+:is(#resize, #edit, #animate) .icon { width: 40px; padding: 0; }
+:is(#resize, #edit, #animate) .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+:is(#resize, #edit, #animate) .res small.def { color: var(--mat); font-weight: 600; }
+:is(#resize, #edit, #animate) .field input[type=text] { width: 100%; font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink); min-height: 40px; }
 .namebar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
 @media (max-width: 560px) { .namebar { grid-template-columns: minmax(0, 1fr); } }
 .namebar-label { display: flex; align-items: center; gap: 6px; font-size: 11.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); font-weight: 600; grid-column: 1 / -1; }
@@ -201,29 +201,29 @@ body { transition: background-color .2s; }
 .fname-box:focus-within { outline: 2px solid var(--mat); outline-offset: 1px; }
 .fname-box input { min-width: 0; width: 100%; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 14px; padding: 8px 10px; min-height: 38px; outline: none; }
 .fname-box span { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); padding-right: 10px; }
-:is(#resize, #edit) .tabs button { flex-direction: column; gap: 4px; padding: 10px 6px; }
-:is(#resize, #edit) .tabs button small { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); font-weight: 400; }
-:is(#resize, #edit) [aria-pressed="true"]:not(.sw) { background: var(--mat-soft); border-color: var(--mat); font-weight: 600; }
-:is(#resize, #edit) .sw[aria-pressed="true"] { border-color: var(--mat); }
-:is(#resize, #edit) .shape { display: block; border: 2px solid currentColor; border-radius: 3px; }
-:is(#resize, #edit) .shape.v { width: 14px; height: 24px; } :is(#resize, #edit) .shape.h { width: 30px; height: 17px; }
-:is(#resize, #edit) .res { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 6px; }
-:is(#resize, #edit) .res button { flex-direction: column; gap: 0; padding: 7px 4px; line-height: 1.2; }
-:is(#resize, #edit) .res b { font-size: 14px; }
-:is(#resize, #edit) .res small { font-family: var(--font-mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
-:is(#resize, #edit) .seg3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-:is(#resize, #edit) .seg3 button { padding: 8px 4px; font-size: 13px; }
-:is(#resize, #edit) .field { display: grid; gap: 4px; font-size: 13px; }
-:is(#resize, #edit) .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-:is(#resize, #edit) .field input[type=number] { width: 100%; font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink); font-variant-numeric: tabular-nums; min-height: 40px; }
-:is(#resize, #edit) .sw.blur { background: radial-gradient(circle at 35% 35%, #9ccbb8, #2f5d74 70%); }
-:is(#resize, #edit) .progress { display: grid; gap: 6px; }
-:is(#resize, #edit) .check { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; cursor: pointer; }
-:is(#resize, #edit) .check input { accent-color: var(--mat); margin-top: 3px; width: 16px; height: 16px; flex: none; }
-:is(#resize, #edit) .bar { height: 8px; }
-:is(#resize, #edit) .bar i { transition: width .2s; }
-:is(#resize, #edit) .result { display: grid; gap: 8px; }
-:is(#resize, #edit) .result video { width: 100%; max-height: 40vh; background: #000; border-radius: 6px; }
+:is(#resize, #edit, #animate) .tabs button { flex-direction: column; gap: 4px; padding: 10px 6px; }
+:is(#resize, #edit, #animate) .tabs button small { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); font-weight: 400; }
+:is(#resize, #edit, #animate) [aria-pressed="true"]:not(.sw) { background: var(--mat-soft); border-color: var(--mat); font-weight: 600; }
+:is(#resize, #edit, #animate) .sw[aria-pressed="true"] { border-color: var(--mat); }
+:is(#resize, #edit, #animate) .shape { display: block; border: 2px solid currentColor; border-radius: 3px; }
+:is(#resize, #edit, #animate) .shape.v { width: 14px; height: 24px; } :is(#resize, #edit, #animate) .shape.h { width: 30px; height: 17px; }
+:is(#resize, #edit, #animate) .res { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 6px; }
+:is(#resize, #edit, #animate) .res button { flex-direction: column; gap: 0; padding: 7px 4px; line-height: 1.2; }
+:is(#resize, #edit, #animate) .res b { font-size: 14px; }
+:is(#resize, #edit, #animate) .res small { font-family: var(--font-mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+:is(#resize, #edit, #animate) .seg3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+:is(#resize, #edit, #animate) .seg3 button { padding: 8px 4px; font-size: 13px; }
+:is(#resize, #edit, #animate) .field { display: grid; gap: 4px; font-size: 13px; }
+:is(#resize, #edit, #animate) .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+:is(#resize, #edit, #animate) .field input[type=number] { width: 100%; font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink); font-variant-numeric: tabular-nums; min-height: 40px; }
+:is(#resize, #edit, #animate) .sw.blur { background: radial-gradient(circle at 35% 35%, #9ccbb8, #2f5d74 70%); }
+:is(#resize, #edit, #animate) .progress { display: grid; gap: 6px; }
+:is(#resize, #edit, #animate) .check { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; cursor: pointer; }
+:is(#resize, #edit, #animate) .check input { accent-color: var(--mat); margin-top: 3px; width: 16px; height: 16px; flex: none; }
+:is(#resize, #edit, #animate) .bar { height: 8px; }
+:is(#resize, #edit, #animate) .bar i { transition: width .2s; }
+:is(#resize, #edit, #animate) .result { display: grid; gap: 8px; }
+:is(#resize, #edit, #animate) .result video { width: 100%; max-height: 40vh; background: #000; border-radius: 6px; }
 
 /* In-app color picker */
 .sw.custom { background: conic-gradient(#e74c3c, #f1c40f, #2ecc71, #3498db, #9b59b6, #e74c3c); position: relative; }
@@ -275,6 +275,11 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
 }
 :root[data-app="resize"] { --mat: var(--violet); --mat-soft: var(--violet-soft); --stage: var(--lime); }
 :root[data-app="edit"] { --mat: var(--lime); --mat-soft: var(--lime-soft); --stage: var(--pink); }
+:root[data-app="animate"] { --mat: #5cc8ff; --mat-soft: #dff4ff; --stage: var(--violet); }
+#an-preview { touch-action: none; }
+#animate .seg2 button { font-size: 12.5px; }
+#animate .seg3 button { flex-direction: column; gap: 1px; line-height: 1.2; }
+#animate .seg3 button small { font-family: var(--font-mono); font-size: 10.5px; color: var(--dim); font-weight: 400; }
 body { background: var(--cream); color: var(--ink); font-family: var(--font-body); }
 ::selection { background: var(--lime); color: var(--ink); }
 
@@ -322,7 +327,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   background-image: radial-gradient(rgba(13, 13, 15, .18) 1.2px, transparent 1.4px);
   background-size: 18px 18px;
 }
-.frame-label, #resize .frame-label, :is(#resize, #edit) .frame-label { background: var(--ink); color: var(--cream); border-radius: 999px; padding: 3px 10px; font-weight: 600; }
+.frame-label, #resize .frame-label, :is(#resize, #edit, #animate) .frame-label { background: var(--ink); color: var(--cream); border-radius: 999px; padding: 3px 10px; font-weight: 600; }
 .drop-hint { border: 3px dashed var(--ink); color: var(--ink); background: color-mix(in srgb, var(--stage) 88%, transparent); font-family: var(--font-display); font-weight: 400; }
 #rz-preview, #ed-preview { border: var(--b3); border-radius: 6px; box-shadow: var(--sh); }
 .busy { background: var(--panel); border: var(--b3); border-radius: 16px; box-shadow: var(--sh); }
@@ -351,24 +356,24 @@ button:focus-visible, .filebtn:focus-within { outline: 3px solid var(--ink); out
 }
 .chipset button, .chips button { border-radius: 999px; }
 .seg button[aria-pressed="true"], .seg2 button[aria-pressed="true"],
-:is(#resize, #edit) [aria-pressed="true"]:not(.sw), .chipset button[aria-pressed="true"] {
+:is(#resize, #edit, #animate) [aria-pressed="true"]:not(.sw), .chipset button[aria-pressed="true"] {
   background: var(--mat); border-color: var(--ink); color: var(--ink); font-weight: 800;
   box-shadow: none; transform: translate(2px, 2px);
 }
 .seg button[aria-pressed="true"]:hover, .seg2 button[aria-pressed="true"]:hover,
-:is(#resize, #edit) [aria-pressed="true"]:not(.sw):hover, .chipset button[aria-pressed="true"]:hover { transform: translate(2px, 2px); box-shadow: none; }
-:is(#resize, #edit) .tabs button small, :is(#resize, #edit) .res small, #edit .seg3 button small { color: var(--dim); }
+:is(#resize, #edit, #animate) [aria-pressed="true"]:not(.sw):hover, .chipset button[aria-pressed="true"]:hover { transform: translate(2px, 2px); box-shadow: none; }
+:is(#resize, #edit, #animate) .tabs button small, :is(#resize, #edit, #animate) .res small, #edit .seg3 button small { color: var(--dim); }
 .chips button.ghost { background: transparent; box-shadow: none; border-style: dashed; }
-.icon, :is(#resize, #edit) .icon { width: 44px; min-width: 44px; padding: 0; border-radius: 50%; background: var(--mat); }
+.icon, :is(#resize, #edit, #animate) .icon { width: 44px; min-width: 44px; padding: 0; border-radius: 50%; background: var(--mat); }
 
 /* swatches */
 .sw { border: var(--b3); box-shadow: var(--sh-xs); width: 36px; height: 36px; }
 .sw[aria-pressed="true"] { border-color: var(--ink); box-shadow: 0 0 0 3px var(--panel), 0 0 0 6px var(--ink); transform: none; }
-:is(#resize, #edit) .sw[aria-pressed="true"] { border-color: var(--ink); box-shadow: 0 0 0 3px var(--panel), 0 0 0 6px var(--ink); transform: none; background-clip: padding-box; }
+:is(#resize, #edit, #animate) .sw[aria-pressed="true"] { border-color: var(--ink); box-shadow: 0 0 0 3px var(--panel), 0 0 0 6px var(--ink); transform: none; background-clip: padding-box; }
 
 /* fields */
 input[type=text], input[type=number], select, textarea,
-.field input[type=number], :is(#resize, #edit) .field input[type=number], :is(#resize, #edit) select, #edit textarea, #edit .field > input[type=text] {
+.field input[type=number], :is(#resize, #edit, #animate) .field input[type=number], :is(#resize, #edit, #animate) select, #edit textarea, #edit .field > input[type=text] {
   border: var(--b2); border-radius: 12px; background: #fff; color: var(--ink); font-family: var(--font-body);
 }
 select { font-weight: 700; padding: 8px 10px; min-height: 42px; }
@@ -392,7 +397,7 @@ input[type=range]:focus-visible { outline: 3px solid var(--ink); outline-offset:
 .note.ok { color: var(--ok); font-weight: 600; }
 .note.warn { color: var(--warn); font-weight: 600; }
 .note.err { color: var(--danger); font-weight: 600; }
-.result video, :is(#resize, #edit) .result video { border: var(--b3); border-radius: 14px; }
+.result video, :is(#resize, #edit, #animate) .result video { border: var(--b3); border-radius: 14px; }
 .ai-tune { border-top: 3px dashed var(--ink); }
 
 /* pop-ups */
@@ -429,6 +434,7 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
       <a href="#bench" data-nav="bench" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.5 7.5 20 18M8.5 16.5 20 6"/></svg>Remove background</a>
       <a href="#resize" data-nav="resize"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/></svg>Resize video</a>
       <a href="#edit" data-nav="edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 6h16M4 12h5M15 12h5M4 18h16" stroke-linecap="round"/><rect x="9" y="9.5" width="6" height="5" rx="1" fill="currentColor" stroke="none"/></svg>Edit</a>
+      <a href="#animate" data-nav="animate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4.5"/><path d="M9.5 10.5h5M6 21c.5-4 3-6.5 6-6.5s5.5 2.5 6 6.5"/></svg>Animate</a>
     </nav>
   </header>
 
@@ -883,6 +889,132 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
 
   <footer>1080p output: 1080 × 1920 (9:16), 1080 × 1080 (1:1) or 1920 × 1080 (16:9). Constant frame rate H.264 + AAC in MOV or MP4, ready for DaVinci Resolve, Premiere, CapCut and direct upload. The text around the phrase is filler written for this tool.</footer>
   </section>
+  <section id="animate" aria-label="Animate" hidden>
+    <p class="tag">Cut-out puppet animation: the person is lifted out of the photo, gets a paper-sticker edge, flaps their jaw and bounces around. Add a voice clip and the mouth follows it.</p>
+  <div class="bench">
+    <div class="stage-wrap">
+      <div class="namebar">
+        <label class="namebar-label" for="an-fname"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z" stroke-linejoin="round"/></svg>Export as</label>
+        <span class="fname-box"><input type="text" id="an-fname" spellcheck="false" autocomplete="off" aria-describedby="an-fnameExt"><span id="an-fnameExt">.mov</span></span>
+        <div class="chips" role="group" aria-label="Add to file name">
+          <button data-anadd="date" title="Add today's date">+ date</button>
+          <button class="ghost" data-anadd="reset" title="Go back to the automatic name">Reset</button>
+        </div>
+      </div>
+      <div class="stage" id="an-stage">
+        <canvas id="an-preview" width="640" height="360"></canvas>
+        <div class="frame-label" id="an-frameLabel"></div>
+        <div class="drop-hint" id="an-dropHint" hidden>Drop the image to load it</div>
+      </div>
+      <div class="transport">
+        <button class="icon" id="an-play" aria-label="Play">
+          <svg id="an-playIcon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg>
+        </button>
+        <input type="range" id="an-scrub" min="0" max="1000" value="0" aria-label="Position">
+        <span class="time" id="an-time">0:00.0 / 0:00.0</span>
+      </div>
+      <p class="hint" id="an-stageHint">Drag the character to move it. Use “Place the mouth” and click on the mouth to set where the jaw splits.</p>
+    </div>
+
+    <aside class="rail">
+      <section class="card" aria-labelledby="an-h-photo">
+        <h2 id="an-h-photo">Character</h2>
+        <label class="filebtn primary" for="an-file">Open photo<input type="file" id="an-file" accept="image/*"></label>
+        <p class="hint" id="an-photoHint">Showing a sample character. Open a photo of a person, or drop it on the stage.</p>
+        <button id="an-cut" disabled>Cut out the person (AI)</button>
+        <p class="note" id="an-cutNote" hidden></p>
+        <button id="an-mouthBtn" aria-pressed="false">Place the mouth</button>
+        <div class="slider"><label for="an-jaw">Jaw width</label><output id="an-jawOut" for="an-jaw"></output>
+          <input type="range" id="an-jaw" min="6" max="45" step="1" value="20"></div>
+        <div class="slider"><label for="an-size">Character size</label><output id="an-sizeOut" for="an-size"></output>
+          <input type="range" id="an-size" min="30" max="160" step="1" value="90"></div>
+      </section>
+
+      <section class="card" aria-labelledby="an-h-moves">
+        <h2 id="an-h-moves">Moves</h2>
+        <div class="chipset" role="group" aria-label="Moves">
+          <button data-move="talk" aria-pressed="true">Talk</button>
+          <button data-move="bob" aria-pressed="true">Bob</button>
+          <button data-move="sway" aria-pressed="false">Sway</button>
+          <button data-move="shake" aria-pressed="false">Shake</button>
+          <button data-move="hop" aria-pressed="false">Hop</button>
+          <button data-move="slide" aria-pressed="true">Slide in</button>
+          <button data-move="zoom" aria-pressed="true">Zoom punch</button>
+        </div>
+        <div class="slider"><label for="an-energy">Energy</label><output id="an-energyOut" for="an-energy"></output>
+          <input type="range" id="an-energy" min="10" max="200" step="5" value="100"></div>
+        <div class="slider"><label for="an-speed">Speed</label><output id="an-speedOut" for="an-speed"></output>
+          <input type="range" id="an-speed" min="40" max="250" step="5" value="100"></div>
+        <button id="an-shuffle">Shuffle the timing</button>
+      </section>
+
+      <section class="card" aria-labelledby="an-h-voice">
+        <h2 id="an-h-voice">Voice</h2>
+        <label class="filebtn" for="an-audio">Add voice clip<input type="file" id="an-audio" accept="audio/*,video/*"></label>
+        <p class="hint" id="an-audioHint">No voice clip: the mouth does a made-up talking pattern. Add an MP3, WAV or M4A and the mouth follows the voice.</p>
+        <button id="an-audioClear" hidden>Remove voice clip</button>
+        <div class="slider" id="an-lenRow"><label for="an-len">Length</label><output id="an-lenOut" for="an-len"></output>
+          <input type="range" id="an-len" min="2" max="30" step="0.5" value="6"></div>
+        <div class="slider"><label for="an-sens">Mouth sensitivity</label><output id="an-sensOut" for="an-sens"></output>
+          <input type="range" id="an-sens" min="20" max="200" step="5" value="100"></div>
+      </section>
+
+      <section class="card" aria-labelledby="an-h-look">
+        <h2 id="an-h-look">Look</h2>
+        <div class="seg3" role="group" aria-label="Aspect ratio">
+          <button data-anratio="16:9" aria-pressed="true">16:9<small>YouTube</small></button>
+          <button data-anratio="9:16" aria-pressed="false">9:16<small>Shorts · TikTok</small></button>
+          <button data-anratio="1:1" aria-pressed="false">1:1<small>Square</small></button>
+        </div>
+        <div class="field"><span>Background</span>
+          <div class="seg2" role="group" aria-label="Background">
+            <button data-anbg="blur" aria-pressed="true">Photo, blurred</button>
+            <button data-anbg="photo" aria-pressed="false">Photo</button>
+            <button data-anbg="color" aria-pressed="false">Flat color</button>
+            <button data-anbg="image" aria-pressed="false">Other image</button>
+          </div>
+        </div>
+        <div class="swatches" id="an-bgColors" role="group" aria-label="Background color" hidden>
+          <button class="sw" data-anc="#8c7ae6" style="background:#8c7ae6" aria-pressed="true" title="Violet" aria-label="Violet"></button>
+          <button class="sw" data-anc="#d8ff5c" style="background:#d8ff5c" aria-pressed="false" title="Lime" aria-label="Lime"></button>
+          <button class="sw" data-anc="#ff4667" style="background:#ff4667" aria-pressed="false" title="Pink" aria-label="Pink"></button>
+          <button class="sw" data-anc="#00b140" style="background:#00b140" aria-pressed="false" title="Green screen" aria-label="Green screen"></button>
+          <button class="sw custom" data-anc="custom" data-picker="an-bgColor" aria-pressed="false" aria-haspopup="dialog" title="Pick a color" aria-label="Pick a color"></button>
+          <input type="hidden" id="an-bgColor" value="#5cc8ff">
+        </div>
+        <label class="filebtn" for="an-bgFile" id="an-bgFileRow" hidden>Choose background image<input type="file" id="an-bgFile" accept="image/*"></label>
+        <div class="slider"><label for="an-outline">Paper edge</label><output id="an-outlineOut" for="an-outline"></output>
+          <input type="range" id="an-outline" min="0" max="40" step="1" value="14"></div>
+        <label class="check" for="an-shadow"><input type="checkbox" id="an-shadow" checked> Drop shadow</label>
+      </section>
+
+      <section class="card" aria-labelledby="an-h-out">
+        <h2 id="an-h-out">Export</h2>
+        <div class="two">
+          <label class="field">Frame rate
+            <select id="an-fps"><option value="24">24 fps</option><option value="30" selected>30 fps</option><option value="60">60 fps</option></select>
+          </label>
+          <label class="field">File type
+            <select id="an-container"><option value="mov" selected>MOV</option><option value="mp4">MP4</option></select>
+          </label>
+        </div>
+        <button class="primary" id="an-exportBtn">Export video</button>
+        <div class="progress" id="an-progress" hidden>
+          <div class="bar"><i id="an-progBar"></i></div>
+          <div class="row"><span class="time" id="an-progText">0%</span><button id="an-cancelBtn">Cancel</button></div>
+        </div>
+        <p class="note" id="an-outNote" hidden></p>
+        <div class="result" id="an-result" hidden>
+          <video id="an-resultVideo" controls playsinline></video>
+          <button id="an-saveBtn" class="primary">Save file</button>
+          <p class="hint" id="an-saveHint" hidden>Saving directly isn't available in this view. Right-click the video above and choose “Save video as…”.</p>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <footer>Only animate photos of people who are fine with it, and don't present the result as real footage. Output: 1080p H.264 + AAC in MOV or MP4 at a constant frame rate.</footer>
+  </section>
 
 </div>
 
@@ -1030,6 +1162,7 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
   let fnameTouched = false;
   function fmtBytes(b) { if (!b) return "—"; return b > 1048576 ? (b / 1048576).toFixed(1) + " MB" : Math.round(b / 1024) + " KB"; }
   function setBusy(label, frac) {
+    if (window.__cutoutBusy) { try { window.__cutoutBusy(label, frac); } catch {} }
     const b = $("busy");
     if (label == null) { b.hidden = true; return; }
     b.hidden = false; $("busyLabel").textContent = label;
@@ -1670,6 +1803,27 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
     } finally { setBusy(null); btn.disabled = !src; }
   }
   $("aiBtn").addEventListener("click", runAI);
+  // shared with other pages: cut a person/object out of any image
+  window.CutoutAI = {
+    async segment(img, onStatus) {
+      window.__cutoutBusy = (label, frac) => onStatus && onStatus(label ? label + (frac != null && frac < 1 && /Download/.test(label) ? "" : "") : "");
+      try {
+        const s = await loadModel();
+        onStatus && onStatus("Finding the person…");
+        const R = 1024, c = makeCanvas(R, R), cx = c.getContext("2d", { willReadFrequently: true });
+        cx.imageSmoothingQuality = "high"; cx.drawImage(img, 0, 0, R, R);
+        const px = cx.getImageData(0, 0, R, R).data, N = R * R, input = new Float32Array(3 * N);
+        for (let i = 0, j = 0; j < N; i += 4, j++) { input[j] = (px[i] - 128) / 256; input[j + N] = (px[i + 1] - 128) / 256; input[j + 2 * N] = (px[i + 2] - 128) / 256; }
+        const out = await s.run({ input: new ort.Tensor("float32", input, [1, 3, R, R]) }, ["output"]);
+        const raw = Float32Array.from(out.output.data, (v) => (v < 0 ? 0 : v > 1 ? 1 : v));
+        const k = Math.min(1, 1600 / Math.max(img.width, img.height)), W = Math.max(1, Math.round(img.width * k)), H = Math.max(1, Math.round(img.height * k));
+        const g = makeCanvas(W, H), gx = g.getContext("2d", { willReadFrequently: true }); gx.drawImage(img, 0, 0, W, H);
+        onStatus && onStatus("Cleaning up the edges…");
+        const { a } = refineMask(raw, R, W, H, gx.getImageData(0, 0, W, H).data, 0.55);
+        return { a, W, H };
+      } finally { window.__cutoutBusy = null; setBusy(null); }
+    }
+  };
 
   // ---------- cutout refinement (runs after the model) ----------
   // Box blur with edge clamping, O(N) per pass.
@@ -3503,15 +3657,428 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
 </script>
 <script>
 (() => {
-  const names = { bench: "Bench", resize: "Resize", edit: "Edit" };
+  const $ = (id) => document.getElementById(id);
+  const cv = $("an-preview"), pctx = cv.getContext("2d");
+  const RATIOS = { "16:9": [1920, 1080], "9:16": [1080, 1920], "1:1": [1080, 1080] };
+  const INK = "#0d0d0f";
+  let ratio = "16:9", seed = 7, bgMode = "blur", bgColor = "#8c7ae6", bgImage = null;
+  let photo = null, photoName = "sample-character", subject = null;   // subject: canvas with alpha (the cut-out)
+  let mouth = null;                                                   // {x, y} in subject pixels
+  let pos = { x: 0.5, y: 1.02 };                                      // feet anchor in frame (0..1)
+  let voice = null;                                                   // { buf, env (Float32Array @100Hz), dur }
+  function rng(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  const mk = (w, h) => { const c = document.createElement("canvas"); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; };
+  const moveOn = (m) => document.querySelector(`[data-move="${m}"]`).getAttribute("aria-pressed") === "true";
+
+  // ---------- sample: an original cartoon presenter on transparent paper, plus a room ----------
+  function sampleCharacter() {
+    const c = mk(900, 1150), x = c.getContext("2d"); x.lineJoin = "round"; x.lineCap = "round";
+    const out = (fill, lw) => { x.fillStyle = fill; x.fill(); x.lineWidth = lw || 10; x.strokeStyle = INK; x.stroke(); };
+    // body / jacket
+    x.beginPath(); x.moveTo(150, 1150); x.bezierCurveTo(150, 860, 260, 760, 450, 760); x.bezierCurveTo(640, 760, 750, 860, 750, 1150); x.closePath(); out("#8c7ae6");
+    x.beginPath(); x.moveTo(380, 770); x.lineTo(450, 900); x.lineTo(520, 770); x.closePath(); out("#fbf5ea", 8);
+    x.beginPath(); x.moveTo(450, 800); x.lineTo(478, 840); x.lineTo(462, 1000); x.lineTo(450, 1030); x.lineTo(438, 1000); x.lineTo(422, 840); x.closePath(); out("#ff4667", 7);
+    // neck + head
+    x.beginPath(); x.roundRect(395, 640, 110, 150, 30); out("#f2b48c", 9);
+    x.beginPath(); x.ellipse(450, 470, 215, 245, 0, 0, 7); out("#f6c19a");
+    // ears
+    x.beginPath(); x.ellipse(238, 490, 34, 52, 0, 0, 7); out("#f2b48c", 8); x.beginPath(); x.ellipse(662, 490, 34, 52, 0, 0, 7); out("#f2b48c", 8);
+    x.beginPath(); x.ellipse(450, 470, 215, 245, 0, 0, 7); x.fillStyle = "#f6c19a"; x.fill();
+    // hair
+    x.beginPath(); x.moveTo(236, 430); x.bezierCurveTo(220, 250, 330, 190, 450, 196); x.bezierCurveTo(600, 190, 700, 260, 668, 430);
+    x.bezierCurveTo(630, 330, 560, 300, 470, 320); x.bezierCurveTo(390, 335, 300, 330, 236, 430); x.closePath(); out("#2b1d16");
+    x.beginPath(); x.ellipse(450, 470, 215, 245, 0, 0, 7); x.lineWidth = 10; x.strokeStyle = INK; x.stroke();
+    // eyes, brows, nose
+    for (const ex of [370, 530]) { x.beginPath(); x.ellipse(ex, 455, 46, 40, 0, 0, 7); out("#ffffff", 8); x.beginPath(); x.arc(ex + 8, 460, 17, 0, 7); x.fillStyle = INK; x.fill(); x.beginPath(); x.arc(ex + 14, 452, 5, 0, 7); x.fillStyle = "#fff"; x.fill(); }
+    x.lineWidth = 12; x.beginPath(); x.moveTo(325, 392); x.lineTo(410, 382); x.moveTo(490, 382); x.lineTo(575, 392); x.stroke();
+    x.lineWidth = 8; x.beginPath(); x.moveTo(452, 480); x.quadraticCurveTo(430, 545, 470, 548); x.stroke();
+    // mouth line + chin
+    x.lineWidth = 9; x.beginPath(); x.moveTo(385, 600); x.quadraticCurveTo(450, 612, 515, 600); x.stroke();
+    x.fillStyle = "rgba(255,70,103,.25)"; x.beginPath(); x.ellipse(330, 560, 34, 20, 0, 0, 7); x.fill(); x.beginPath(); x.ellipse(570, 560, 34, 20, 0, 0, 7); x.fill();
+    return { c, mouth: { x: 450, y: 600 } };
+  }
+  function sampleRoom() {
+    const c = mk(1920, 1080), x = c.getContext("2d");
+    x.fillStyle = "#e6e1fb"; x.fillRect(0, 0, 1920, 1080);
+    x.fillStyle = "rgba(13,13,15,.12)"; for (let gx = 30; gx < 1920; gx += 60) for (let gy = 30; gy < 820; gy += 60) { x.beginPath(); x.arc(gx, gy, 3, 0, 7); x.fill(); }
+    x.fillStyle = "#ff4667"; x.fillRect(0, 820, 1920, 260); x.fillStyle = INK; x.fillRect(0, 812, 1920, 12);
+    const frame = (fx, fy, fw, fh, col) => { x.fillStyle = INK; x.fillRect(fx + 14, fy + 14, fw, fh); x.fillStyle = col; x.fillRect(fx, fy, fw, fh); x.lineWidth = 10; x.strokeStyle = INK; x.strokeRect(fx, fy, fw, fh); };
+    frame(170, 170, 360, 260, "#d8ff5c"); frame(1380, 120, 380, 300, "#5cc8ff");
+    x.fillStyle = INK; x.beginPath(); x.moveTo(1440, 380); x.lineTo(1540, 240); x.lineTo(1610, 330); x.lineTo(1660, 280); x.lineTo(1720, 380); x.closePath(); x.fill();
+    x.beginPath(); x.arc(350, 300, 60, 0, 7); x.fillStyle = "#ff4667"; x.fill(); x.lineWidth = 8; x.stroke();
+    return c;
+  }
+  const S = sampleCharacter(); subject = S.c; mouth = S.mouth; photo = sampleRoom();
+
+  // ---------- prepared layers (rebuilt when the subject or look changes) ----------
+  let prep = null;
+  function prepare() {
+    const s = subject, edge = +$("an-outline").value * Math.max(s.width, s.height) / 1100, pad = Math.ceil(edge + 4);
+    // trim to the visible pixels
+    const sx = s.getContext("2d", { willReadFrequently: true }), d = sx.getImageData(0, 0, s.width, s.height).data;
+    let x0 = s.width, y0 = s.height, x1 = 0, y1 = 0;
+    for (let y = 0; y < s.height; y += 2) for (let x = 0; x < s.width; x += 2) if (d[(y * s.width + x) * 4 + 3] > 24) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    if (x1 <= x0) { x0 = 0; y0 = 0; x1 = s.width - 1; y1 = s.height - 1; }
+    const W = x1 - x0 + 1 + pad * 2, H = y1 - y0 + 1 + pad * 2, ox = x0 - pad, oy = y0 - pad;
+    const sil = mk(W, H), sl = sil.getContext("2d"); sl.drawImage(s, -ox, -oy);
+    sl.globalCompositeOperation = "source-in"; sl.fillStyle = "#000"; sl.fillRect(0, 0, W, H);
+    const full = mk(W, H), f = full.getContext("2d");
+    if (edge > 0) {                                     // paper edge: silhouette stamped around in a ring, filled white
+      const ring = mk(W, H), rg = ring.getContext("2d");
+      for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2; rg.drawImage(sil, Math.cos(a) * edge, Math.sin(a) * edge); }
+      rg.drawImage(sil, 0, 0); rg.globalCompositeOperation = "source-in"; rg.fillStyle = "#fffdf7"; rg.fillRect(0, 0, W, H);
+      f.drawImage(ring, 0, 0);
+    }
+    f.drawImage(s, -ox, -oy);
+    const shadow = mk(W, H), sh = shadow.getContext("2d"); sh.drawImage(full, 0, 0); sh.globalCompositeOperation = "source-in"; sh.fillStyle = "rgba(13,13,15,.42)"; sh.fillRect(0, 0, W, H);
+    // jaw: a rectangle below the mouth line, as in paper cut-out animation
+    let jaw = null;
+    if (mouth) {
+      const jw = +$("an-jaw").value / 100 * (x1 - x0), jh = jw * 0.72, jx = mouth.x - ox - jw / 2, jy = mouth.y - oy;
+      const body = mk(W, H), b = body.getContext("2d"); b.drawImage(full, 0, 0); b.clearRect(jx, jy, jw, jh);
+      const piece = mk(jw, jh), p = piece.getContext("2d"); p.drawImage(full, -jx, -jy);
+      jaw = { body, piece, jx, jy, jw, jh };
+    }
+    prep = { W, H, ox, oy, full, shadow, jaw, edge };
+  }
+  let bgCanvas = null;
+  function background(W, H) {
+    const key = `${bgMode}|${bgColor}|${W}x${H}`;
+    if (bgCanvas && bgCanvas._key === key) return bgCanvas;
+    const c = mk(W, H), x = c.getContext("2d");
+    const img = bgMode === "image" ? bgImage : photo;
+    if (bgMode === "color" || !img) { x.fillStyle = bgColor; x.fillRect(0, 0, W, H); }
+    else {
+      const k = Math.max(W / img.width, H / img.height) * (bgMode === "blur" ? 1.08 : 1), dw = img.width * k, dh = img.height * k;
+      if (bgMode === "blur") x.filter = `blur(${Math.round(Math.min(W, H) / 70)}px) brightness(0.88) saturate(1.1)`;
+      x.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh); x.filter = "none";
+    }
+    c._key = key; return (bgCanvas = c);
+  }
+
+  // ---------- motion ----------
+  function duration() { return voice ? voice.dur : +$("an-len").value; }
+  function mouthOpen(t) {
+    const sens = +$("an-sens").value / 100;
+    if (voice) { const i = Math.min(voice.env.length - 1, Math.max(0, Math.round(t * 100))); return Math.min(1, voice.env[i] * sens); }
+    // made-up talking: syllables in phrases with pauses
+    const r = rng(seed * 101 + Math.floor(t / 1.7)), inPhrase = (t % 1.7) < 1.7 * (0.55 + r() * 0.35);
+    if (!inPhrase) return 0;
+    const syl = Math.abs(Math.sin(t * Math.PI * (4.2 + r() * 1.6) + r() * 6));
+    return Math.min(1, Math.pow(syl, 0.7) * (0.55 + 0.45 * Math.abs(Math.sin(t * 2.3 + r() * 3))) * sens);
+  }
+  function pose(t, rest) {
+    const e = +$("an-energy").value / 100, sp = +$("an-speed").value / 100, r = rng(seed);
+    const p = { dx: 0, dy: 0, rot: 0, sx: 1, sy: 1, cam: 1 };
+    if (rest) return { ...p, talk: 0 };
+    const talk = moveOn("talk") ? mouthOpen(t) : 0;
+    if (moveOn("bob")) { const b = Math.abs(Math.sin(t * Math.PI * 2.1 * sp)); p.dy -= b * 0.022 * e; p.sy *= 1 + (b - 0.5) * 0.02 * e; p.sx *= 1 - (b - 0.5) * 0.012 * e; }
+    if (moveOn("talk")) { p.dy -= talk * 0.006 * e; p.rot += Math.sin(t * 9 * sp) * talk * 0.012 * e; }
+    if (moveOn("sway")) p.rot += Math.sin(t * Math.PI * 0.9 * sp + r() * 6) * 0.07 * e;
+    if (moveOn("shake")) { const j = rng(seed * 7 + Math.floor(t * 30)); p.dx += (j() - 0.5) * 0.012 * e; p.dy += (j() - 0.5) * 0.01 * e; p.rot += (j() - 0.5) * 0.03 * e; }
+    if (moveOn("hop")) { const per = 1.7 / sp, ph = ((t + r() * per) % per) / per; if (ph < 0.22) { const q = ph / 0.22; p.dy -= Math.sin(q * Math.PI) * 0.09 * e; p.sy *= 1 + Math.sin(q * Math.PI) * 0.04; } }
+    if (moveOn("slide")) { const q = Math.min(1, t / 0.55); const back = 1 + 2.4 * Math.pow(q - 1, 3) + 1.4 * Math.pow(q - 1, 2); p.dx += (1 - back) * -0.9; }
+    if (moveOn("zoom")) { const per = 2.6 / Math.max(0.6, sp), first = 0.9; if (t > first) { const ph = (t - first) % per; if (ph < per * 0.42) p.cam = 1 + 0.28 * Math.min(1.4, e); } }
+    return { ...p, talk };
+  }
+
+  // ---------- one frame ----------
+  function renderFrame(ctx, W, H, t, rest) {
+    if (!prep) prepare();
+    ctx.save();
+    const ps = pose(t, rest), size = +$("an-size").value / 100;
+    const scale = H * 0.95 * size / prep.H;
+    const fx = W * pos.x + ps.dx * W, fy = H * pos.y + ps.dy * H;
+    // camera punch-in towards the face
+    const faceY = mouth ? fy - (prep.H - (mouth.y - prep.oy)) * scale : fy - prep.H * scale * 0.7;
+    if (ps.cam !== 1) { ctx.translate(fx, faceY); ctx.scale(ps.cam, ps.cam); ctx.translate(-fx, -faceY); }
+    const bg = background(W, H); ctx.drawImage(bg, -W * 0.02, -H * 0.02, W * 1.04, H * 1.04);
+    ctx.translate(fx, fy); ctx.rotate(ps.rot); ctx.scale(scale * ps.sx, scale * ps.sy); ctx.translate(-prep.W / 2, -prep.H);
+    if ($("an-shadow").checked) ctx.drawImage(prep.shadow, prep.W * 0.018, prep.H * 0.012);
+    if (prep.jaw && moveOn("talk")) {
+      const J = prep.jaw, drop = ps.talk * J.jh * 0.42;
+      ctx.drawImage(J.body, 0, 0);
+      if (drop > 0.5) { ctx.fillStyle = "#3a0d16"; ctx.beginPath(); ctx.roundRect(J.jx + J.jw * 0.06, J.jy - 1, J.jw * 0.88, drop + 2, Math.min(drop, J.jw * 0.2)); ctx.fill();
+        ctx.fillStyle = "#e05570"; ctx.beginPath(); ctx.ellipse(J.jx + J.jw / 2, J.jy + drop * 0.85, J.jw * 0.22, drop * 0.3, 0, 0, 7); ctx.fill(); }
+      ctx.drawImage(J.piece, J.jx, J.jy + drop);
+    } else ctx.drawImage(prep.full, 0, 0);
+    ctx.restore();
+  }
+
+  // ---------- preview & interaction ----------
+  let playing = false, t = 0, lastTs = 0, raf = 0, placing = false;
+  function prevSize() { const [W, H] = RATIOS[ratio], k = Math.min(1, 720 / Math.max(W, H)); return [Math.round(W * k), Math.round(H * k)]; }
+  function fmt(s) { const m = Math.floor(s / 60); return m + ":" + (s - m * 60).toFixed(1).padStart(4, "0"); }
+  function draw() {
+    const [w, h] = prevSize();
+    if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; bgCanvas = null; fitPreview(); }
+    const D = duration(); if (t > D) t = 0;
+    const rest = placing || (!playing && t === 0);
+    renderFrame(pctx, w, h, t, rest);
+    if (rest) markMouth(w, h);
+    $("an-time").textContent = `${fmt(t)} / ${fmt(D)}`; $("an-scrub").value = Math.round(t / D * 1000);
+  }
+  // where the mouth line sits on screen (frame at rest)
+  function restTransform(w, h) { if (!prep) prepare(); const scale = h * 0.95 * (+$("an-size").value / 100) / prep.H; return { scale, ox: w * pos.x - prep.W / 2 * scale, oy: h * pos.y - prep.H * scale }; }
+  function markMouth(w, h) {
+    if (!mouth || !prep || !prep.jaw) return;
+    const T = restTransform(w, h), J = prep.jaw;
+    pctx.save(); pctx.setLineDash([6, 5]); pctx.lineWidth = 2; pctx.strokeStyle = placing ? "#ff4667" : "rgba(13,13,15,.55)";
+    pctx.strokeRect(T.ox + J.jx * T.scale, T.oy + J.jy * T.scale, J.jw * T.scale, J.jh * T.scale); pctx.restore();
+  }
+  function fitPreview() {
+    const st = $("an-stage"), cs = getComputedStyle(st);
+    const aw = st.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), ah = st.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    if (aw <= 0 || ah <= 0) return;
+    const [W, H] = RATIOS[ratio], s = Math.min(aw / W, ah / H);
+    cv.style.width = Math.floor(W * s) + "px"; cv.style.height = Math.floor(H * s) + "px"; $("an-frameLabel").textContent = `${W} × ${H}`;
+  }
+  new ResizeObserver(fitPreview).observe($("an-stage"));
+  function toCanvas(e) { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * cv.width / r.width, y: (e.clientY - r.top) * cv.height / r.height }; }
+  let drag = null;
+  cv.addEventListener("pointerdown", (e) => {
+    const p = toCanvas(e), T = restTransform(cv.width, cv.height);
+    if (placing) {
+      const sx = (p.x - T.ox) / T.scale + prep.ox, sy = (p.y - T.oy) / T.scale + prep.oy;
+      mouth = { x: sx, y: sy }; placing = false; $("an-mouthBtn").setAttribute("aria-pressed", "false"); cv.style.cursor = "grab";
+      if (!moveOn("talk")) document.querySelector('[data-move="talk"]').setAttribute("aria-pressed", "true");
+      prep = null; t = 0; draw(); return;
+    }
+    setPlaying(false); drag = { x: p.x, y: p.y, px: pos.x, py: pos.y }; cv.setPointerCapture(e.pointerId); cv.style.cursor = "grabbing";
+  });
+  cv.addEventListener("pointermove", (e) => { if (!drag) return; const p = toCanvas(e); pos.x = drag.px + (p.x - drag.x) / cv.width; pos.y = drag.py + (p.y - drag.y) / cv.height; t = 0; draw(); });
+  const endDrag = () => { drag = null; cv.style.cursor = placing ? "crosshair" : "grab"; };
+  cv.addEventListener("pointerup", endDrag); cv.addEventListener("pointercancel", endDrag);
+  cv.style.cursor = "grab";
+  $("an-mouthBtn").addEventListener("click", () => {
+    placing = !placing; $("an-mouthBtn").setAttribute("aria-pressed", placing); setPlaying(false); t = 0;
+    cv.style.cursor = placing ? "crosshair" : "grab";
+    $("an-stageHint").textContent = placing ? "Click on the middle of the mouth. The jaw will split along that line." : "Drag the character to move it. Use “Place the mouth” and click on the mouth to set where the jaw splits.";
+    draw();
+  });
+
+  // ---------- audio: playback and voice-driven mouth ----------
+  let ac = null, srcNode = null, startAt = 0;
+  function audioCtx() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch { ac = null; } } if (ac && ac.state === "suspended") ac.resume(); return ac; }
+  function loop(ts) {
+    if (!playing) return;
+    if (voice && ac) t = ac.currentTime - startAt; else { t += lastTs ? (ts - lastTs) / 1000 : 0; lastTs = ts; }
+    if (t >= duration()) { setPlaying(false); t = 0; draw(); return; }
+    draw(); raf = requestAnimationFrame(loop);
+  }
+  function setPlaying(p) {
+    playing = p; cancelAnimationFrame(raf); lastTs = 0;
+    $("an-playIcon").innerHTML = p ? '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>' : '<path d="M7 4v16l13-8z"/>';
+    $("an-play").setAttribute("aria-label", p ? "Pause" : "Play");
+    if (srcNode) { try { srcNode.stop(); } catch {} srcNode = null; }
+    if (p) {
+      if (voice && audioCtx()) { srcNode = ac.createBufferSource(); srcNode.buffer = voice.buf; srcNode.connect(ac.destination); startAt = ac.currentTime - t; srcNode.start(0, t); }
+      raf = requestAnimationFrame(loop);
+    }
+  }
+  window.anPause = () => { if (playing) setPlaying(false); };
+  $("an-play").addEventListener("click", () => { if (!exporting) setPlaying(!playing); });
+  $("an-scrub").addEventListener("input", (e) => { setPlaying(false); t = +e.target.value / 1000 * duration(); draw(); });
+  async function loadVoice(f) {
+    if (!f) return;
+    $("an-audioHint").textContent = "Reading the voice clip…";
+    try {
+      const tmp = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(2, 48000, 48000);
+      const raw = await tmp.decodeAudioData(await f.arrayBuffer());
+      const n = Math.ceil(raw.duration * 48000), oac = new OfflineAudioContext(2, n, 48000), s = oac.createBufferSource();
+      s.buffer = raw; s.connect(oac.destination); s.start(); const buf = await oac.startRendering();
+      // loudness envelope at 100 Hz: fast attack, slower release, scaled to the clip's loud parts
+      const L = buf.getChannelData(0), R = buf.getChannelData(1), hop = 480, m = Math.ceil(n / hop), env = new Float32Array(m);
+      for (let i = 0; i < m; i++) { let ss = 0; for (let j = i * hop; j < Math.min(n, i * hop + 960); j++) { const v = (L[j] + R[j]) / 2; ss += v * v; } env[i] = Math.sqrt(ss / 960); }
+      const sorted = Array.from(env).sort((a, b) => a - b), hi = sorted[Math.floor(m * 0.95)] || 1, floor = sorted[Math.floor(m * 0.3)] || 0;
+      let lv = 0;
+      for (let i = 0; i < m; i++) { const target = Math.max(0, (env[i] - floor * 1.4) / Math.max(1e-4, hi - floor)); lv = target > lv ? lv + (target - lv) * 0.7 : lv + (target - lv) * 0.25; env[i] = Math.min(1, lv); }
+      voice = { buf, env, dur: buf.duration };
+      $("an-audioHint").textContent = `${f.name} · ${fmt(buf.duration)}. The mouth follows this voice, and it is included in the export.`;
+      $("an-audioClear").hidden = false; $("an-lenRow").hidden = true;
+      if (!moveOn("talk")) document.querySelector('[data-move="talk"]').setAttribute("aria-pressed", "true");
+      t = 0; draw();
+    } catch { $("an-audioHint").textContent = "This browser couldn't read that audio. Try an MP3, WAV or M4A file."; }
+  }
+  $("an-audio").addEventListener("change", (e) => { loadVoice(e.target.files[0]); e.target.value = ""; });
+  $("an-audioClear").addEventListener("click", () => { setPlaying(false); voice = null; $("an-audioClear").hidden = true; $("an-lenRow").hidden = false; $("an-audioHint").textContent = "No voice clip: the mouth does a made-up talking pattern. Add an MP3, WAV or M4A and the mouth follows the voice."; t = 0; draw(); });
+
+  // ---------- photos ----------
+  async function readImage(f, max) {
+    const bmp = await createImageBitmap(f, { imageOrientation: "from-image" }), k = Math.min(1, max / Math.max(bmp.width, bmp.height));
+    const c = mk(bmp.width * k, bmp.height * k); c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height); return c;
+  }
+  async function loadPhoto(f) {
+    if (!f) return;
+    if (f.type && !f.type.startsWith("image/")) { note2("an-cutNote", "That file isn't an image. Pick a JPG, PNG or WebP.", "err"); return; }
+    try {
+      photo = await readImage(f, 2200); photoName = (f.name || "photo").replace(/\.[^.]+$/, "");
+      subject = photo; mouth = null; prep = null; bgCanvas = null; pos = { x: 0.5, y: 1.02 };
+      $("an-photoHint").textContent = `${f.name} · ${photo.width} × ${photo.height} px`;
+      $("an-cut").disabled = false; nameTouched = false; anDefaultName();
+      note2("an-cutNote", "Next: cut out the person, then place the mouth.", "");
+      t = 0; draw();
+    } catch { note2("an-cutNote", "This browser couldn't read that image. iPhone HEIC photos need converting to JPG first.", "err"); }
+  }
+  $("an-file").addEventListener("change", (e) => { loadPhoto(e.target.files[0]); e.target.value = ""; });
+  const st = $("an-stage"); let dd = 0;
+  st.addEventListener("dragenter", (e) => { e.preventDefault(); dd++; $("an-dropHint").hidden = false; });
+  st.addEventListener("dragover", (e) => e.preventDefault());
+  st.addEventListener("dragleave", () => { if (--dd <= 0) { dd = 0; $("an-dropHint").hidden = true; } });
+  st.addEventListener("drop", (e) => { e.preventDefault(); dd = 0; $("an-dropHint").hidden = true; loadPhoto(e.dataTransfer.files[0]); });
+  function note2(id, text, kind) { const n = $(id); n.hidden = !text; n.textContent = text || ""; n.className = "note" + (kind ? " " + kind : ""); }
+  $("an-cut").addEventListener("click", async () => {
+    if (!window.CutoutAI) { note2("an-cutNote", "The cutout model isn't available on this page.", "err"); return; }
+    const btn = $("an-cut"); btn.disabled = true; setPlaying(false);
+    try {
+      const { a, W, H } = await window.CutoutAI.segment(photo, (label) => { if (label) note2("an-cutNote", label, ""); });
+      const m = mk(W, H), mx = m.getContext("2d"), id = mx.createImageData(W, H);
+      for (let i = 0, j = 0; i < a.length; i++, j += 4) { id.data[j] = id.data[j + 1] = id.data[j + 2] = 255; id.data[j + 3] = Math.round(a[i] * 255); }
+      mx.putImageData(id, 0, 0);
+      const c = mk(photo.width, photo.height), x = c.getContext("2d");
+      x.drawImage(photo, 0, 0); x.globalCompositeOperation = "destination-in"; x.imageSmoothingQuality = "high"; x.drawImage(m, 0, 0, photo.width, photo.height);
+      subject = c; mouth = null; prep = null; t = 0; draw();
+      note2("an-cutNote", "Cut out. Now press “Place the mouth” and click on the mouth.", "ok");
+    } catch (e) { console.error(e); note2("an-cutNote", "The cutout didn't work in this browser (" + String(e && e.message || e).slice(0, 80) + ").", "err"); }
+    finally { btn.disabled = false; }
+  });
+
+  // ---------- controls ----------
+  const outs = () => {
+    $("an-jawOut").textContent = $("an-jaw").value + "%"; $("an-sizeOut").textContent = $("an-size").value + "%";
+    $("an-energyOut").textContent = $("an-energy").value + "%"; $("an-speedOut").textContent = (+$("an-speed").value / 100).toFixed(2) + "×";
+    $("an-lenOut").textContent = (+$("an-len").value).toFixed(1) + " s"; $("an-sensOut").textContent = $("an-sens").value + "%"; $("an-outlineOut").textContent = $("an-outline").value + " px";
+  };
+  outs();
+  ["an-energy", "an-speed", "an-len", "an-sens", "an-size"].forEach((id) => $(id).addEventListener("input", () => { outs(); draw(); }));
+  ["an-jaw", "an-outline"].forEach((id) => { $(id).addEventListener("input", outs); $(id).addEventListener("change", () => { prep = null; draw(); }); });
+  $("an-shadow").addEventListener("change", draw);
+  document.querySelectorAll("[data-move]").forEach((b) => b.addEventListener("click", () => { b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") !== "true"); draw(); }));
+  $("an-shuffle").addEventListener("click", () => { seed = 1 + Math.floor(Math.random() * 1e6); draw(); });
+  document.querySelectorAll("[data-anratio]").forEach((b) => b.addEventListener("click", () => {
+    ratio = b.dataset.anratio; document.querySelectorAll("[data-anratio]").forEach((x) => x.setAttribute("aria-pressed", x === b)); bgCanvas = null; fitPreview(); draw();
+  }));
+  document.querySelectorAll("[data-anbg]").forEach((b) => b.addEventListener("click", () => {
+    bgMode = b.dataset.anbg; document.querySelectorAll("[data-anbg]").forEach((x) => x.setAttribute("aria-pressed", x === b));
+    $("an-bgColors").hidden = bgMode !== "color"; $("an-bgFileRow").hidden = bgMode !== "image"; bgCanvas = null; draw();
+  }));
+  document.querySelectorAll("[data-anc]").forEach((b) => b.addEventListener("click", () => { if (b.dataset.anc === "custom") return; bgColor = b.dataset.anc; document.querySelectorAll("[data-anc]").forEach((x) => x.setAttribute("aria-pressed", x === b)); bgCanvas = null; draw(); }));
+  $("an-bgColor").addEventListener("input", () => { bgColor = $("an-bgColor").value; document.querySelectorAll("[data-anc]").forEach((x) => x.setAttribute("aria-pressed", x.dataset.anc === "custom")); bgCanvas = null; draw(); });
+  $("an-bgFile").addEventListener("change", async (e) => { const f = e.target.files[0]; e.target.value = ""; if (!f) return; try { bgImage = await readImage(f, 2400); bgCanvas = null; draw(); } catch {} });
+
+  // ---------- file name ----------
+  let nameTouched = false;
+  const anAuto = () => `${photoName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 32) || "puppet"}-animated`;
+  function anDefaultName() { if (!nameTouched) $("an-fname").value = anAuto(); }
+  $("an-fname").addEventListener("input", () => { nameTouched = true; });
+  document.querySelectorAll("[data-anadd]").forEach((b) => b.addEventListener("click", () => {
+    const inp = $("an-fname");
+    if (b.dataset.anadd === "reset") { nameTouched = false; inp.value = anAuto(); return; }
+    const part = new Date().toISOString().slice(0, 10), v = inp.value.replace(/-+$/, ""); if (!v.endsWith("-" + part)) inp.value = (v ? v + "-" : "") + part; nameTouched = true; inp.focus();
+  }));
+  $("an-container").addEventListener("change", () => { $("an-fnameExt").textContent = "." + $("an-container").value; });
+  const clean = (v, fb) => { v = (v || "").replace(/[\\/:*?"<>|\u0000-\u001f]+/g, "-").replace(/\.(mp4|mov|webm)$/i, "").trim(); return v || fb; };
+
+  // ---------- export ----------
+  let exporting = null, resultBlob = null, resultName = "";
+  async function exportVideo() {
+    const E = window.CutoutExport;
+    setPlaying(false); $("an-result").hidden = true; note2("an-outNote", "");
+    if (!E || !window.VideoEncoder || !window.Mp4Muxer) { note2("an-outNote", "This browser can't export video. Use a recent Chrome or Edge.", "err"); return; }
+    const [W, H] = RATIOS[ratio], fps = +$("an-fps").value, D = duration(), frames = Math.max(1, Math.round(D * fps));
+    const vcfg = await E.pickVideoCodec(W, H, fps, Math.round((fps > 30 ? 12 : 8) * 1e6 * (W * H) / (1920 * 1080)));
+    if (!vcfg) { note2("an-outNote", "This browser can't encode H.264 video. Use a recent Chrome or Edge.", "err"); return; }
+    const job = { cancelled: false }; exporting = job;
+    $("an-exportBtn").disabled = true; $("an-progress").hidden = false; $("an-progBar").style.width = "0%"; $("an-progText").textContent = "Preparing…";
+    const savedBg = bgCanvas; bgCanvas = null;
+    try {
+      let audio = null, audioNote = "";
+      if (voice) {
+        const acfg = { codec: "mp4a.40.2", sampleRate: 48000, numberOfChannels: 2, bitrate: 192000 };
+        let ok = false; try { ok = window.AudioEncoder && (await AudioEncoder.isConfigSupported(acfg)).supported; } catch {}
+        if (ok) audio = acfg; else audioNote = " The voice was left out: this browser can't make AAC audio. Chrome or Edge on Windows or Mac can.";
+      }
+      const muxer = new Mp4Muxer.Muxer({ target: new Mp4Muxer.ArrayBufferTarget(), video: { codec: "avc", width: W, height: H, frameRate: fps }, audio: audio ? { codec: "aac", numberOfChannels: 2, sampleRate: 48000 } : undefined, fastStart: "in-memory", firstTimestampBehavior: "offset" });
+      let failed = null;
+      const venc = new VideoEncoder({ output: (chunk, meta) => { if (meta && meta.decoderConfig) meta = Object.assign({}, meta, { decoderConfig: Object.assign({}, meta.decoderConfig, { colorSpace: E.COLOR709 }) }); muxer.addVideoChunk(chunk, meta); }, error: (err) => { failed = err; } });
+      venc.configure(vcfg);
+      if (audio) {
+        const aenc = new AudioEncoder({ output: (c, m) => muxer.addAudioChunk(c, m), error: (err) => { failed = err; } });
+        aenc.configure(audio);
+        const L = voice.buf.getChannelData(0), R = voice.buf.getChannelData(1), n = Math.min(L.length, Math.round(D * 48000)), step = 4800;
+        for (let i = 0; i < n; i += step) {
+          const len = Math.min(step, n - i), pl = new Float32Array(len * 2); pl.set(L.subarray(i, i + len), 0); pl.set(R.subarray(i, i + len), len);
+          const ad = new AudioData({ format: "f32-planar", sampleRate: 48000, numberOfFrames: len, numberOfChannels: 2, timestamp: Math.round(i * 1e6 / 48000), data: pl });
+          aenc.encode(ad); ad.close();
+        }
+        await aenc.flush(); aenc.close();
+      }
+      const dur = Math.round(1e6 / fps), t0 = performance.now();
+      const fc = mk(W, H), fx = fc.getContext("2d", { willReadFrequently: true });
+      for (let i = 0; i < frames; i++) {
+        if (job.cancelled || failed) break;
+        renderFrame(fx, W, H, (i + 0.5) / fps);
+        const frame = new VideoFrame(E.toI420(fx.getImageData(0, 0, W, H).data, W, H), { format: "I420", codedWidth: W, codedHeight: H, timestamp: i * dur, duration: dur, colorSpace: E.COLOR709 });
+        venc.encode(frame, { keyFrame: i % (fps * 2) === 0 }); frame.close();
+        while (venc.encodeQueueSize > 3) await new Promise((r) => setTimeout(r, 2));
+        if (i % 4 === 0 || i === frames - 1) {
+          pctx.drawImage(fc, 0, 0, cv.width, cv.height);
+          const f = (i + 1) / frames, el = (performance.now() - t0) / 1000;
+          $("an-progBar").style.width = (f * 100).toFixed(1) + "%";
+          $("an-progText").textContent = `${Math.round(f * 100)}% · frame ${i + 1} of ${frames}` + (i > 10 ? ` · about ${fmt(el / f - el)} left` : "");
+          await new Promise((r) => setTimeout(r, 0));
+        }
+      }
+      if (failed) throw failed;
+      if (job.cancelled) { try { venc.close(); } catch {} note2("an-outNote", "Export cancelled."); return; }
+      await venc.flush(); venc.close(); muxer.finalize();
+      const bytes = new Uint8Array(muxer.target.buffer), mov = $("an-container").value === "mov";
+      if (mov) E.setBrand(bytes, "qt  ");
+      resultBlob = new Blob([bytes], { type: mov ? "video/quicktime" : "video/mp4" }); resultName = `${clean($("an-fname").value, anAuto())}.${mov ? "mov" : "mp4"}`;
+      const rv = $("an-resultVideo"); if (rv.src) URL.revokeObjectURL(rv.src); rv.src = URL.createObjectURL(resultBlob);
+      $("an-result").hidden = false; $("an-saveHint").hidden = true; $("an-saveBtn").hidden = false;
+      note2("an-outNote", `Ready: ${resultName}, ${(resultBlob.size / 1048576).toFixed(1)} MB, ${D.toFixed(1)} s.${audioNote}`, "ok");
+    } catch (err) { console.error(err); note2("an-outNote", "The export stopped with an error (" + String(err && err.message || err).slice(0, 120) + "). Try a lower frame rate.", "err"); }
+    finally { exporting = null; bgCanvas = savedBg; $("an-exportBtn").disabled = false; $("an-progress").hidden = true; draw(); }
+  }
+  $("an-exportBtn").addEventListener("click", exportVideo);
+  $("an-cancelBtn").addEventListener("click", () => { if (exporting) exporting.cancelled = true; });
+  let downloads = null;
+  (async () => { try { downloads = window.claude?.use ? await window.claude.use("downloads") : null; } catch { downloads = null; } })();
+  $("an-saveBtn").addEventListener("click", async () => {
+    if (!resultBlob) return;
+    if (downloads) {
+      try { await downloads.save({ filename: resultName, data: resultBlob }); note2("an-outNote", `Saved ${resultName}.`, "ok"); return; }
+      catch (e) {
+        if (e && e.code === "declined") { note2("an-outNote", "Save cancelled."); return; }
+        if (e && e.code === "rate_limited") { note2("an-outNote", "A save prompt is already open. Finish that one first.", "warn"); return; }
+        if (/\.mov$/.test(resultName) && e && ["not_signed", "rejected_extension", "extension_not_enabled"].includes(e.code)) {
+          const mp4Name = resultName.replace(/\.mov$/, ".mp4"), bytes = window.CutoutExport.setBrand(new Uint8Array(await resultBlob.arrayBuffer()), "isom");
+          try { await downloads.save({ filename: mp4Name, data: new Blob([bytes], { type: "video/mp4" }) }); note2("an-outNote", `Saved ${mp4Name}. This viewer can't save .mov files, so it was saved as MP4. On your own site it saves as .mov.`, "warn"); return; }
+          catch (e2) { if (e2 && e2.code === "declined") { note2("an-outNote", "Save cancelled."); return; } }
+        }
+      }
+    }
+    if (!window.claude) { const a = document.createElement("a"); a.href = URL.createObjectURL(resultBlob); a.download = resultName; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000); note2("an-outNote", `Downloaded ${resultName}.`, "ok"); return; }
+    $("an-saveHint").hidden = false; $("an-saveBtn").hidden = true;
+  });
+
+  // ---------- start ----------
+  anDefaultName(); draw();
+})();
+</script>
+<script>
+(() => {
+  const names = { bench: "Bench", resize: "Resize", edit: "Edit", animate: "Animate" };
   function show() {
-    const v = location.hash === "#resize" ? "resize" : location.hash === "#edit" ? "edit" : "bench";
-    for (const id of ["bench", "resize", "edit"]) document.getElementById(id).hidden = v !== id;
+    const v = { "#resize": "resize", "#edit": "edit", "#animate": "animate" }[location.hash] || "bench";
+    for (const id of ["bench", "resize", "edit", "animate"]) document.getElementById(id).hidden = v !== id;
     document.documentElement.dataset.app = v;
     document.getElementById("pageName").textContent = names[v];
     document.querySelectorAll("[data-nav]").forEach((a) => { if (a.dataset.nav === v) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
     if (v !== "resize" && window.rzPause) window.rzPause();
     if (v !== "edit" && window.edPause) window.edPause();
+    if (v !== "animate" && window.anPause) window.anPause();
     requestAnimationFrame(() => window.scrollTo(0, 0));
     window.dispatchEvent(new Event("resize"));
   }
