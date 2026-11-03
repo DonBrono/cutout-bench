@@ -923,7 +923,10 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
         <p class="hint" id="an-photoHint">Showing a sample character. Open a photo of a person, or drop it on the stage.</p>
         <button id="an-cut" disabled>Cut out the person (AI)</button>
         <p class="note" id="an-cutNote" hidden></p>
-        <button id="an-mouthBtn" aria-pressed="false">Place the mouth</button>
+        <div class="row">
+          <button id="an-mouthBtn" aria-pressed="false">Place the mouth</button>
+          <button id="an-neckBtn" aria-pressed="false">Place the neck</button>
+        </div>
         <div class="slider"><label for="an-jaw">Jaw width</label><output id="an-jawOut" for="an-jaw"></output>
           <input type="range" id="an-jaw" min="6" max="45" step="1" value="20"></div>
         <div class="slider"><label for="an-size">Character size</label><output id="an-sizeOut" for="an-size"></output>
@@ -934,6 +937,9 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
         <h2 id="an-h-moves">Moves</h2>
         <div class="chipset" role="group" aria-label="Moves">
           <button data-move="talk" aria-pressed="true">Talk</button>
+          <button data-move="headbob" aria-pressed="true">Head bob</button>
+          <button data-move="headtilt" aria-pressed="true">Head tilt</button>
+          <button data-move="headshake" aria-pressed="false">Head shake</button>
           <button data-move="bob" aria-pressed="true">Bob</button>
           <button data-move="sway" aria-pressed="false">Sway</button>
           <button data-move="shake" aria-pressed="false">Shake</button>
@@ -1131,6 +1137,12 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
 <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.3/dist/ort.wasm.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mp4-muxer@5.2.1/build/mp4-muxer.js"></script>
 <script>
+// paint a page's whole stage in the chosen background colour (null = back to the page's default)
+window.setStageColor = (el, c) => {
+  if (!el) return;
+  if (c) { el.style.backgroundColor = c; el.style.backgroundImage = "none"; }
+  else { el.style.backgroundColor = ""; el.style.backgroundImage = ""; }
+};
 (() => {
   const $ = (id) => document.getElementById(id);
   const stage = $("stage"), view = $("view"), overlay = $("overlay");
@@ -1718,6 +1730,7 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
   function setBg(v) {
     bg = v; sws.forEach((s) => s.setAttribute("aria-pressed", s.dataset.bg === v));
     $("saveJpg").disabled = v === "transparent"; render();
+    window.setStageColor($("stage"), v === "transparent" ? null : bgColor());
   }
   sws.forEach((s) => s.addEventListener("click", () => setBg(s.dataset.bg)));
   $("fname").addEventListener("input", () => { fnameTouched = true; });
@@ -2394,13 +2407,14 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
     $("rz-focusXRow").hidden = $("rz-focusYRow").hidden = m !== "fill";
     $("rz-zoomRow").hidden = m === "stretch";
     $("rz-bgRow").hidden = m !== "fit";
-    render(); if (typeof syncDefaultUI === "function") syncDefaultUI();
+    render(); if (typeof syncDefaultUI === "function") syncDefaultUI(); syncRzStage();
   }
+  function syncRzStage() { window.setStageColor($("rz-stage"), mode === "fit" && bars !== "blur" ? (bars === "custom" ? $("rz-barColor").value : bars) : null); }
   document.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
   document.querySelectorAll("[data-bars]").forEach((b) => b.addEventListener("click", () => {
-    bars = b.dataset.bars; document.querySelectorAll("[data-bars]").forEach((x) => x.setAttribute("aria-pressed", x === b)); render();
+    bars = b.dataset.bars; document.querySelectorAll("[data-bars]").forEach((x) => x.setAttribute("aria-pressed", x === b)); render(); syncRzStage();
   }));
-  $("rz-barColor").addEventListener("input", () => { bars = "custom"; document.querySelectorAll("[data-bars]").forEach((x) => x.setAttribute("aria-pressed", x.dataset.bars === "custom")); render(); });
+  $("rz-barColor").addEventListener("input", () => { bars = "custom"; document.querySelectorAll("[data-bars]").forEach((x) => x.setAttribute("aria-pressed", x.dataset.bars === "custom")); render(); syncRzStage(); });
   const outs = () => { $("rz-focusXOut").textContent = $("rz-focusX").value + "%"; $("rz-focusYOut").textContent = $("rz-focusY").value + "%"; $("rz-zoomOut").textContent = (+$("rz-zoom").value / 100).toFixed(2) + "×"; };
   ["rz-focusX", "rz-focusY", "rz-zoom"].forEach((id) => $(id).addEventListener("input", () => { outs(); render(); }));
   outs();
@@ -3480,13 +3494,14 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
     mode = m; document.querySelectorAll("[data-mode2]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.mode2 === m));
     const ph = m === "photo";
     $("ed-photoCard").hidden = !ph; $("ed-phraseRow").hidden = ph; $("ed-textLook").hidden = ph; $("ed-zoomRow").hidden = ph;
-    $("ed-tag").textContent = TAGS[m]; nameTouched = false; t = 0; invalidate();
+    $("ed-tag").textContent = TAGS[m]; nameTouched = false; t = 0; invalidate(); syncEdStage();
   }
+  function syncEdStage() { window.setStageColor($("ed-stage"), mode === "photo" ? { black: "#0d0d0f", green: "#00b140", paper: "#cdbf9f" }[bgd] : null); }
   document.querySelectorAll("[data-mode2]").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode2)));
   function press(attr, v) { document.querySelectorAll(`[data-${attr}]`).forEach((b) => b.setAttribute("aria-pressed", b.dataset[attr] === v)); }
   document.querySelectorAll("[data-print]").forEach((b) => b.addEventListener("click", () => { printLook = b.dataset.print; press("print", printLook); invalidate(); }));
   document.querySelectorAll("[data-entry]").forEach((b) => b.addEventListener("click", () => { entry = b.dataset.entry; press("entry", entry); $("ed-introRow").hidden = entry === "none"; t = 0; invalidate(); }));
-  document.querySelectorAll("[data-bgd]").forEach((b) => b.addEventListener("click", () => { bgd = b.dataset.bgd; press("bgd", bgd); invalidate(); }));
+  document.querySelectorAll("[data-bgd]").forEach((b) => b.addEventListener("click", () => { bgd = b.dataset.bgd; press("bgd", bgd); invalidate(); syncEdStage(); }));
   const photoOuts = () => {
     $("ed-photoSizeOut").textContent = $("ed-photoSize").value + "%"; $("ed-introOut").textContent = (+$("ed-intro").value).toFixed(1) + " s";
     $("ed-grainOut").textContent = $("ed-grain").value + "%"; $("ed-creaseOut").textContent = $("ed-crease").value + "%";
@@ -3523,7 +3538,7 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
     printLook = p.print; press("print", printLook); bgd = p.bgd; press("bgd", bgd);
     $("ed-paper").value = p.paper; $("ed-automix").checked = p.automix;
     $("ed-cps").value = p.cps; $("ed-len").value = p.len; $("ed-hold").value = p.hold; $("ed-grain").value = p.grain; $("ed-crease").value = p.crease;
-    outs(); photoOuts(); printCache.clear(); t = 0; invalidate(); fitPreview();
+    outs(); photoOuts(); printCache.clear(); t = 0; invalidate(); fitPreview(); syncEdStage();
   }));
 
   // ---------- file name ----------
@@ -3664,6 +3679,7 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
   let ratio = "16:9", seed = 7, bgMode = "blur", bgColor = "#8c7ae6", bgImage = null;
   let photo = null, photoName = "sample-character", subject = null;   // subject: canvas with alpha (the cut-out)
   let mouth = null;                                                   // {x, y} in subject pixels
+  let neck = null;                                                    // where the head separates (null = just under the mouth)
   let pos = { x: 0.5, y: 1.02 };                                      // feet anchor in frame (0..1)
   let voice = null;                                                   // { buf, env (Float32Array @100Hz), dur }
   function rng(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -3695,7 +3711,7 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
     // mouth line + chin
     x.lineWidth = 9; x.beginPath(); x.moveTo(385, 600); x.quadraticCurveTo(450, 612, 515, 600); x.stroke();
     x.fillStyle = "rgba(255,70,103,.25)"; x.beginPath(); x.ellipse(330, 560, 34, 20, 0, 0, 7); x.fill(); x.beginPath(); x.ellipse(570, 560, 34, 20, 0, 0, 7); x.fill();
-    return { c, mouth: { x: 450, y: 600 } };
+    return { c, mouth: { x: 450, y: 600 }, neck: { x: 450, y: 700 } };
   }
   function sampleRoom() {
     const c = mk(1920, 1080), x = c.getContext("2d");
@@ -3708,7 +3724,7 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
     x.beginPath(); x.arc(350, 300, 60, 0, 7); x.fillStyle = "#ff4667"; x.fill(); x.lineWidth = 8; x.stroke();
     return c;
   }
-  const S = sampleCharacter(); subject = S.c; mouth = S.mouth; photo = sampleRoom();
+  const S = sampleCharacter(); subject = S.c; mouth = S.mouth; neck = S.neck; photo = sampleRoom();
 
   // ---------- prepared layers (rebuilt when the subject or look changes) ----------
   let prep = null;
@@ -3732,14 +3748,25 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
     f.drawImage(s, -ox, -oy);
     const shadow = mk(W, H), sh = shadow.getContext("2d"); sh.drawImage(full, 0, 0); sh.globalCompositeOperation = "source-in"; sh.fillStyle = "rgba(13,13,15,.42)"; sh.fillRect(0, 0, W, H);
     // jaw: a rectangle below the mouth line, as in paper cut-out animation
-    let jaw = null;
+    let jaw = null, head = null, jh = 0;
     if (mouth) {
-      const jw = +$("an-jaw").value / 100 * (x1 - x0), jh = jw * 0.72, jx = mouth.x - ox - jw / 2, jy = mouth.y - oy;
+      const jw = Math.max(4, Math.round(+$("an-jaw").value / 100 * (x1 - x0))), jx = Math.round(mouth.x - ox - jw / 2), jy = Math.round(mouth.y - oy); jh = Math.round(jw * 0.72);
       const body = mk(W, H), b = body.getContext("2d"); b.drawImage(full, 0, 0); b.clearRect(jx, jy, jw, jh);
       const piece = mk(jw, jh), p = piece.getContext("2d"); p.drawImage(full, -jx, -jy);
       jaw = { body, piece, jx, jy, jw, jh };
     }
-    prep = { W, H, ox, oy, full, shadow, jaw, edge };
+    // head: everything above the neck line, as its own cut-out piece that can bob, tilt and shake
+    const nk = neck || (mouth ? { x: mouth.x, y: mouth.y + jh * 1.35 } : null);
+    if (nk) {
+      const ny = Math.round(nk.y - oy), ov = Math.max(4, Math.round(H * 0.025));
+      const headL = mk(W, H), hx = headL.getContext("2d"); hx.drawImage(full, 0, 0); hx.clearRect(0, ny + ov, W, H);
+      const bodyL = mk(W, H), bx = bodyL.getContext("2d"); bx.drawImage(full, 0, 0); bx.clearRect(0, 0, W, ny);
+      const noJaw = mk(W, H), nx = noJaw.getContext("2d"); nx.drawImage(headL, 0, 0);
+      if (jaw) { nx.clearRect(jaw.jx, jaw.jy, jaw.jw, jaw.jh); bx.clearRect(jaw.jx, jaw.jy, jaw.jw, jaw.jh); }
+      const shade = (src) => { const c = mk(W, H), x = c.getContext("2d"); x.drawImage(src, 0, 0); x.globalCompositeOperation = "source-in"; x.fillStyle = "rgba(13,13,15,.42)"; x.fillRect(0, 0, W, H); return c; };
+      head = { head: headL, headNoJaw: noJaw, body: bodyL, headShadow: shade(headL), bodyShadow: shade(bodyL), px: nk.x - ox, py: ny };
+    }
+    prep = { W, H, ox, oy, full, shadow, jaw, head, edge };
   }
   let bgCanvas = null;
   function background(W, H) {
@@ -3769,7 +3796,7 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
   }
   function pose(t, rest) {
     const e = +$("an-energy").value / 100, sp = +$("an-speed").value / 100, r = rng(seed);
-    const p = { dx: 0, dy: 0, rot: 0, sx: 1, sy: 1, cam: 1 };
+    const p = { dx: 0, dy: 0, rot: 0, sx: 1, sy: 1, cam: 1, hrot: 0, hdy: 0, hs: 1 };
     if (rest) return { ...p, talk: 0 };
     const talk = moveOn("talk") ? mouthOpen(t) : 0;
     if (moveOn("bob")) { const b = Math.abs(Math.sin(t * Math.PI * 2.1 * sp)); p.dy -= b * 0.022 * e; p.sy *= 1 + (b - 0.5) * 0.02 * e; p.sx *= 1 - (b - 0.5) * 0.012 * e; }
@@ -3778,6 +3805,10 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
     if (moveOn("shake")) { const j = rng(seed * 7 + Math.floor(t * 30)); p.dx += (j() - 0.5) * 0.012 * e; p.dy += (j() - 0.5) * 0.01 * e; p.rot += (j() - 0.5) * 0.03 * e; }
     if (moveOn("hop")) { const per = 1.7 / sp, ph = ((t + r() * per) % per) / per; if (ph < 0.22) { const q = ph / 0.22; p.dy -= Math.sin(q * Math.PI) * 0.09 * e; p.sy *= 1 + Math.sin(q * Math.PI) * 0.04; } }
     if (moveOn("slide")) { const q = Math.min(1, t / 0.55); const back = 1 + 2.4 * Math.pow(q - 1, 3) + 1.4 * Math.pow(q - 1, 2); p.dx += (1 - back) * -0.9; }
+    // head on its own: tilts and bobs along with the talking, quick shakes now and then
+    if (moveOn("headtilt")) p.hrot += Math.sin(t * Math.PI * 1.15 * sp + r() * 6) * 0.09 * e + Math.sin(t * 6.5 * sp) * talk * 0.06 * e;
+    if (moveOn("headbob")) { p.hdy -= (Math.abs(Math.sin(t * Math.PI * 3 * sp)) * 0.008 + talk * 0.016) * e; p.hs *= 1 + talk * 0.03 * e; }
+    if (moveOn("headshake")) { const per = 2.2 / sp, ph = (t + 0.7) % per; if (ph < 0.45) p.hrot += Math.sin(ph * Math.PI * 14) * 0.09 * e * Math.sin(ph / 0.45 * Math.PI); }
     if (moveOn("zoom")) { const per = 2.6 / Math.max(0.6, sp), first = 0.9; if (t > first) { const ph = (t - first) % per; if (ph < per * 0.42) p.cam = 1 + 0.28 * Math.min(1.4, e); } }
     return { ...p, talk };
   }
@@ -3794,14 +3825,26 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
     if (ps.cam !== 1) { ctx.translate(fx, faceY); ctx.scale(ps.cam, ps.cam); ctx.translate(-fx, -faceY); }
     const bg = background(W, H); ctx.drawImage(bg, -W * 0.02, -H * 0.02, W * 1.04, H * 1.04);
     ctx.translate(fx, fy); ctx.rotate(ps.rot); ctx.scale(scale * ps.sx, scale * ps.sy); ctx.translate(-prep.W / 2, -prep.H);
-    if ($("an-shadow").checked) ctx.drawImage(prep.shadow, prep.W * 0.018, prep.H * 0.012);
-    if (prep.jaw && moveOn("talk")) {
-      const J = prep.jaw, drop = ps.talk * J.jh * 0.42;
-      ctx.drawImage(J.body, 0, 0);
-      if (drop > 0.5) { ctx.fillStyle = "#3a0d16"; ctx.beginPath(); ctx.roundRect(J.jx + J.jw * 0.06, J.jy - 1, J.jw * 0.88, drop + 2, Math.min(drop, J.jw * 0.2)); ctx.fill();
-        ctx.fillStyle = "#e05570"; ctx.beginPath(); ctx.ellipse(J.jx + J.jw / 2, J.jy + drop * 0.85, J.jw * 0.22, drop * 0.3, 0, 0, 7); ctx.fill(); }
+    const sh = $("an-shadow").checked, so0 = prep.W * 0.018, so1 = prep.H * 0.012, J = prep.jaw;
+    const talking = J && moveOn("talk"), drop = talking ? ps.talk * J.jh * 0.42 : 0;
+    const face = (withJaw, noJaw) => {
+      if (!talking) { ctx.drawImage(withJaw, 0, 0); return; }
+      ctx.drawImage(noJaw, 0, 0);
+      if (drop > 0.5) {
+        ctx.fillStyle = "#3a0d16"; ctx.beginPath(); ctx.roundRect(J.jx + J.jw * 0.06, J.jy - 1, J.jw * 0.88, drop + 2, Math.min(drop, J.jw * 0.2)); ctx.fill();
+        ctx.fillStyle = "#e05570"; ctx.beginPath(); ctx.ellipse(J.jx + J.jw / 2, J.jy + drop * 0.85, J.jw * 0.22, drop * 0.3, 0, 0, 7); ctx.fill();
+      }
       ctx.drawImage(J.piece, J.jx, J.jy + drop);
-    } else ctx.drawImage(prep.full, 0, 0);
+    };
+    if (prep.head) {
+      const Hd = prep.head, headXf = () => { ctx.translate(Hd.px, Hd.py + ps.hdy * prep.H); ctx.rotate(ps.hrot); ctx.scale(ps.hs, ps.hs); ctx.translate(-Hd.px, -Hd.py); };
+      if (sh) { ctx.drawImage(Hd.bodyShadow, so0, so1); ctx.save(); headXf(); ctx.drawImage(Hd.headShadow, so0, so1); ctx.restore(); }
+      ctx.drawImage(Hd.body, 0, 0);
+      ctx.save(); headXf(); face(Hd.head, Hd.headNoJaw); ctx.restore();
+    } else {
+      if (sh) ctx.drawImage(prep.shadow, so0, so1);
+      face(prep.full, J ? J.body : prep.full);
+    }
     ctx.restore();
   }
 
@@ -3821,10 +3864,12 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
   // where the mouth line sits on screen (frame at rest)
   function restTransform(w, h) { if (!prep) prepare(); const scale = h * 0.95 * (+$("an-size").value / 100) / prep.H; return { scale, ox: w * pos.x - prep.W / 2 * scale, oy: h * pos.y - prep.H * scale }; }
   function markMouth(w, h) {
-    if (!mouth || !prep || !prep.jaw) return;
-    const T = restTransform(w, h), J = prep.jaw;
-    pctx.save(); pctx.setLineDash([6, 5]); pctx.lineWidth = 2; pctx.strokeStyle = placing ? "#ff4667" : "rgba(13,13,15,.55)";
-    pctx.strokeRect(T.ox + J.jx * T.scale, T.oy + J.jy * T.scale, J.jw * T.scale, J.jh * T.scale); pctx.restore();
+    if (!prep) return;
+    const T = restTransform(w, h), J = prep.jaw, Hd = prep.head;
+    pctx.save(); pctx.setLineDash([6, 5]); pctx.lineWidth = 2;
+    if (J) { pctx.strokeStyle = placing === "mouth" ? "#ff4667" : "rgba(13,13,15,.55)"; pctx.strokeRect(T.ox + J.jx * T.scale, T.oy + J.jy * T.scale, J.jw * T.scale, J.jh * T.scale); }
+    if (Hd) { const y = T.oy + Hd.py * T.scale, cx = T.ox + Hd.px * T.scale, half = prep.W * T.scale * 0.22; pctx.strokeStyle = placing === "neck" ? "#ff4667" : "rgba(140,122,230,.95)"; pctx.beginPath(); pctx.moveTo(cx - half, y); pctx.lineTo(cx + half, y); pctx.stroke(); pctx.setLineDash([]); pctx.fillStyle = pctx.strokeStyle; pctx.beginPath(); pctx.arc(cx, y, 4, 0, 7); pctx.fill(); }
+    pctx.restore();
   }
   function fitPreview() {
     const st = $("an-stage"), cs = getComputedStyle(st);
@@ -3840,9 +3885,9 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
     const p = toCanvas(e), T = restTransform(cv.width, cv.height);
     if (placing) {
       const sx = (p.x - T.ox) / T.scale + prep.ox, sy = (p.y - T.oy) / T.scale + prep.oy;
-      mouth = { x: sx, y: sy }; placing = false; $("an-mouthBtn").setAttribute("aria-pressed", "false"); cv.style.cursor = "grab";
-      if (!moveOn("talk")) document.querySelector('[data-move="talk"]').setAttribute("aria-pressed", "true");
-      prep = null; t = 0; draw(); return;
+      if (placing === "mouth") { mouth = { x: sx, y: sy }; if (!moveOn("talk")) document.querySelector('[data-move="talk"]').setAttribute("aria-pressed", "true"); if (neck && neck.y <= sy) neck = null; }
+      else neck = { x: sx, y: sy };
+      setPlacing(false); prep = null; t = 0; draw(); return;
     }
     setPlaying(false); drag = { x: p.x, y: p.y, px: pos.x, py: pos.y }; cv.setPointerCapture(e.pointerId); cv.style.cursor = "grabbing";
   });
@@ -3850,12 +3895,17 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
   const endDrag = () => { drag = null; cv.style.cursor = placing ? "crosshair" : "grab"; };
   cv.addEventListener("pointerup", endDrag); cv.addEventListener("pointercancel", endDrag);
   cv.style.cursor = "grab";
-  $("an-mouthBtn").addEventListener("click", () => {
-    placing = !placing; $("an-mouthBtn").setAttribute("aria-pressed", placing); setPlaying(false); t = 0;
-    cv.style.cursor = placing ? "crosshair" : "grab";
-    $("an-stageHint").textContent = placing ? "Click on the middle of the mouth. The jaw will split along that line." : "Drag the character to move it. Use “Place the mouth” and click on the mouth to set where the jaw splits.";
-    draw();
-  });
+  const HINTS = {
+    mouth: "Click on the middle of the mouth. The jaw will split along that line.",
+    neck: "Click on the neck, just under the chin. Everything above it moves as the head.",
+    none: "Drag the character to move it. Place the mouth for the jaw, and the neck for head moves (it's set just under the mouth until you do)."
+  };
+  function setPlacing(m) {
+    placing = m; $("an-mouthBtn").setAttribute("aria-pressed", m === "mouth"); $("an-neckBtn").setAttribute("aria-pressed", m === "neck");
+    cv.style.cursor = m ? "crosshair" : "grab"; $("an-stageHint").textContent = HINTS[m || "none"];
+  }
+  $("an-mouthBtn").addEventListener("click", () => { setPlaying(false); t = 0; setPlacing(placing === "mouth" ? false : "mouth"); draw(); });
+  $("an-neckBtn").addEventListener("click", () => { setPlaying(false); t = 0; setPlacing(placing === "neck" ? false : "neck"); draw(); });
 
   // ---------- audio: playback and voice-driven mouth ----------
   let ac = null, srcNode = null, startAt = 0;
@@ -3913,7 +3963,7 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
     if (f.type && !f.type.startsWith("image/")) { note2("an-cutNote", "That file isn't an image. Pick a JPG, PNG or WebP.", "err"); return; }
     try {
       photo = await readImage(f, 2200); photoName = (f.name || "photo").replace(/\.[^.]+$/, "");
-      subject = photo; mouth = null; prep = null; bgCanvas = null; pos = { x: 0.5, y: 1.02 };
+      subject = photo; mouth = null; neck = null; prep = null; bgCanvas = null; pos = { x: 0.5, y: 1.02 };
       $("an-photoHint").textContent = `${f.name} · ${photo.width} × ${photo.height} px`;
       $("an-cut").disabled = false; nameTouched = false; anDefaultName();
       note2("an-cutNote", "Next: cut out the person, then place the mouth.", "");
@@ -3937,8 +3987,8 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
       mx.putImageData(id, 0, 0);
       const c = mk(photo.width, photo.height), x = c.getContext("2d");
       x.drawImage(photo, 0, 0); x.globalCompositeOperation = "destination-in"; x.imageSmoothingQuality = "high"; x.drawImage(m, 0, 0, photo.width, photo.height);
-      subject = c; mouth = null; prep = null; t = 0; draw();
-      note2("an-cutNote", "Cut out. Now press “Place the mouth” and click on the mouth.", "ok");
+      subject = c; mouth = null; neck = null; prep = null; t = 0; draw();
+      note2("an-cutNote", "Cut out. Now press “Place the mouth” and click on the mouth. The neck is set under it; move it with “Place the neck”.", "ok");
     } catch (e) { console.error(e); note2("an-cutNote", "The cutout didn't work in this browser (" + String(e && e.message || e).slice(0, 80) + ").", "err"); }
     finally { btn.disabled = false; }
   });
@@ -3960,10 +4010,11 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
   }));
   document.querySelectorAll("[data-anbg]").forEach((b) => b.addEventListener("click", () => {
     bgMode = b.dataset.anbg; document.querySelectorAll("[data-anbg]").forEach((x) => x.setAttribute("aria-pressed", x === b));
-    $("an-bgColors").hidden = bgMode !== "color"; $("an-bgFileRow").hidden = bgMode !== "image"; bgCanvas = null; draw();
+    $("an-bgColors").hidden = bgMode !== "color"; $("an-bgFileRow").hidden = bgMode !== "image"; bgCanvas = null; draw(); syncAnStage();
   }));
-  document.querySelectorAll("[data-anc]").forEach((b) => b.addEventListener("click", () => { if (b.dataset.anc === "custom") return; bgColor = b.dataset.anc; document.querySelectorAll("[data-anc]").forEach((x) => x.setAttribute("aria-pressed", x === b)); bgCanvas = null; draw(); }));
-  $("an-bgColor").addEventListener("input", () => { bgColor = $("an-bgColor").value; document.querySelectorAll("[data-anc]").forEach((x) => x.setAttribute("aria-pressed", x.dataset.anc === "custom")); bgCanvas = null; draw(); });
+  function syncAnStage() { window.setStageColor($("an-stage"), bgMode === "color" ? bgColor : null); }
+  document.querySelectorAll("[data-anc]").forEach((b) => b.addEventListener("click", () => { if (b.dataset.anc === "custom") return; bgColor = b.dataset.anc; document.querySelectorAll("[data-anc]").forEach((x) => x.setAttribute("aria-pressed", x === b)); bgCanvas = null; draw(); syncAnStage(); }));
+  $("an-bgColor").addEventListener("input", () => { bgColor = $("an-bgColor").value; document.querySelectorAll("[data-anc]").forEach((x) => x.setAttribute("aria-pressed", x.dataset.anc === "custom")); bgCanvas = null; draw(); syncAnStage(); });
   $("an-bgFile").addEventListener("change", async (e) => { const f = e.target.files[0]; e.target.value = ""; if (!f) return; try { bgImage = await readImage(f, 2400); bgCanvas = null; draw(); } catch {} });
 
   // ---------- file name ----------
