@@ -493,6 +493,9 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
             <select id="rz-quality"><option value="0.5">Smaller file</option><option value="1" selected>YouTube recommended</option><option value="1.5">High</option></select>
           </label>
         </div>
+        <label class="field">File type
+          <select id="rz-container"><option value="mov" selected>MOV (QuickTime) · best for editing apps</option><option value="mp4">MP4 · best for uploading</option></select>
+        </label>
         <p class="note" id="rz-lenNote" hidden></p>
         <button class="primary" id="rz-exportBtn">Export video</button>
         <div class="progress" id="rz-progress" hidden>
@@ -510,7 +513,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     </aside>
   </div>
 
-  <footer>Bitrates follow YouTube's recommended upload settings for standard (24–30 fps) and high (60 fps) frame rates. Exports are constant-frame-rate MP4 files (H.264 + AAC, BT.709) that open in DaVinci Resolve, Premiere and CapCut. Vertical videos up to 3 minutes are treated as Shorts. TikTok and Instagram exports use the same bitrate guide for their resolution.</footer>
+  <footer>Bitrates follow YouTube's recommended upload settings for standard (24–30 fps) and high (60 fps) frame rates. Exports are constant-frame-rate MOV or MP4 files (H.264 + AAC, BT.709) that open in DaVinci Resolve, Premiere, Final Cut and CapCut. Vertical videos up to 3 minutes are treated as Shorts. TikTok and Instagram exports use the same bitrate guide for their resolution.</footer>
   </section>
 
 </div>
@@ -1788,7 +1791,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
   function rzDefaultName() { if (!rzNameTouched) $("rz-fname").value = rzAuto(); }
   function syncDefaultUI() {
     const same = savedDef && savedDef.fmt === fmt && savedDef.label === preset.label && (!preset.custom || (savedDef.w === out.w && savedDef.h === out.h))
-      && (savedDef.mode || "fill") === mode && (savedDef.fps || "30") === $("rz-fps").value && (savedDef.quality || "1") === $("rz-quality").value && !!savedDef.safe === $("rz-safe").checked;
+      && (savedDef.mode || "fill") === mode && (savedDef.fps || "30") === $("rz-fps").value && (savedDef.quality || "1") === $("rz-quality").value && !!savedDef.safe === $("rz-safe").checked && (savedDef.container || "mov") === $("rz-container").value;
     $("rz-makeDefault").textContent = same ? "★ This is your default" : "Set as my default";
     $("rz-makeDefault").disabled = !!same;
     $("rz-defHint").hidden = !savedDef;
@@ -1804,7 +1807,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
   }
   document.querySelectorAll("[data-fmt]").forEach((b) => b.addEventListener("click", () => setFmt(b.dataset.fmt)));
   $("rz-makeDefault").addEventListener("click", () => {
-    savedDef = { fmt, label: preset.label, w: out.w, h: out.h, mode, fps: $("rz-fps").value, quality: $("rz-quality").value, safe: $("rz-safe").checked };
+    savedDef = { fmt, label: preset.label, w: out.w, h: out.h, mode, fps: $("rz-fps").value, quality: $("rz-quality").value, safe: $("rz-safe").checked, container: $("rz-container").value };
     try { localStorage.setItem(DEF_KEY, JSON.stringify(savedDef)); } catch {}
     buildRes(); syncDefaultUI();
   });
@@ -1950,7 +1953,9 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     if (!v.endsWith("-" + part) && !v.includes("-" + part + "-")) inp.value = (v ? v + "-" : "") + part;
     rzNameTouched = true; inp.focus();
   }));
-  (() => { const m = pickMime(); $("rz-fnameExt").textContent = window.VideoEncoder || !(m && m.startsWith("video/webm")) ? ".mp4" : ".webm"; })();
+  const syncRzExt = () => { const m = pickMime(); $("rz-fnameExt").textContent = window.VideoEncoder ? "." + $("rz-container").value : m && m.startsWith("video/webm") ? ".webm" : ".mp4"; };
+  syncRzExt();
+  $("rz-container").addEventListener("change", () => { syncRzExt(); syncDefaultUI(); });
   // ---------- frame-accurate MP4 export (WebCodecs) ----------
   // Renders every frame one by one, so nothing is dropped, and writes a standard MP4:
   // constant frame rate, H.264 High with BT.709 video-range color, AAC audio, index at the front.
@@ -2061,7 +2066,19 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     if (job.cancelled) { try { venc.close(); } catch {} return "cancelled"; }
     await venc.flush(); venc.close();
     muxer.finalize();
-    return { blob: new Blob([muxer.target.buffer], { type: "video/mp4" }), audioNote };
+    const bytes = new Uint8Array(muxer.target.buffer);
+    const mov = $("rz-container").value === "mov";
+    if (mov) setBrand(bytes, "qt  ");
+    return { blob: new Blob([bytes], { type: mov ? "video/quicktime" : "video/mp4" }), ext: mov ? "mov" : "mp4", audioNote };
+  }
+  // MOV and MP4 share the same structure; the file-type header says which one it is.
+  function setBrand(bytes, brand) {
+    const size = (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
+    if (String.fromCharCode(bytes[4], bytes[5], bytes[6], bytes[7]) !== "ftyp" || size < 16) return bytes;
+    const put = (at, str) => { for (let k = 0; k < 4; k++) bytes[at + k] = str.charCodeAt(k); };
+    put(8, brand);
+    for (let at = 16; at + 4 <= size; at += 4) put(at, brand === "qt  " ? "qt  " : ["isom", "avc1", "mp41"][((at - 16) / 4) % 3]);
+    return bytes;
   }
   function makeCanvasRz(w, h) { const c = document.createElement("canvas"); c.width = w; c.height = h; return c; }
   function finishExport(blob, ext, extra) {
@@ -2080,7 +2097,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     let res = null;
     try { res = await exportMp4(job); }
     catch (err) { console.error(err); res = { error: err }; }
-    if (res && res.blob) { exporting = null; $("rz-exportBtn").disabled = false; $("rz-progress").hidden = true; finishExport(res.blob, "mp4", " Constant frame rate MP4, ready for DaVinci Resolve, Premiere and CapCut." + res.audioNote); return; }
+    if (res && res.blob) { exporting = null; $("rz-exportBtn").disabled = false; $("rz-progress").hidden = true; finishExport(res.blob, res.ext, ` Constant frame rate ${res.ext.toUpperCase()}, ready for DaVinci Resolve, Premiere and CapCut.` + res.audioNote); return; }
     if (res === "cancelled") { exporting = null; $("rz-exportBtn").disabled = false; $("rz-progress").hidden = true; note("rz-outNote", "Export cancelled."); render(); return; }
     exporting = null;
     await startExportRealtime(res && res.error ? "The frame-by-frame export failed, so this was recorded in real time instead. Editing apps like DaVinci Resolve may not open it." : "This browser can't export frame by frame, so the video is recorded in real time. For DaVinci Resolve, export in Chrome or Edge.");
@@ -2152,6 +2169,12 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
       catch (e) {
         if (e && e.code === "declined") { note("rz-outNote", "Save cancelled."); return; }
         if (e && e.code === "rate_limited") { note("rz-outNote", "A save prompt is already open. Finish that one first.", "warn"); return; }
+        if (/\.mov$/.test(resultName) && e && ["not_signed", "rejected_extension", "extension_not_enabled"].includes(e.code)) {
+          const mp4Name = resultName.replace(/\.mov$/, ".mp4");
+          const bytes = setBrand(new Uint8Array(await resultBlob.arrayBuffer()), "isom");
+          try { await downloads.save({ filename: mp4Name, data: new Blob([bytes], { type: "video/mp4" }) }); note("rz-outNote", `Saved ${mp4Name}. This viewer can't save .mov files, so it was saved as MP4. On your own site it saves as .mov.`, "warn"); return; }
+          catch (e2) { if (e2 && e2.code === "declined") { note("rz-outNote", "Save cancelled."); return; } }
+        }
       }
     }
     if (!window.claude) { const a = document.createElement("a"); a.href = URL.createObjectURL(resultBlob); a.download = resultName; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000); note("rz-outNote", `Downloaded ${resultName}.`, "ok"); return; }
@@ -2164,6 +2187,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     if (savedDef.fps) $("rz-fps").value = savedDef.fps;
     if (savedDef.quality) $("rz-quality").value = savedDef.quality;
     $("rz-safe").checked = !!savedDef.safe;
+    if (savedDef.container) { $("rz-container").value = savedDef.container; syncRzExt(); }
   }
   setFmt(fmt); setMode(savedDef && savedDef.mode ? savedDef.mode : "fill"); checkLength(); render();
 })();
