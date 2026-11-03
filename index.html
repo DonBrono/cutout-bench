@@ -143,6 +143,10 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 
 .slider { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; font-size: 13px; }
 .slider label { color: var(--ink); }
+.ai-tune { display: grid; gap: 10px; border-top: 1px solid var(--line); padding-top: 10px; }
+.scale-ends { grid-column: 1 / -1; display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); margin-top: -2px; }
+.check { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; cursor: pointer; }
+.check input { accent-color: var(--mat); margin-top: 3px; width: 16px; height: 16px; flex: none; }
 .slider output { font-family: var(--font-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .slider input { grid-column: 1 / -1; width: 100%; accent-color: var(--mat); }
 
@@ -299,6 +303,15 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
         <button class="primary" id="aiBtn">Remove background</button>
         <p class="hint" id="aiHint">The first run downloads the cutout model (about 55 MB). Later runs start straight away.</p>
         <p class="note" id="aiNote" hidden></p>
+        <div id="aiTune" class="ai-tune" hidden>
+          <div class="slider">
+            <label for="firm">Cutout firmness</label><output id="firmOut" for="firm"></output>
+            <input type="range" id="firm" min="0" max="100" value="50">
+            <span class="scale-ends"><span>Fine detail</span><span>Solid</span></span>
+          </div>
+          <label class="check" for="decon"><input type="checkbox" id="decon" checked> Clean color fringes on the edges</label>
+          <p class="hint">Moving the slider redoes the automatic cutout, replacing touch-ups made after it. Undo brings them back.</p>
+        </div>
       </section>
 
       <section class="card" aria-labelledby="h-touch">
@@ -615,6 +628,8 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
   let fit = { s: 1, x: 0, y: 0, w: 0, h: 0 };
   let dpr = 1;
   const work = document.createElement("canvas"), wctx = work.getContext("2d");
+  let aiRaw = null;          // last model prediction (1024×1024)
+  let fg = null;             // photo with background color cleaned from the cutout edges
 
   const sizeEl = $("size"), tolEl = $("tol"), featherEl = $("feather");
 
@@ -639,7 +654,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     src = c; srcData = null; name = label; fileBytes = bytes || 0;
     mask = makeCanvas(c.width, c.height); mctx = mask.getContext("2d", { willReadFrequently: true });
     mctx.fillStyle = "#fff"; mctx.fillRect(0, 0, c.width, c.height);
-    undoStack = []; syncButtons();
+    undoStack = []; aiRaw = null; fg = null; $("aiTune").hidden = true; syncButtons();
     fnameTouched = false; $("fname").value = label + "-cutout"; if (typeof polyReset === "function") { poly = []; polyClosed = false; }
     layout(); render(); updateMeta();
   }
@@ -726,7 +741,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     ctx.clearRect(0, 0, w, h);
     ctx.globalCompositeOperation = "source-over";
     ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(src, 0, 0, w, h);
+    ctx.drawImage(fg && $("decon").checked ? fg : src, 0, 0, w, h);
     ctx.globalCompositeOperation = "destination-in";
     const f = +featherEl.value * scaleForFeather;
     if (f > 0) ctx.filter = `blur(${f}px)`;
@@ -757,17 +772,19 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
   // ---------- undo ----------
   function pushUndo() {
     const c = makeCanvas(mask.width, mask.height); c.getContext("2d").drawImage(mask, 0, 0);
+    c._fg = fg;
     undoStack.push(c); if (undoStack.length > UNDO_DEPTH) undoStack.shift();
     syncButtons();
   }
   function undo() {
     const c = undoStack.pop(); if (!c) return;
     mctx.globalCompositeOperation = "copy"; mctx.drawImage(c, 0, 0); mctx.globalCompositeOperation = "source-over";
+    fg = c._fg || null;
     syncButtons(); render();
   }
   function syncButtons() { $("undo").disabled = !undoStack.length; $("reset").disabled = !src; $("aiBtn").disabled = !src; }
   $("undo").addEventListener("click", undo);
-  $("reset").addEventListener("click", () => { if (!src) return; pushUndo(); mctx.globalCompositeOperation = "source-over"; mctx.fillStyle = "#fff"; mctx.fillRect(0, 0, mask.width, mask.height); render(); });
+  $("reset").addEventListener("click", () => { if (!src) return; pushUndo(); fg = null; mctx.globalCompositeOperation = "source-over"; mctx.fillStyle = "#fff"; mctx.fillRect(0, 0, mask.width, mask.height); render(); });
 
   // ---------- tools ----------
   const toolHints = {
@@ -1025,16 +1042,10 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
       const px = cx.getImageData(0, 0, R, R).data, N = R * R, input = new Float32Array(3 * N);
       for (let i = 0, j = 0; j < N; i += 4, j++) { input[j] = (px[i] - 128) / 256; input[j + N] = (px[i + 1] - 128) / 256; input[j + 2 * N] = (px[i + 2] - 128) / 256; }
       const out = await s.run({ input: new ort.Tensor("float32", input, [1, 3, R, R]) }, ["output"]);
-      const prob = out.output.data;
-      const mi = cx.createImageData(R, R), md = mi.data;
-      for (let j = 0, i = 0; j < N; j++, i += 4) { md[i] = md[i + 1] = md[i + 2] = 255; md[i + 3] = Math.max(0, Math.min(255, Math.round(prob[j] * 255))); }
-      cx.putImageData(mi, 0, 0);
-      pushUndo();
-      mctx.globalCompositeOperation = "copy"; mctx.imageSmoothingQuality = "high";
-      mctx.drawImage(c, 0, 0, mask.width, mask.height);
-      mctx.globalCompositeOperation = "source-over";
-      render();
-      $("aiHint").textContent = "Done. Use the touch-up tools for anything it missed, or hold Compare to check against the original.";
+      aiRaw = Float32Array.from(out.output.data);
+      await applyAI();
+      $("aiTune").hidden = false;
+      $("aiHint").textContent = "Done. Adjust firmness if it's too soft or too hard, then touch up anything it missed. Hold Compare to check against the original.";
       if (tool === "wand") setTool("erase");
     } catch (e) {
       console.error(e);
@@ -1049,6 +1060,154 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     } finally { setBusy(null); btn.disabled = !src; }
   }
   $("aiBtn").addEventListener("click", runAI);
+
+  // ---------- cutout refinement (runs after the model) ----------
+  // Box blur with edge clamping, O(N) per pass.
+  function boxBlur(src, W, H, r, out, tmp) {
+    const d = 2 * r + 1, inv = 1 / d;
+    // horizontal pass (rows are contiguous)
+    for (let y = 0; y < H; y++) {
+      const row = y * W, last = row + W - 1;
+      let sum = src[row] * (r + 1);
+      for (let x = 1; x <= r; x++) sum += src[row + (x < W ? x : W - 1)];
+      for (let x = 0; x < W; x++) {
+        tmp[row + x] = sum * inv;
+        const add = row + x + r + 1, sub = row + x - r;
+        sum += src[add <= last ? add : last] - src[sub >= row ? sub : row];
+      }
+    }
+    // vertical pass, row by row with a running sum per column
+    const col = new Float64Array(W), lastRow = (H - 1) * W;
+    for (let x = 0; x < W; x++) col[x] = tmp[x] * (r + 1);
+    for (let y = 1; y <= r; y++) { const o = (y < H ? y : H - 1) * W; for (let x = 0; x < W; x++) col[x] += tmp[o + x]; }
+    for (let y = 0; y < H; y++) {
+      const o = y * W, ao = Math.min(H - 1, y + r + 1) * W, so = Math.max(0, y - r) * W;
+      for (let x = 0; x < W; x++) { out[o + x] = col[x] * inv; col[x] += tmp[ao + x] - tmp[so + x]; }
+    }
+    return out;
+  }
+  // Visit 4-connected components of pixels where sel[i] is 1; decide(info) returns true to apply act(i) to its pixels.
+  function eachComponent(sel, W, H, queue, seen, measure, decide, act) {
+    const N = W * H;
+    for (let s = 0; s < N; s++) {
+      if (!sel[s] || seen[s]) continue;
+      let head = 0, tail = 0; queue[tail++] = s; seen[s] = 1;
+      const info = { size: 0, border: false, min: 1, max: 0 };
+      while (head < tail) {
+        const i = queue[head++], x = i % W, y = (i - x) / W;
+        info.size++; measure(info, i);
+        if (x === 0 || y === 0 || x === W - 1 || y === H - 1) info.border = true;
+        if (x > 0 && sel[i - 1] && !seen[i - 1]) { seen[i - 1] = 1; queue[tail++] = i - 1; }
+        if (x < W - 1 && sel[i + 1] && !seen[i + 1]) { seen[i + 1] = 1; queue[tail++] = i + 1; }
+        if (y > 0 && sel[i - W] && !seen[i - W]) { seen[i - W] = 1; queue[tail++] = i - W; }
+        if (y < H - 1 && sel[i + W] && !seen[i + W]) { seen[i + W] = 1; queue[tail++] = i + W; }
+      }
+      if (decide(info)) for (let k = 0; k < tail; k++) act(queue[k]);
+    }
+  }
+  // raw: model output (R×R, 0..1). guide: RGBA pixels of the photo at W×H. firm: 0 (soft) .. 1 (solid).
+  function refineMask(raw, R, W, H, guide, firm) {
+    const N = W * H;
+    // 1. Upscale the prediction (bilinear)
+    const r0 = new Float32Array(N);
+    const sx = R / W, sy = R / H;
+    for (let y = 0; y < H; y++) {
+      const fy = Math.min(R - 1, Math.max(0, (y + 0.5) * sy - 0.5)), y1 = Math.floor(fy), y2 = Math.min(R - 1, y1 + 1), dy = fy - y1;
+      for (let x = 0; x < W; x++) {
+        const fx = Math.min(R - 1, Math.max(0, (x + 0.5) * sx - 0.5)), x1 = Math.floor(fx), x2 = Math.min(R - 1, x1 + 1), dx = fx - x1;
+        const v = (raw[y1 * R + x1] * (1 - dx) + raw[y1 * R + x2] * dx) * (1 - dy) + (raw[y2 * R + x1] * (1 - dx) + raw[y2 * R + x2] * dx) * dy;
+        r0[y * W + x] = v < 0 ? 0 : v > 1 ? 1 : v;
+      }
+    }
+    // 2. Levels: make the inside solid and the background clear
+    const lo = 0.03 + 0.18 * firm, hi = 0.97 - 0.3 * firm;
+    const a = new Float32Array(N);
+    for (let i = 0; i < N; i++) { const v = (r0[i] - lo) / (hi - lo); a[i] = v < 0 ? 0 : v > 1 ? 1 : v; }
+    // 3. Fill small holes inside the subject; drop tiny faint specks
+    const sel = new Uint8Array(N), seen = new Uint8Array(N), queue = new Int32Array(N);
+    for (let i = 0; i < N; i++) sel[i] = a[i] < 0.5 ? 1 : 0;
+    eachComponent(sel, W, H, queue, seen, (inf, i) => { if (r0[i] < inf.min) inf.min = r0[i]; },
+      (inf) => !inf.border && inf.size < 0.003 * N && inf.min > 0.08, (i) => { a[i] = 1; });
+    seen.fill(0);
+    for (let i = 0; i < N; i++) sel[i] = a[i] >= 0.5 ? 1 : 0;
+    eachComponent(sel, W, H, queue, seen, (inf, i) => { if (r0[i] > inf.max) inf.max = r0[i]; },
+      (inf) => inf.size < 0.0002 * N && inf.max < 0.6, (i) => { a[i] = 0; });
+    // 4. Snap edges to the photo (guided filter on brightness, only near edges)
+    const I = new Float32Array(N);
+    for (let i = 0, j = 0; i < N; i++, j += 4) I[i] = (guide[j] * 0.299 + guide[j + 1] * 0.587 + guide[j + 2] * 0.114) / 255;
+    const rg = Math.max(1, Math.round(Math.max(W, H) / 1024 * 2)), eps = 1e-4;
+    const tmp = new Float32Array(N), mI = new Float32Array(N), mp = new Float32Array(N), t1 = new Float32Array(N), t2 = new Float32Array(N);
+    boxBlur(I, W, H, rg, mI, tmp); boxBlur(a, W, H, rg, mp, tmp);
+    for (let i = 0; i < N; i++) t1[i] = I[i] * a[i];
+    boxBlur(t1, W, H, rg, t1, tmp);                               // mean(I·p)
+    for (let i = 0; i < N; i++) t2[i] = I[i] * I[i];
+    boxBlur(t2, W, H, rg, t2, tmp);                               // mean(I·I)
+    for (let i = 0; i < N; i++) {
+      const A = (t1[i] - mI[i] * mp[i]) / (t2[i] - mI[i] * mI[i] + eps);
+      t1[i] = A; t2[i] = mp[i] - A * mI[i];
+    }
+    boxBlur(t1, W, H, rg, t1, tmp); boxBlur(t2, W, H, rg, t2, tmp);
+    for (let i = 0; i < N; i++) mp[i] = a[i] > 0.02 && a[i] < 0.98 ? 1 : 0;
+    boxBlur(mp, W, H, rg + 1, mp, tmp);                           // band around edges
+    for (let i = 0; i < N; i++) {
+      if (mp[i] > 0) { let q = t1[i] * I[i] + t2[i]; q = (q - 0.02) / 0.96; a[i] = q < 0 ? 0 : q > 1 ? 1 : q; }
+    }
+    // 5. Foreground color estimate for cleaning fringes: average color of solid subject pixels nearby
+    const rd = Math.max(3, Math.round(Math.max(W, H) / 1024 * 6));
+    const w = new Float32Array(N);
+    for (let i = 0; i < N; i++) w[i] = a[i] > 0.9 ? 1 : 0;
+    const wb = boxBlur(w, W, H, rd, new Float32Array(N), tmp);
+    const F = [0, 1, 2].map((c) => {
+      for (let i = 0, j = c; i < N; i++, j += 4) t1[i] = guide[j] * w[i];
+      const out = boxBlur(t1, W, H, rd, new Float32Array(N), tmp);
+      for (let i = 0; i < N; i++) out[i] = wb[i] > 1e-3 ? out[i] / wb[i] : -1;
+      return out;
+    });
+    return { a, F };
+  }
+
+  // Turn the stored prediction into the mask, then clean the edge colors
+  async function applyAI() {
+    if (!aiRaw || !src) return;
+    setBusy("Refining edges…", null); await nextFrame();
+    const cap = navigator.deviceMemory && navigator.deviceMemory <= 4 ? 1280 : 2048;
+    const k = Math.min(1, cap / Math.max(src.width, src.height));
+    const W = Math.max(1, Math.round(src.width * k)), H = Math.max(1, Math.round(src.height * k));
+    const gc = makeCanvas(W, H), gx = gc.getContext("2d", { willReadFrequently: true });
+    gx.imageSmoothingQuality = "high"; gx.drawImage(src, 0, 0, W, H);
+    const guide = gx.getImageData(0, 0, W, H).data;
+    const { a, F } = refineMask(aiRaw, 1024, W, H, guide, +$("firm").value / 100);
+    const id = gx.createImageData(W, H), dd = id.data;
+    for (let i = 0, j = 0; i < W * H; i++, j += 4) { dd[j] = dd[j + 1] = dd[j + 2] = 255; dd[j + 3] = Math.round(a[i] * 255); }
+    gx.putImageData(id, 0, 0);
+    pushUndo();
+    mctx.save(); mctx.globalCompositeOperation = "copy"; mctx.imageSmoothingEnabled = true; mctx.imageSmoothingQuality = "high";
+    mctx.drawImage(gc, 0, 0, mask.width, mask.height); mctx.restore();
+    // Fringe cleaning at full size: blend edge pixels toward the nearby subject color
+    const FW = src.width, FH = src.height;
+    if (!srcData) srcData = src.getContext("2d").getImageData(0, 0, FW, FH);
+    const m = mctx.getImageData(0, 0, FW, FH).data, sd = srcData.data;
+    const outImg = new ImageData(new Uint8ClampedArray(sd), FW, FH), od = outImg.data;
+    const kx = W / FW, ky = H / FH;
+    for (let y = 0; y < FH; y++) {
+      const py = Math.min(H - 1, Math.floor(y * ky)) * W;
+      for (let x = 0; x < FW; x++) {
+        const j = (y * FW + x) * 4, al = m[j + 3];
+        if (al < 3 || al > 252) continue;
+        const pi = py + Math.min(W - 1, Math.floor(x * kx));
+        if (F[0][pi] < 0) continue;
+        const t = al / 255, u = 1 - t;
+        od[j] = F[0][pi] * u + sd[j] * t; od[j + 1] = F[1][pi] * u + sd[j + 1] * t; od[j + 2] = F[2][pi] * u + sd[j + 2] * t;
+      }
+    }
+    fg = makeCanvas(FW, FH); fg.getContext("2d").putImageData(outImg, 0, 0);
+    setBusy(null); render();
+  }
+  const firmOut = () => { const v = +$("firm").value; $("firmOut").textContent = v < 34 ? "Fine detail" : v > 66 ? "Solid" : "Balanced"; };
+  firmOut();
+  $("firm").addEventListener("input", firmOut);
+  $("firm").addEventListener("change", () => { if (aiRaw) applyAI(); });
+  $("decon").addEventListener("change", render);
 
   // ---------- export ----------
   let downloads = null;
