@@ -1091,17 +1091,44 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
 
   // ---------- sample (so the bench opens with something on it) ----------
   function sample() {
+    // flat sticker-style still life: lime wall, violet tabletop, pink pot, ink outlines, hard shadow
     const w = 1200, h = 900, c = makeCanvas(w, h), x = c.getContext("2d");
-    const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#9fc3d6"); g.addColorStop(0.62, "#d8e6ec"); g.addColorStop(0.62, "#b98a5e"); g.addColorStop(1, "#8a6240");
-    x.fillStyle = g; x.fillRect(0, 0, w, h);
-    for (let i = 0; i < 18; i++) { x.strokeStyle = "rgba(60,35,15,.12)"; x.lineWidth = 2; x.beginPath(); const yy = 570 + i * 19; x.moveTo(0, yy); x.bezierCurveTo(400, yy + 8, 800, yy - 8, w, yy + 4); x.stroke(); }
-    x.fillStyle = "rgba(40,25,10,.28)"; x.beginPath(); x.ellipse(610, 742, 250, 34, 0, 0, 7); x.fill();
-    const pot = x.createLinearGradient(430, 0, 790, 0); pot.addColorStop(0, "#a8432a"); pot.addColorStop(0.45, "#d9693f"); pot.addColorStop(1, "#8e3620");
-    x.fillStyle = pot; x.beginPath(); x.moveTo(440, 520); x.lineTo(780, 520); x.lineTo(740, 740); x.lineTo(480, 740); x.closePath(); x.fill();
-    x.fillStyle = "#b9502f"; x.fillRect(420, 500, 380, 46);
-    const leaf = (cx, cy, len, ang, col) => { x.save(); x.translate(cx, cy); x.rotate(ang); x.fillStyle = col; x.beginPath(); x.moveTo(0, 0); x.quadraticCurveTo(len * 0.5, -len * 0.28, len, 0); x.quadraticCurveTo(len * 0.5, len * 0.28, 0, 0); x.fill(); x.restore(); };
-    const greens = ["#2f7a3e", "#3d9150", "#256b34", "#4aa35d"];
-    for (let i = 0; i < 26; i++) { const a = -Math.PI / 2 + (i / 25 - 0.5) * 2.6; leaf(610, 505, 190 + (i % 5) * 34, a, greens[i % 4]); }
+    const INK = "#0d0d0f", LW = 9;
+    x.lineJoin = "round"; x.lineCap = "round";
+    x.fillStyle = "#d8ff5c"; x.fillRect(0, 0, w, h);                       // wall
+    x.fillStyle = "#8c7ae6"; x.fillRect(0, 640, w, h - 640);               // tabletop
+    x.fillStyle = "#7563d8"; x.fillRect(0, 636, w, 10);
+    const spark = (cx, cy, r) => { x.beginPath(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, rr = i % 2 ? r * 0.3 : r; x.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); } x.closePath(); x.fillStyle = INK; x.fill(); };
+    spark(190, 170, 44); spark(1010, 250, 30); spark(1080, 130, 16);
+    // the plant, drawn twice: once offset in ink as the hard shadow, then in colour
+    const leafPath = (bx, by, len, ang, wid) => {
+      x.save(); x.translate(bx, by); x.rotate(ang); x.beginPath();
+      x.moveTo(0, 0); x.bezierCurveTo(len * 0.25, -wid, len * 0.75, -wid, len, 0); x.bezierCurveTo(len * 0.75, wid, len * 0.25, wid, 0, 0); x.closePath(); x.restore();
+    };
+    const leaves = [[-1.35, 300, 74], [-1.75, 330, 70], [-0.95, 290, 66], [-2.15, 280, 66], [-0.55, 250, 58], [-2.6, 240, 58], [-1.55, 210, 52]];
+    const pot = () => { x.beginPath(); x.moveTo(445, 470); x.lineTo(755, 470); x.lineTo(715, 740); x.lineTo(485, 740); x.closePath(); };
+    const rim = () => { x.beginPath(); x.roundRect(420, 430, 360, 70, 16); };
+    const shape = (draw) => {
+      for (const [a, len, wid] of leaves) { leafPath(600, 460, len, a, wid); draw("leaf"); }
+      pot(); draw("pot"); rim(); draw("rim");
+    };
+    x.save(); x.translate(22, 22); shape(() => { x.fillStyle = INK; x.fill(); x.lineWidth = LW; x.strokeStyle = INK; x.stroke(); }); x.restore();
+    const greens = ["#2fbf71", "#27a862", "#3fd683", "#22955a", "#36c978", "#2aae66", "#43dd8a"];
+    let li = 0;
+    shape((part) => {
+      x.fillStyle = part === "leaf" ? greens[li++ % greens.length] : part === "pot" ? "#ff4667" : "#ff6b86";
+      x.fill(); x.lineWidth = LW; x.strokeStyle = INK; x.stroke();
+    });
+    // leaf veins
+    x.strokeStyle = "rgba(13,13,15,.55)"; x.lineWidth = 5;
+    for (const [a, len] of leaves) { x.save(); x.translate(600, 460); x.rotate(a); x.beginPath(); x.moveTo(len * 0.12, 0); x.lineTo(len * 0.86, 0); x.stroke(); x.restore(); }
+    // pot details: lime band and dots
+    x.save(); pot(); x.clip();
+    x.fillStyle = "#fbf5ea"; x.fillRect(400, 585, 400, 46); x.fillStyle = INK; x.fillRect(400, 580, 400, 8); x.fillRect(400, 628, 400, 8);
+    x.fillStyle = INK; for (let i = 0; i < 6; i++) { x.beginPath(); x.arc(505 + i * 38, 685, 7, 0, 7); x.fill(); }
+    x.restore();
+    pot(); x.lineWidth = LW; x.strokeStyle = INK; x.stroke();
+    x.fillStyle = "rgba(255,255,255,.55)"; x.beginPath(); x.roundRect(440, 444, 120, 14, 7); x.fill();
     return c;
   }
 
@@ -1992,7 +2019,7 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
   // ---------- start ----------
   setTool("wand");
   loadCanvas(sample(), "sample-plant", 0);
-  $("aiHint").textContent = "This is a sample image. Try the Magic eraser on the blue wall, or open your own photo. The first automatic run downloads the cutout model (about 55 MB).";
+  $("aiHint").textContent = "This is a sample image. Try the Magic eraser on the lime wall, or open your own photo. The first automatic run downloads the cutout model (about 55 MB).";
 })();
 </script>
 <script>
@@ -2043,23 +2070,42 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
   const sample = document.createElement("canvas"); sample.width = 1280; sample.height = 720;
   const sctx = sample.getContext("2d");
   function drawSample(t) {
-    const w = 1280, h = 720;
-    const g = sctx.createLinearGradient(0, 0, w, h); g.addColorStop(0, "#21485a"); g.addColorStop(1, "#3c7a63");
-    sctx.fillStyle = g; sctx.fillRect(0, 0, w, h);
-    sctx.strokeStyle = "rgba(255,255,255,.12)"; sctx.lineWidth = 1;
-    for (let x = 0; x <= w; x += 80) { sctx.beginPath(); sctx.moveTo(x, 0); sctx.lineTo(x, h); sctx.stroke(); }
-    for (let y = 0; y <= h; y += 80) { sctx.beginPath(); sctx.moveTo(0, y); sctx.lineTo(w, y); sctx.stroke(); }
-    const bars = ["#e8e8e8", "#e8d44a", "#4ad4d4", "#4ad45a", "#d44ad4", "#d44a4a", "#4a4ad4"];
-    bars.forEach((c, i) => { sctx.fillStyle = c; sctx.fillRect(40 + i * 60, 40, 60, 90); });
-    sctx.strokeStyle = "rgba(255,255,255,.7)"; sctx.lineWidth = 3;
-    sctx.beginPath(); sctx.arc(w / 2, h / 2, 250, 0, 7); sctx.stroke();
-    sctx.beginPath(); sctx.moveTo(w / 2 - 30, h / 2); sctx.lineTo(w / 2 + 30, h / 2); sctx.moveTo(w / 2, h / 2 - 30); sctx.lineTo(w / 2, h / 2 + 30); sctx.stroke();
-    const bx = w / 2 + Math.cos(t * 1.3) * 420, by = h / 2 + Math.sin(t * 2.1) * 220;
-    sctx.fillStyle = "#f4c542"; sctx.beginPath(); sctx.arc(bx, by, 46, 0, 7); sctx.fill();
-    sctx.fillStyle = "rgba(255,255,255,.9)"; sctx.font = "600 34px 'IBM Plex Mono', monospace"; sctx.textAlign = "right";
-    sctx.fillText(fmtTime(t, true), w - 40, h - 40);
-    sctx.textAlign = "left"; sctx.font = "600 22px 'IBM Plex Sans', sans-serif"; sctx.fillText("LEFT EDGE", 24, h - 40);
-    sctx.textAlign = "right"; sctx.fillText("RIGHT EDGE", w - 24, 70);
+    // test card in the app's style: cream field, ink grid, chunky colour blocks, a bouncing ball,
+    // and a dashed box marking the centre 9:16 area that a vertical crop keeps
+    const w = 1280, h = 720, INK = "#0d0d0f", x = sctx;
+    x.fillStyle = "#fbf5ea"; x.fillRect(0, 0, w, h);
+    x.fillStyle = "rgba(13,13,15,.16)";
+    for (let gx = 20; gx < w; gx += 40) for (let gy = 20; gy < h; gy += 40) { x.beginPath(); x.arc(gx, gy, 2.2, 0, 7); x.fill(); }
+    x.lineJoin = "round";
+    const block = (bx, by, bw, bh, col, r) => { x.fillStyle = INK; x.beginPath(); x.roundRect(bx + 8, by + 8, bw, bh, r); x.fill(); x.fillStyle = col; x.beginPath(); x.roundRect(bx, by, bw, bh, r); x.fill(); x.lineWidth = 5; x.strokeStyle = INK; x.stroke(); };
+    ["#ff4667", "#d8ff5c", "#8c7ae6", "#fbf5ea", INK].forEach((c, i) => block(40 + i * 74, 36, 60, 96, c, 14));
+    // centre 9:16 crop guide
+    const cw = h * 9 / 16, cx0 = (w - cw) / 2;
+    x.setLineDash([16, 12]); x.lineWidth = 4; x.strokeStyle = "#8c7ae6"; x.strokeRect(cx0, 8, cw, h - 16); x.setLineDash([]);
+    // target rings
+    x.lineWidth = 6; x.strokeStyle = INK;
+    x.beginPath(); x.arc(w / 2, h / 2, 230, 0, 7); x.stroke();
+    x.lineWidth = 4; x.beginPath(); x.arc(w / 2, h / 2, 120, 0, 7); x.stroke();
+    x.beginPath(); x.moveTo(w / 2 - 34, h / 2); x.lineTo(w / 2 + 34, h / 2); x.moveTo(w / 2, h / 2 - 34); x.lineTo(w / 2, h / 2 + 34); x.stroke();
+    // bouncing ball with a hard shadow
+    const bx = w / 2 + Math.cos(t * 1.3) * 420, by = h / 2 + Math.sin(t * 2.1) * 210;
+    x.fillStyle = INK; x.beginPath(); x.arc(bx + 9, by + 9, 50, 0, 7); x.fill();
+    x.fillStyle = "#ff4667"; x.beginPath(); x.arc(bx, by, 50, 0, 7); x.fill(); x.lineWidth = 6; x.stroke();
+    x.fillStyle = "rgba(255,255,255,.7)"; x.beginPath(); x.arc(bx - 16, by - 18, 12, 0, 7); x.fill();
+    // stickers: edges and timecode
+    const sticker = (txt, sx, sy, col, fg, align) => {
+      x.font = "800 24px Inter, 'IBM Plex Sans', sans-serif"; const tw = x.measureText(txt).width + 32, th = 44;
+      const left = align === "right" ? sx - tw : sx;
+      x.fillStyle = INK; x.beginPath(); x.roundRect(left + 5, sy + 5, tw, th, 22); x.fill();
+      x.fillStyle = col; x.beginPath(); x.roundRect(left, sy, tw, th, 22); x.fill(); x.lineWidth = 4; x.strokeStyle = INK; x.stroke();
+      x.fillStyle = fg; x.textAlign = "left"; x.textBaseline = "middle"; x.fillText(txt, left + 16, sy + th / 2 + 1); x.textBaseline = "alphabetic";
+    };
+    sticker("LEFT EDGE", 24, h - 76, "#d8ff5c", INK, "left");
+    sticker("RIGHT EDGE", w - 24, 34, "#ff4667", INK, "right");
+    sticker("9:16 KEEPS THIS", cx0 + 14, h - 76, "#8c7ae6", INK, "left");
+    x.font = "600 30px 'IBM Plex Mono', monospace"; const tc = fmtTime(t, true), tw = x.measureText(tc).width + 36;
+    x.fillStyle = INK; x.beginPath(); x.roundRect(w - 24 - tw, h - 76, tw, 48, 24); x.fill();
+    x.fillStyle = "#fbf5ea"; x.textAlign = "right"; x.textBaseline = "middle"; x.fillText(tc, w - 42, h - 51); x.textBaseline = "alphabetic"; x.textAlign = "left";
   }
 
   // ---------- helpers ----------
