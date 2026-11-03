@@ -191,6 +191,15 @@ body { transition: background-color .2s; }
 #resize .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 #resize .res small.def { color: var(--mat); font-weight: 600; }
 #resize .field input[type=text] { width: 100%; font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink); min-height: 40px; }
+.namebar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+@media (max-width: 560px) { .namebar { grid-template-columns: minmax(0, 1fr); } }
+.namebar-label { display: flex; align-items: center; gap: 6px; font-size: 11.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); font-weight: 600; grid-column: 1 / -1; }
+.namebar-label svg { width: 14px; height: 14px; }
+.namebar .fname-box { background: var(--bg); }
+.namebar .fname-box input { font-size: 16px; font-weight: 500; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { min-height: 32px; padding: 4px 10px; font-size: 12.5px; border-radius: 16px; }
+.chips button.ghost { background: transparent; color: var(--muted); }
 .fname { display: grid; gap: 4px; font-size: 13px; }
 .fname-box { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); }
 .fname-box:focus-within { outline: 2px solid var(--mat); outline-offset: 1px; }
@@ -213,6 +222,8 @@ body { transition: background-color .2s; }
 #resize .field input[type=number] { width: 100%; font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink); font-variant-numeric: tabular-nums; min-height: 40px; }
 #resize .sw.blur { background: radial-gradient(circle at 35% 35%, #9ccbb8, #2f5d74 70%); }
 #resize .progress { display: grid; gap: 6px; }
+#resize .check { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; cursor: pointer; }
+#resize .check input { accent-color: var(--mat); margin-top: 3px; width: 16px; height: 16px; flex: none; }
 #resize .bar { height: 8px; }
 #resize .bar i { transition: width .2s; }
 #resize .result { display: grid; gap: 8px; }
@@ -253,6 +264,15 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     <p class="tag">Drop in a photo, let the model lift the subject off its background, then touch up the edges by hand. Everything runs in your browser; nothing is uploaded.</p>
   <div class="bench">
     <div class="stage-wrap">
+      <div class="namebar">
+        <label class="namebar-label" for="fname"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z" stroke-linejoin="round"/></svg>Save as</label>
+        <span class="fname-box"><input type="text" id="fname" spellcheck="false" autocomplete="off" aria-describedby="fnameExt" title="Type a name; press Enter to save as PNG"><span id="fnameExt">.png</span></span>
+        <div class="chips" role="group" aria-label="Add to file name">
+          <button data-add="size" title="Add the image size">+ size</button>
+          <button data-add="date" title="Add today's date">+ date</button>
+          <button class="ghost" data-add="reset" title="Go back to the automatic name">Reset</button>
+        </div>
+      </div>
       <div class="stage" id="stage">
         <canvas id="view"></canvas>
         <canvas id="overlay"></canvas>
@@ -329,9 +349,6 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
           <button class="sw custom" id="customSw" data-bg="custom" data-picker="customColor" aria-pressed="false" aria-haspopup="dialog" title="Pick a color" aria-label="Pick a color"></button>
           <input type="hidden" id="customColor" value="#f4c542">
         </div>
-        <label class="fname" for="fname">File name
-          <span class="fname-box"><input type="text" id="fname" spellcheck="false" autocomplete="off"><span id="fnameExt">.png</span></span>
-        </label>
         <div class="row">
           <button class="primary" id="savePng">Save PNG</button>
           <button id="saveJpg" disabled title="JPG has no transparency; pick a background color first">Save JPG</button>
@@ -347,6 +364,16 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     <p class="tag">Reframe a video for YouTube, TikTok or Instagram, pick a resolution, and export. It all happens in your browser; your video is never uploaded.</p>
   <div class="bench rz">
     <div class="stage-wrap">
+      <div class="namebar">
+        <label class="namebar-label" for="rz-fname"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z" stroke-linejoin="round"/></svg>Export as</label>
+        <span class="fname-box"><input type="text" id="rz-fname" spellcheck="false" autocomplete="off" aria-describedby="rz-fnameExt"><span id="rz-fnameExt">.mp4</span></span>
+        <div class="chips" role="group" aria-label="Add to file name">
+          <button data-rzadd="platform" title="Add the platform name">+ platform</button>
+          <button data-rzadd="size" title="Add the output size">+ size</button>
+          <button data-rzadd="date" title="Add today's date">+ date</button>
+          <button class="ghost" data-rzadd="reset" title="Go back to the automatic name">Reset</button>
+        </div>
+      </div>
       <div class="stage" id="rz-stage">
         <canvas id="rz-preview" width="1080" height="1920"></canvas>
         <div class="frame-label" id="rz-frameLabel"></div>
@@ -383,7 +410,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
           <label class="field">Width (px)<input type="number" id="rz-cw" min="64" max="3840" step="2" value="1080"></label>
           <label class="field">Height (px)<input type="number" id="rz-ch" min="64" max="3840" step="2" value="1920"></label>
         </div>
-        <button id="rz-makeDefault" title="Open with this platform and resolution next time">Set as my default</button>
+        <button id="rz-makeDefault" title="Open with this platform, resolution, framing, frame rate and quality next time">Set as my default</button>
         <p class="hint" id="rz-defHint" hidden></p>
       </section>
 
@@ -395,6 +422,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
           <button data-mode="stretch" aria-pressed="false" title="Stretch to the frame">Stretch</button>
         </div>
         <p class="hint" id="rz-modeHint"></p>
+        <label class="check" id="rz-safeRow"><input type="checkbox" id="rz-safe"> Show where app buttons and captions cover the video</label>
         <div class="slider" id="rz-focusXRow">
           <label for="rz-focusX">Crop position (left ↔ right)</label><output id="rz-focusXOut"></output>
           <input type="range" id="rz-focusX" min="0" max="100" value="50">
@@ -433,9 +461,6 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
             <select id="rz-quality"><option value="0.5">Smaller file</option><option value="1" selected>YouTube recommended</option><option value="1.5">High</option></select>
           </label>
         </div>
-        <label class="fname" for="rz-fname">File name
-          <span class="fname-box"><input type="text" id="rz-fname" spellcheck="false" autocomplete="off"><span id="rz-fnameExt">.mp4</span></span>
-        </label>
         <p class="note" id="rz-lenNote" hidden></p>
         <button class="primary" id="rz-exportBtn">Export video</button>
         <div class="progress" id="rz-progress" hidden>
@@ -936,10 +961,22 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
   }
   sws.forEach((s) => s.addEventListener("click", () => setBg(s.dataset.bg)));
   $("fname").addEventListener("input", () => { fnameTouched = true; });
-  $("savePng").addEventListener("focus", () => { $("fnameExt").textContent = ".png"; });
-  $("saveJpg").addEventListener("focus", () => { $("fnameExt").textContent = ".jpg"; });
-  $("savePng").addEventListener("mouseenter", () => { $("fnameExt").textContent = ".png"; });
-  $("saveJpg").addEventListener("mouseenter", () => { $("fnameExt").textContent = ".jpg"; });
+  const syncExt = () => { $("fnameExt").textContent = bg === "transparent" ? ".png" : ".png / .jpg"; };
+  sws.forEach((s) => s.addEventListener("click", syncExt));
+  $("customColor").addEventListener("input", syncExt);
+  $("fname").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("fname").blur(); save("png"); } });
+  const today = () => new Date().toISOString().slice(0, 10);
+  function addPart(input, part, touch) {
+    const v = input.value.replace(/-+$/, "");
+    if (!v.endsWith("-" + part) && !v.includes("-" + part + "-")) input.value = (v ? v + "-" : "") + part;
+    touch(); input.focus();
+  }
+  document.querySelectorAll("#bench [data-add]").forEach((b) => b.addEventListener("click", () => {
+    const k = b.dataset.add, inp = $("fname");
+    if (k === "reset") { fnameTouched = false; inp.value = name + "-cutout"; return; }
+    if (!src) return;
+    addPart(inp, k === "size" ? `${src.width}x${src.height}` : today(), () => { fnameTouched = true; });
+  }));
   $("customColor").addEventListener("input", () => setBg("custom"));
 
   // ---------- AI model ----------
@@ -1177,7 +1214,21 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     preview.style.width = Math.floor(out.w * k) + "px"; preview.style.height = Math.floor(out.h * k) + "px";
   }
   new ResizeObserver(fitPreview).observe($("rz-stage"));
-  function render() { if (exporting) return; drawFrame(pctx, preview.width, preview.height); updateTransport(); }
+  // Approximate areas covered by each app's buttons, captions and top bar on vertical video (fractions of the frame)
+  const ZONES = { short: { t: .08, b: .20, r: .13 }, tiktok: { t: .09, b: .22, r: .14 }, instagram: { t: .08, b: .20, r: .13 } };
+  function drawZones(ctx, W, H) {
+    const z = ZONES[fmt];
+    if (!$("rz-safe").checked || !z || W >= H) return;
+    ctx.save();
+    ctx.fillStyle = "rgba(220, 60, 60, .28)";
+    ctx.fillRect(0, 0, W, H * z.t); ctx.fillRect(0, H * (1 - z.b), W, H * z.b); ctx.fillRect(W * (1 - z.r), H * z.t, W * z.r, H * (1 - z.t - z.b));
+    ctx.setLineDash([8, 6]); ctx.lineWidth = 2; ctx.strokeStyle = "rgba(255,255,255,.9)";
+    ctx.strokeRect(W * 0.04, H * z.t, W * (1 - z.r - 0.04), H * (1 - z.t - z.b));
+    ctx.setLineDash([]); ctx.fillStyle = "#fff"; ctx.font = `600 ${Math.round(W / 26)}px "IBM Plex Sans", sans-serif`;
+    ctx.fillText("Keep text and faces inside", W * 0.06, H * z.t + W / 18);
+    ctx.restore();
+  }
+  function render() { if (exporting) return; drawFrame(pctx, preview.width, preview.height); drawZones(pctx, preview.width, preview.height); updateTransport(); }
 
   // ---------- UI: format & resolution ----------
   function buildRes() {
@@ -1199,14 +1250,19 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
       out = { w, h };
     } else out = { w: preset.w, h: preset.h };
     buildRes(); sizePreview(); render(); updateMeta(); rzDefaultName(); if (typeof syncDefaultUI === "function") syncDefaultUI();
+    $("rz-safeRow").hidden = !ZONES[fmt] || out.w >= out.h;
   }
-  function rzDefaultName() { if (!rzNameTouched) $("rz-fname").value = `${srcName}-${out.w}x${out.h}`; }
+  const SLUG = { short: "shorts", long: "youtube", tiktok: "tiktok", instagram: "instagram" };
+  function rzAuto() { return `${srcName}-${SLUG[fmt]}-${out.w}x${out.h}`; }
+  function rzDefaultName() { if (!rzNameTouched) $("rz-fname").value = rzAuto(); }
   function syncDefaultUI() {
-    const same = savedDef && savedDef.fmt === fmt && savedDef.label === preset.label && (!preset.custom || (savedDef.w === out.w && savedDef.h === out.h));
+    const same = savedDef && savedDef.fmt === fmt && savedDef.label === preset.label && (!preset.custom || (savedDef.w === out.w && savedDef.h === out.h))
+      && (savedDef.mode || "fill") === mode && (savedDef.fps || "30") === $("rz-fps").value && (savedDef.quality || "1") === $("rz-quality").value && !!savedDef.safe === $("rz-safe").checked;
     $("rz-makeDefault").textContent = same ? "★ This is your default" : "Set as my default";
     $("rz-makeDefault").disabled = !!same;
     $("rz-defHint").hidden = !savedDef;
-    if (savedDef) $("rz-defHint").textContent = `Default: ${FMT_NAMES[savedDef.fmt]}, ${savedDef.label === "Custom" ? "custom" : savedDef.label} (${savedDef.w} × ${savedDef.h}).`;
+    const modeName = { fill: "crop to fill", fit: "fit inside", stretch: "stretch" };
+    if (savedDef) $("rz-defHint").textContent = `Opens with ${FMT_NAMES[savedDef.fmt]}, ${savedDef.label === "Custom" ? "custom" : savedDef.label} (${savedDef.w} × ${savedDef.h}), ${modeName[savedDef.mode || "fill"]}, ${savedDef.fps || 30} fps.`;
   }
   function setFmt(f) {
     fmt = f; document.querySelectorAll("[data-fmt]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.fmt === f));
@@ -1217,7 +1273,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
   }
   document.querySelectorAll("[data-fmt]").forEach((b) => b.addEventListener("click", () => setFmt(b.dataset.fmt)));
   $("rz-makeDefault").addEventListener("click", () => {
-    savedDef = { fmt, label: preset.label, w: out.w, h: out.h };
+    savedDef = { fmt, label: preset.label, w: out.w, h: out.h, mode, fps: $("rz-fps").value, quality: $("rz-quality").value, safe: $("rz-safe").checked };
     try { localStorage.setItem(DEF_KEY, JSON.stringify(savedDef)); } catch {}
     buildRes(); syncDefaultUI();
   });
@@ -1236,7 +1292,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     $("rz-focusXRow").hidden = $("rz-focusYRow").hidden = m !== "fill";
     $("rz-zoomRow").hidden = m === "stretch";
     $("rz-bgRow").hidden = m !== "fit";
-    render();
+    render(); if (typeof syncDefaultUI === "function") syncDefaultUI();
   }
   document.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
   document.querySelectorAll("[data-bars]").forEach((b) => b.addEventListener("click", () => {
@@ -1260,6 +1316,8 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     updateMeta();
   }
   ["rz-tStart", "rz-tEnd", "rz-fps", "rz-quality"].forEach((id) => $(id).addEventListener("change", checkLength));
+  ["rz-fps", "rz-quality"].forEach((id) => $(id).addEventListener("change", () => syncDefaultUI()));
+  $("rz-safe").addEventListener("change", () => { render(); syncDefaultUI(); });
   function updateMeta() {
     const { w, h } = srcSize(), { s, e } = trim(), fps = +$("rz-fps").value, br = bitrateFor(out.w, out.h, fps);
     const mb = (br * (e - s)) / 8 / 1048576;
@@ -1353,6 +1411,14 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
   let resultBlob = null, resultName = "";
   function rzClean(v, fallback) { v = (v || "").replace(/[\\/:*?"<>|\u0000-\u001f]+/g, "-").replace(/\.(mp4|webm|mov)$/i, "").trim(); return v || fallback; }
   $("rz-fname").addEventListener("input", () => { rzNameTouched = true; });
+  document.querySelectorAll("[data-rzadd]").forEach((b) => b.addEventListener("click", () => {
+    const k = b.dataset.rzadd, inp = $("rz-fname");
+    if (k === "reset") { rzNameTouched = false; inp.value = rzAuto(); return; }
+    const part = k === "platform" ? SLUG[fmt] : k === "size" ? `${out.w}x${out.h}` : new Date().toISOString().slice(0, 10);
+    const v = inp.value.replace(/-+$/, "");
+    if (!v.endsWith("-" + part) && !v.includes("-" + part + "-")) inp.value = (v ? v + "-" : "") + part;
+    rzNameTouched = true; inp.focus();
+  }));
   (() => { const m = pickMime(); $("rz-fnameExt").textContent = m && m.startsWith("video/webm") ? ".webm" : ".mp4"; })();
   async function startExport() {
     const mime = pickMime();
@@ -1401,7 +1467,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     exporting = null; $("rz-exportBtn").disabled = false; $("rz-progress").hidden = true;
     if (job.cancelled) { note("rz-outNote", "Export cancelled."); render(); return; }
     const type = mime.split(";")[0], ext = type === "video/mp4" ? "mp4" : "webm";
-    resultBlob = new Blob(chunks, { type }); resultName = `${rzClean($("rz-fname").value, srcName + "-" + out.w + "x" + out.h)}.${ext}`;
+    resultBlob = new Blob(chunks, { type }); resultName = `${rzClean($("rz-fname").value, rzAuto())}.${ext}`;
     const rv = $("rz-resultVideo"); if (rv.src) URL.revokeObjectURL(rv.src); rv.src = URL.createObjectURL(resultBlob);
     $("rz-result").hidden = false; $("rz-saveHint").hidden = true; $("rz-saveBtn").hidden = false;
     note("rz-outNote", `Ready: ${resultName}, ${(resultBlob.size / 1048576).toFixed(1)} MB.`, "ok");
@@ -1428,7 +1494,12 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
 
   // ---------- start ----------
   $("rz-tEnd").value = SAMPLE_DUR;
-  setFmt(fmt); setMode("fill"); checkLength(); render();
+  if (savedDef) {
+    if (savedDef.fps) $("rz-fps").value = savedDef.fps;
+    if (savedDef.quality) $("rz-quality").value = savedDef.quality;
+    $("rz-safe").checked = !!savedDef.safe;
+  }
+  setFmt(fmt); setMode(savedDef && savedDef.mode ? savedDef.mode : "fill"); checkLength(); render();
 })();
 </script>
 <script>
