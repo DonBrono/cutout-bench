@@ -143,6 +143,10 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 
 .slider { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; font-size: 13px; }
 .slider label { color: var(--ink); }
+.wand-opts { display: grid; gap: 10px; }
+.seg2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.seg2 button { padding: 7px 6px; font-size: 13px; }
+.seg2 button[aria-pressed="true"] { background: var(--mat-soft); border-color: var(--mat); font-weight: 600; }
 .ai-tune { display: grid; gap: 10px; border-top: 1px solid var(--line); padding-top: 10px; }
 .scale-ends { grid-column: 1 / -1; display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); margin-top: -2px; }
 .check { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; cursor: pointer; }
@@ -337,9 +341,16 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
           <label for="size">Brush size</label><output id="sizeOut" for="size"></output>
           <input type="range" id="size" min="4" max="300" value="40">
         </div>
-        <div class="slider" id="tolRow">
-          <label for="tol">Color tolerance</label><output id="tolOut" for="tol"></output>
-          <input type="range" id="tol" min="1" max="120" value="32">
+        <div class="wand-opts" id="wandOpts">
+          <div class="seg2" role="group" aria-label="Magic mode">
+            <button id="wErase" aria-pressed="true" title="Remove the clicked color">Erase color</button>
+            <button id="wKeep" aria-pressed="false" title="Bring back the clicked color">Keep color</button>
+          </div>
+          <div class="slider" id="tolRow">
+            <label for="tol">Color tolerance</label><output id="tolOut" for="tol"></output>
+            <input type="range" id="tol" min="1" max="120" value="32">
+          </div>
+          <label class="check" for="wGlobal"><input type="checkbox" id="wGlobal"> Every matching pixel, not just the touching area</label>
         </div>
         <div class="slider">
           <label for="feather">Edge softness</label><output id="featherOut" for="feather"></output>
@@ -654,7 +665,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     src = c; srcData = null; name = label; fileBytes = bytes || 0;
     mask = makeCanvas(c.width, c.height); mctx = mask.getContext("2d", { willReadFrequently: true });
     mctx.fillStyle = "#fff"; mctx.fillRect(0, 0, c.width, c.height);
-    undoStack = []; aiRaw = null; fg = null; $("aiTune").hidden = true; syncButtons();
+    undoStack = []; aiRaw = null; fg = null; lastMagic = null; previewKey = ""; $("aiTune").hidden = true; syncButtons();
     fnameTouched = false; $("fname").value = label + "-cutout"; if (typeof polyReset === "function") { poly = []; polyClosed = false; }
     layout(); render(); updateMeta();
   }
@@ -758,7 +769,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     else { vctx.fillStyle = bgColor(); vctx.fillRect(x, y, w, h); }
     composite(wctx, w, h, fit.s);
     vctx.drawImage(work, x, y);
-    if (tool === "poly") drawCursor(lastPt);
+    if (tool === "poly" || tool === "wand") drawCursor(lastPt);
   }
   let raf = 0;
   const schedule = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; render(); }); };
@@ -772,14 +783,14 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
   // ---------- undo ----------
   function pushUndo() {
     const c = makeCanvas(mask.width, mask.height); c.getContext("2d").drawImage(mask, 0, 0);
-    c._fg = fg;
+    c._fg = fg; lastMagic = null;
     undoStack.push(c); if (undoStack.length > UNDO_DEPTH) undoStack.shift();
     syncButtons();
   }
   function undo() {
     const c = undoStack.pop(); if (!c) return;
     mctx.globalCompositeOperation = "copy"; mctx.drawImage(c, 0, 0); mctx.globalCompositeOperation = "source-over";
-    fg = c._fg || null;
+    fg = c._fg || null; lastMagic = null; previewKey = "";
     syncButtons(); render();
   }
   function syncButtons() { $("undo").disabled = !undoStack.length; $("reset").disabled = !src; $("aiBtn").disabled = !src; }
@@ -790,7 +801,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
   const toolHints = {
     erase: "Paint over anything the model left behind.",
     restore: "Paint back parts of the subject that got cut away.",
-    wand: "Click a background area to erase every connected pixel of a similar color. Good for plain studio or sky backgrounds.",
+    wand: "Hover to preview, click to apply. Shift-click does the opposite. Right after a click, drag Color tolerance to grow or shrink that area.",
     poly: "Click around the subject to place points; a guideline follows your clicks. Click the first point (or double-click) to close the shape, then keep or erase what's inside."
   };
   // ---------- polygon tool ----------
@@ -850,7 +861,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     if (t !== "poly" && tool === "poly") polyReset();
     tool = t;
     $("tErase").setAttribute("aria-pressed", t === "erase"); $("tRestore").setAttribute("aria-pressed", t === "restore"); $("tWand").setAttribute("aria-pressed", t === "wand"); $("tPoly").setAttribute("aria-pressed", t === "poly");
-    $("sizeRow").hidden = t === "wand" || t === "poly"; $("tolRow").hidden = t !== "wand"; $("polyRow").hidden = t !== "poly";
+    $("sizeRow").hidden = t === "wand" || t === "poly"; $("wandOpts").hidden = t !== "wand"; $("polyRow").hidden = t !== "poly";
     $("toolHint").textContent = toolHints[t];
     drawCursor(lastPt);
   }
@@ -873,7 +884,8 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
   function drawCursor(p) {
     octx.clearRect(0, 0, overlay.width, overlay.height);
     if (tool === "poly") { drawPoly(p); return; }
-    if (!p || !src || tool === "wand") return;
+    if (tool === "wand") { drawMagicPreview(p, shiftDown); return; }
+    if (!p || !src) return;
     const r = (+sizeEl.value / 2) * fit.s;
     octx.lineWidth = 1.5 * dpr;
     octx.strokeStyle = "rgba(0,0,0,.6)"; octx.beginPath(); octx.arc(p.px, p.py, r + dpr, 0, 7); octx.stroke();
@@ -899,7 +911,10 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     if (tool === "poly") { polyClick(p); return; }
     if (tool === "wand") {
       if (p.x < 0 || p.y < 0 || p.x >= src.width || p.y >= src.height) return;
-      pushUndo(); magic(Math.floor(p.x), Math.floor(p.y)); render(); return;
+      const mode = e.shiftKey ? (wandMode === "erase" ? "keep" : "erase") : wandMode;
+      pushUndo(); magic(Math.floor(p.x), Math.floor(p.y), mode);
+      lastMagic = { x: Math.floor(p.x), y: Math.floor(p.y), mode, base: undoStack[undoStack.length - 1] };
+      previewKey = ""; render(); return;
     }
     view.setPointerCapture(e.pointerId);
     pushUndo(); drawing = p; dab(p.x, p.y); schedule();
@@ -920,29 +935,94 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
   view.addEventListener("pointerleave", () => { if (!drawing) { lastPt = null; drawCursor(null); } });
   stage.addEventListener("contextmenu", (e) => { if (tool === "poly" && poly.length) { e.preventDefault(); poly.pop(); polySync(); drawCursor(lastPt); } });
 
-  function magic(sx, sy) {
-    const w = src.width, h = src.height;
-    if (!srcData) srcData = src.getContext("2d").getImageData(0, 0, w, h);
-    const d = srcData.data, md = mctx.getImageData(0, 0, w, h), m = md.data;
-    const i0 = (sy * w + sx) * 4, r0 = d[i0], g0 = d[i0 + 1], b0 = d[i0 + 2];
-    const tol = +tolEl.value, tol2 = tol * tol * 3;
-    const seen = new Uint8Array(w * h), stack = [sx, sy];
-    const ok = (p) => { const i = p * 4, dr = d[i] - r0, dg = d[i + 1] - g0, db = d[i + 2] - b0; return dr * dr + dg * dg + db * db <= tol2; };
-    while (stack.length) {
-      const y = stack.pop(), x0 = stack.pop();
-      let x = x0; const row = y * w;
-      while (x >= 0 && !seen[row + x] && ok(row + x)) x--;
-      x++;
-      let up = false, down = false;
-      while (x < w && !seen[row + x] && ok(row + x)) {
-        const p = row + x; seen[p] = 1; m[p * 4 + 3] = 0;
-        if (y > 0) { const q = p - w; const c = !seen[q] && ok(q); if (c && !up) { stack.push(x, y - 1); up = true; } else if (!c) up = false; }
-        if (y < h - 1) { const q = p + w; const c = !seen[q] && ok(q); if (c && !down) { stack.push(x, y + 1); down = true; } else if (!c) down = false; }
-        x++;
+  // ---------- magic tool ----------
+  // Pixels whose color is close to the clicked spot. Returns strength 0..255 per pixel:
+  // 255 inside the tolerance, fading to 0 just past it so the cut has a smooth edge.
+  function magicRegion(d, w, h, sx, sy, tol, global) {
+    const N = w * h, out = new Uint8Array(N);
+    const pr = Math.max(1, Math.round(Math.min(w, h) / 400));        // average a small patch: ignores photo noise
+    let r0 = 0, g0 = 0, b0 = 0, n = 0;
+    for (let y = Math.max(0, sy - pr); y <= Math.min(h - 1, sy + pr); y++)
+      for (let x = Math.max(0, sx - pr); x <= Math.min(w - 1, sx + pr); x++) { const i = (y * w + x) * 4; r0 += d[i]; g0 += d[i + 1]; b0 += d[i + 2]; n++; }
+    r0 /= n; g0 /= n; b0 /= n;
+    const t1 = tol * tol * 3, soft = tol * 1.45, t2 = soft * soft * 3;
+    const dist = (p) => {                                              // perceptual "redmean" color distance
+      const i = p * 4, rm = (d[i] + r0) / 2, dr = d[i] - r0, dg = d[i + 1] - g0, db = d[i + 2] - b0;
+      return ((2 + rm / 256) * dr * dr + 4 * dg * dg + (2 + (255 - rm) / 256) * db * db) / 3;
+    };
+    const str = (dd) => dd <= t1 ? 255 : dd >= t2 ? 0 : Math.round(255 * (t2 - dd) / (t2 - t1));
+    if (global) { for (let p = 0; p < N; p++) out[p] = str(dist(p)); return out; }
+    const q = new Int32Array(N), seen = new Uint8Array(N);
+    let head = 0, tail = 0; const s0 = sy * w + sx;
+    seen[s0] = 1; out[s0] = 255; q[tail++] = s0;
+    while (head < tail) {
+      const p = q[head++], x = p % w;
+      const nb = [x > 0 ? p - 1 : -1, x < w - 1 ? p + 1 : -1, p - w, p + w];
+      for (let k = 0; k < 4; k++) {
+        const c = nb[k]; if (c < 0 || c >= N || seen[c]) continue;
+        seen[c] = 1; const dd = dist(c);
+        if (dd <= t1) { out[c] = 255; q[tail++] = c; }            // inside: keep spreading
+        else if (dd < t2) out[c] = str(dd);                         // soft edge: stop here
       }
     }
+    return out;
+  }
+  let wandMode = "erase", lastMagic = null;
+  function setWandMode(m) { wandMode = m; $("wErase").setAttribute("aria-pressed", m === "erase"); $("wKeep").setAttribute("aria-pressed", m === "keep"); drawCursor(lastPt); }
+  $("wErase").addEventListener("click", () => setWandMode("erase"));
+  $("wKeep").addEventListener("click", () => setWandMode("keep"));
+  function magic(sx, sy, mode) {
+    const w = src.width, h = src.height;
+    if (!srcData) srcData = src.getContext("2d").getImageData(0, 0, w, h);
+    const reg = magicRegion(srcData.data, w, h, sx, sy, +tolEl.value, $("wGlobal").checked);
+    const md = mctx.getImageData(0, 0, w, h), m = md.data;
+    if (mode === "keep") { for (let p = 0, i = 3; p < reg.length; p++, i += 4) if (reg[p] > m[i]) m[i] = reg[p]; }
+    else { for (let p = 0, i = 3; p < reg.length; p++, i += 4) if (reg[p]) m[i] = m[i] * (255 - reg[p]) / 255; }
     mctx.putImageData(md, 0, 0);
   }
+  // Low-resolution copy of the photo for the hover preview
+  let small = null;
+  function smallCopy() {
+    if (small && small.src === src) return small;
+    const k = Math.min(1, 420 / Math.max(src.width, src.height)), w = Math.max(1, Math.round(src.width * k)), h = Math.max(1, Math.round(src.height * k));
+    const c = makeCanvas(w, h), x = c.getContext("2d", { willReadFrequently: true }); x.drawImage(src, 0, 0, w, h);
+    small = { src, w, h, k, data: x.getImageData(0, 0, w, h).data, canvas: makeCanvas(w, h) };
+    return small;
+  }
+  let previewKey = "";
+  function drawMagicPreview(p, shift) {
+    if (!p || !src || p.x < 0 || p.y < 0 || p.x >= src.width || p.y >= src.height) { previewKey = ""; return; }
+    const sm = smallCopy(), sx = Math.min(sm.w - 1, Math.floor(p.x * sm.k)), sy = Math.min(sm.h - 1, Math.floor(p.y * sm.k));
+    const mode = shift ? (wandMode === "erase" ? "keep" : "erase") : wandMode;
+    const key = [sx, sy, tolEl.value, $("wGlobal").checked, mode].join();
+    if (key !== previewKey) {
+      previewKey = key;
+      const reg = magicRegion(sm.data, sm.w, sm.h, sx, sy, +tolEl.value * 1.05, $("wGlobal").checked);
+      const cx = sm.canvas.getContext("2d"), id = cx.createImageData(sm.w, sm.h), dd = id.data;
+      const col = mode === "erase" ? [255, 60, 120] : [60, 220, 140];
+      for (let i = 0, j = 0; i < reg.length; i++, j += 4) if (reg[i]) { dd[j] = col[0]; dd[j + 1] = col[1]; dd[j + 2] = col[2]; dd[j + 3] = reg[i] * 0.5; }
+      cx.putImageData(id, 0, 0);
+    }
+    octx.save(); octx.imageSmoothingEnabled = true; octx.drawImage(sm.canvas, fit.x, fit.y, fit.w, fit.h); octx.restore();
+    const r = 7 * dpr; octx.lineWidth = 1.5 * dpr;
+    octx.strokeStyle = "rgba(0,0,0,.7)"; octx.beginPath(); octx.moveTo(p.px - r, p.py); octx.lineTo(p.px + r, p.py); octx.moveTo(p.px, p.py - r); octx.lineTo(p.px, p.py + r); octx.stroke();
+  }
+  let shiftDown = false;
+  addEventListener("keydown", (e) => { if (e.key === "Shift" && !shiftDown) { shiftDown = true; if (tool === "wand") drawCursor(lastPt); } });
+  addEventListener("keyup", (e) => { if (e.key === "Shift") { shiftDown = false; if (tool === "wand") drawCursor(lastPt); } });
+  // After a click, the tolerance slider resizes that same area live
+  let tolRaf = 0;
+  tolEl.addEventListener("input", () => {
+    if (tool !== "wand") return;
+    if (!lastMagic) { drawCursor(lastPt); return; }
+    if (tolRaf) return;
+    tolRaf = requestAnimationFrame(() => {
+      tolRaf = 0; if (!lastMagic) return;
+      mctx.save(); mctx.globalCompositeOperation = "copy"; mctx.drawImage(lastMagic.base, 0, 0); mctx.restore();
+      magic(lastMagic.x, lastMagic.y, lastMagic.mode); render();
+    });
+  });
+  $("wGlobal").addEventListener("change", () => { lastMagic = null; drawCursor(lastPt); });
 
   // compare
   const cmpOn = () => { if (!src) return; comparing = true; render(); }, cmpOff = () => { comparing = false; render(); };
@@ -1128,10 +1208,30 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     for (let i = 0; i < N; i++) sel[i] = a[i] < 0.5 ? 1 : 0;
     eachComponent(sel, W, H, queue, seen, (inf, i) => { if (r0[i] < inf.min) inf.min = r0[i]; },
       (inf) => !inf.border && inf.size < 0.003 * N && inf.min > 0.08, (i) => { a[i] = 1; });
-    seen.fill(0);
+    // Keep the subject: solid regions that are big, or confident and not tiny. Clear everything else
+    // that is away from the subject (stray blotches and haze in the background).
+    const lab = new Int32Array(N); let nl = 0; const sizes = [0], sums = [0];
     for (let i = 0; i < N; i++) sel[i] = a[i] >= 0.5 ? 1 : 0;
-    eachComponent(sel, W, H, queue, seen, (inf, i) => { if (r0[i] > inf.max) inf.max = r0[i]; },
-      (inf) => inf.size < 0.0002 * N && inf.max < 0.6, (i) => { a[i] = 0; });
+    seen.fill(0);
+    eachComponent(sel, W, H, queue, seen, (inf, i) => { inf.sum = (inf.sum || 0) + r0[i]; },
+      (inf) => { nl++; sizes.push(inf.size); sums.push(inf.sum); return true; }, (i) => { lab[i] = nl; });
+    let biggest = 0; for (let k = 1; k <= nl; k++) if (sizes[k] > biggest) biggest = sizes[k];
+    const keepLab = new Uint8Array(nl + 1);
+    for (let k = 1; k <= nl; k++) {
+      const mean = sums[k] / sizes[k];
+      keepLab[k] = sizes[k] >= biggest * 0.015 * (1 + firm) || (sizes[k] >= 0.002 * N && mean >= 0.9) ? 1 : 0;
+    }
+    const zone = new Float32Array(N), ztmp = new Float32Array(N);
+    for (let i = 0; i < N; i++) zone[i] = lab[i] && keepLab[lab[i]] ? 1 : 0;
+    const zr = Math.max(4, Math.round(Math.max(W, H) * (0.03 - 0.015 * firm)));
+    const near = new Float32Array(zone);
+    boxBlur(zone, W, H, zr, zone, ztmp);
+    boxBlur(near, W, H, Math.max(2, Math.round(zr / 4)), near, ztmp);
+    for (let i = 0; i < N; i++) {
+      if (lab[i] && !keepLab[lab[i]]) a[i] = 0;            // dropped blotch
+      else if (zone[i] <= 0) a[i] = 0;                       // haze far from the subject
+      else if (near[i] <= 0 && a[i] < 0.35) a[i] = 0;        // faint fuzz a little away from it
+    }
     // 4. Snap edges to the photo (guided filter on brightness, only near edges)
     const I = new Float32Array(N);
     for (let i = 0, j = 0; i < N; i++, j += 4) I[i] = (guide[j] * 0.299 + guide[j + 1] * 0.587 + guide[j + 2] * 0.114) / 255;
