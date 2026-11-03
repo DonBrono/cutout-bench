@@ -10,7 +10,7 @@
 <title>Cutout Bench</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Old+Standard+TT:wght@400;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,700&family=Roboto:wght@400;700&family=Playfair+Display:wght@400;700&family=Special+Elite&family=Courier+Prime&family=Caveat:wght@400;600&display=swap">
 <style>
 /* Layout: a workbench — large stage on a cutting-mat grid, tool rail on the right, stacking under the stage on phones */
 :root {
@@ -50,6 +50,11 @@
 @media (prefers-color-scheme: dark) {
   :root[data-app="resize"]:not([data-theme="light"]) { --bg: #11161a; --panel: #192026; --ink: #e5ebef; --muted: #98a5ad; --line: #2b353d; --mat: #4ea6c4; --mat-ink: #0b1317; --mat-soft: #1c3743; --ok: #6fd3a2; }
 }
+:root[data-app="edit"] { --bg: #f1eef0; --panel: #fcfafb; --ink: #241c21; --muted: #685c63; --line: #ddd3d8; --mat: #6b2a52; --mat-ink: #ffffff; --mat-soft: #f0dce7; --ok: #1f7a4a; }
+@media (prefers-color-scheme: dark) {
+  :root[data-app="edit"]:not([data-theme="light"]) { --bg: #171215; --panel: #20181d; --ink: #eee5ea; --muted: #a8979f; --line: #3a2d34; --mat: #d58ab4; --mat-ink: #1a0f15; --mat-soft: #3f2333; --ok: #6fd3a2; }
+}
+:root[data-app="edit"][data-theme="dark"] { --bg: #171215; --panel: #20181d; --ink: #eee5ea; --muted: #a8979f; --line: #3a2d34; --mat: #d58ab4; --mat-ink: #1a0f15; --mat-soft: #3f2333; --ok: #6fd3a2; }
 :root[data-app="resize"][data-theme="dark"] { --bg: #11161a; --panel: #192026; --ink: #e5ebef; --muted: #98a5ad; --line: #2b353d; --mat: #4ea6c4; --mat-ink: #0b1317; --mat-soft: #1c3743; --ok: #6fd3a2; }
 
 * { box-sizing: border-box; }
@@ -172,7 +177,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
 
 /* App shell: brand + page tabs */
 .appbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; }
-.nav { display: inline-flex; background: var(--panel); border: 1px solid var(--line); border-radius: 9px; padding: 3px; gap: 3px; }
+.nav { display: inline-flex; flex-wrap: wrap; background: var(--panel); border: 1px solid var(--line); border-radius: 9px; padding: 3px; gap: 3px; }
 .nav a { display: inline-flex; align-items: center; gap: 7px; padding: 7px 14px; border-radius: 6px; color: var(--muted); text-decoration: none; font-weight: 500; font-size: 14px; min-height: 36px; }
 .nav a:hover { color: var(--ink); }
 .nav a[aria-current="page"] { background: var(--mat); color: var(--mat-ink); font-weight: 600; }
@@ -183,22 +188,22 @@ body { transition: background-color .2s; }
 .ok { color: var(--ok); } .note.ok { color: var(--ok); }
 
 /* Resize page */
-#resize .bench { grid-template-columns: minmax(0, 1fr) 320px; }
-@media (max-width: 880px) { #resize .bench { grid-template-columns: minmax(0, 1fr); } }
-#resize .stage { display: grid; place-items: center; padding: 20px; height: min(66vh, 660px); min-height: 340px; touch-action: auto; }
-@media (max-width: 880px) { #resize .stage { height: 58vh; } }
-#resize .stage canvas { position: static; }
-#rz-preview { display: block; background: #000; box-shadow: 0 8px 30px rgb(0 0 0 / .35); }
-#resize .frame-label { position: absolute; left: 12px; top: 12px; font-family: var(--font-mono); font-size: 12px; font-variant-numeric: tabular-nums; background: color-mix(in srgb, var(--mat) 85%, black); color: var(--mat-ink); padding: 3px 8px; border-radius: 5px; }
-#resize .transport { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; }
-#resize .transport input { width: 100%; accent-color: var(--mat); }
-#resize .time { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-#resize select { font: inherit; font-weight: 500; font-size: 14px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 7px; padding: 8px 10px; min-height: 40px; cursor: pointer; width: 100%; }
-#resize select:focus-visible { outline: 2px solid var(--mat); outline-offset: 2px; }
-#resize .icon { width: 40px; padding: 0; }
-#resize .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-#resize .res small.def { color: var(--mat); font-weight: 600; }
-#resize .field input[type=text] { width: 100%; font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink); min-height: 40px; }
+:is(#resize, #edit) .bench { grid-template-columns: minmax(0, 1fr) 320px; }
+@media (max-width: 880px) { :is(#resize, #edit) .bench { grid-template-columns: minmax(0, 1fr); } }
+:is(#resize, #edit) .stage { display: grid; place-items: center; padding: 20px; height: min(66vh, 660px); min-height: 340px; touch-action: auto; }
+@media (max-width: 880px) { :is(#resize, #edit) .stage { height: 58vh; } }
+:is(#resize, #edit) .stage canvas { position: static; }
+#rz-preview, #ed-preview { display: block; background: #000; box-shadow: 0 8px 30px rgb(0 0 0 / .35); }
+:is(#resize, #edit) .frame-label { position: absolute; left: 12px; top: 12px; font-family: var(--font-mono); font-size: 12px; font-variant-numeric: tabular-nums; background: color-mix(in srgb, var(--mat) 85%, black); color: var(--mat-ink); padding: 3px 8px; border-radius: 5px; }
+:is(#resize, #edit) .transport { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+:is(#resize, #edit) .transport input { width: 100%; accent-color: var(--mat); }
+:is(#resize, #edit) .time { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+:is(#resize, #edit) select { font: inherit; font-weight: 500; font-size: 14px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 7px; padding: 8px 10px; min-height: 40px; cursor: pointer; width: 100%; }
+:is(#resize, #edit) select:focus-visible { outline: 2px solid var(--mat); outline-offset: 2px; }
+:is(#resize, #edit) .icon { width: 40px; padding: 0; }
+:is(#resize, #edit) .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+:is(#resize, #edit) .res small.def { color: var(--mat); font-weight: 600; }
+:is(#resize, #edit) .field input[type=text] { width: 100%; font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink); min-height: 40px; }
 .namebar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
 @media (max-width: 560px) { .namebar { grid-template-columns: minmax(0, 1fr); } }
 .namebar-label { display: flex; align-items: center; gap: 6px; font-size: 11.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); font-weight: 600; grid-column: 1 / -1; }
@@ -213,29 +218,29 @@ body { transition: background-color .2s; }
 .fname-box:focus-within { outline: 2px solid var(--mat); outline-offset: 1px; }
 .fname-box input { min-width: 0; width: 100%; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 14px; padding: 8px 10px; min-height: 38px; outline: none; }
 .fname-box span { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); padding-right: 10px; }
-#resize .tabs button { flex-direction: column; gap: 4px; padding: 10px 6px; }
-#resize .tabs button small { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); font-weight: 400; }
-#resize [aria-pressed="true"]:not(.sw) { background: var(--mat-soft); border-color: var(--mat); font-weight: 600; }
-#resize .sw[aria-pressed="true"] { border-color: var(--mat); }
-#resize .shape { display: block; border: 2px solid currentColor; border-radius: 3px; }
-#resize .shape.v { width: 14px; height: 24px; } #resize .shape.h { width: 30px; height: 17px; }
-#resize .res { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 6px; }
-#resize .res button { flex-direction: column; gap: 0; padding: 7px 4px; line-height: 1.2; }
-#resize .res b { font-size: 14px; }
-#resize .res small { font-family: var(--font-mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
-#resize .seg3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-#resize .seg3 button { padding: 8px 4px; font-size: 13px; }
-#resize .field { display: grid; gap: 4px; font-size: 13px; }
-#resize .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-#resize .field input[type=number] { width: 100%; font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink); font-variant-numeric: tabular-nums; min-height: 40px; }
-#resize .sw.blur { background: radial-gradient(circle at 35% 35%, #9ccbb8, #2f5d74 70%); }
-#resize .progress { display: grid; gap: 6px; }
-#resize .check { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; cursor: pointer; }
-#resize .check input { accent-color: var(--mat); margin-top: 3px; width: 16px; height: 16px; flex: none; }
-#resize .bar { height: 8px; }
-#resize .bar i { transition: width .2s; }
-#resize .result { display: grid; gap: 8px; }
-#resize .result video { width: 100%; max-height: 40vh; background: #000; border-radius: 6px; }
+:is(#resize, #edit) .tabs button { flex-direction: column; gap: 4px; padding: 10px 6px; }
+:is(#resize, #edit) .tabs button small { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); font-weight: 400; }
+:is(#resize, #edit) [aria-pressed="true"]:not(.sw) { background: var(--mat-soft); border-color: var(--mat); font-weight: 600; }
+:is(#resize, #edit) .sw[aria-pressed="true"] { border-color: var(--mat); }
+:is(#resize, #edit) .shape { display: block; border: 2px solid currentColor; border-radius: 3px; }
+:is(#resize, #edit) .shape.v { width: 14px; height: 24px; } :is(#resize, #edit) .shape.h { width: 30px; height: 17px; }
+:is(#resize, #edit) .res { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 6px; }
+:is(#resize, #edit) .res button { flex-direction: column; gap: 0; padding: 7px 4px; line-height: 1.2; }
+:is(#resize, #edit) .res b { font-size: 14px; }
+:is(#resize, #edit) .res small { font-family: var(--font-mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+:is(#resize, #edit) .seg3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+:is(#resize, #edit) .seg3 button { padding: 8px 4px; font-size: 13px; }
+:is(#resize, #edit) .field { display: grid; gap: 4px; font-size: 13px; }
+:is(#resize, #edit) .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+:is(#resize, #edit) .field input[type=number] { width: 100%; font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink); font-variant-numeric: tabular-nums; min-height: 40px; }
+:is(#resize, #edit) .sw.blur { background: radial-gradient(circle at 35% 35%, #9ccbb8, #2f5d74 70%); }
+:is(#resize, #edit) .progress { display: grid; gap: 6px; }
+:is(#resize, #edit) .check { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; cursor: pointer; }
+:is(#resize, #edit) .check input { accent-color: var(--mat); margin-top: 3px; width: 16px; height: 16px; flex: none; }
+:is(#resize, #edit) .bar { height: 8px; }
+:is(#resize, #edit) .bar i { transition: width .2s; }
+:is(#resize, #edit) .result { display: grid; gap: 8px; }
+:is(#resize, #edit) .result video { width: 100%; max-height: 40vh; background: #000; border-radius: 6px; }
 
 /* In-app color picker */
 .sw.custom { background: conic-gradient(#e74c3c, #f1c40f, #2ecc71, #3498db, #9b59b6, #e74c3c); position: relative; }
@@ -254,6 +259,15 @@ body { transition: background-color .2s; }
 .cp-presets button { min-height: 0; aspect-ratio: 1; padding: 0; border-radius: 6px; border: 1px solid var(--line); }
 .cp-done { min-height: 36px; }
 .cp-label { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin: 0; }
+/* Edit page */
+#edit .seg3 button { flex-direction: column; gap: 1px; line-height: 1.2; }
+#edit .seg3 button small { font-family: var(--font-mono); font-size: 10.5px; color: var(--muted); font-weight: 400; }
+.chipset { display: flex; flex-wrap: wrap; gap: 6px; }
+.chipset button { min-height: 32px; padding: 4px 11px; font-size: 12.5px; border-radius: 16px; }
+.chipset button[aria-pressed="true"] { background: var(--mat-soft); border-color: var(--mat); font-weight: 600; }
+#edit textarea { width: 100%; font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink); resize: vertical; min-height: 64px; }
+#edit textarea:focus-visible, #edit input[type=text]:focus-visible { outline: 2px solid var(--mat); outline-offset: 1px; }
+#edit .field > input[type=text] { width: 100%; font: inherit; font-size: 15px; font-weight: 500; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink); min-height: 40px; }
 footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
 </style>
 
@@ -265,6 +279,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     <nav class="nav" aria-label="Tools">
       <a href="#bench" data-nav="bench" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.5 7.5 20 18M8.5 16.5 20 6"/></svg>Remove background</a>
       <a href="#resize" data-nav="resize"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/></svg>Resize video</a>
+      <a href="#edit" data-nav="edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 6h16M4 12h5M15 12h5M4 18h16" stroke-linecap="round"/><rect x="9" y="9.5" width="6" height="5" rx="1" fill="currentColor" stroke="none"/></svg>Edit</a>
     </nav>
   </header>
 
@@ -514,6 +529,135 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
   </div>
 
   <footer>Bitrates follow YouTube's recommended upload settings for standard (24–30 fps) and high (60 fps) frame rates. Exports are constant-frame-rate MOV or MP4 files (H.264 + AAC, BT.709) that open in DaVinci Resolve, Premiere, Final Cut and CapCut. Vertical videos up to 3 minutes are treated as Shorts. TikTok and Instagram exports use the same bitrate guide for their resolution.</footer>
+  </section>
+  <section id="edit" aria-label="Edit" hidden>
+    <p class="tag">Text match cut: one highlighted phrase stays locked in the middle while the pages around it flash past. Everything is rendered in your browser.</p>
+  <div class="bench">
+    <div class="stage-wrap">
+      <div class="namebar">
+        <label class="namebar-label" for="ed-fname"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z" stroke-linejoin="round"/></svg>Export as</label>
+        <span class="fname-box"><input type="text" id="ed-fname" spellcheck="false" autocomplete="off" aria-describedby="ed-fnameExt"><span id="ed-fnameExt">.mov</span></span>
+        <div class="chips" role="group" aria-label="Add to file name">
+          <button data-edadd="ratio" title="Add the aspect ratio">+ ratio</button>
+          <button data-edadd="date" title="Add today's date">+ date</button>
+          <button class="ghost" data-edadd="reset" title="Go back to the automatic name">Reset</button>
+        </div>
+      </div>
+      <div class="stage" id="ed-stage">
+        <canvas id="ed-preview" width="540" height="960"></canvas>
+        <div class="frame-label" id="ed-frameLabel"></div>
+      </div>
+      <div class="transport">
+        <button class="icon" id="ed-play" aria-label="Play">
+          <svg id="ed-playIcon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg>
+        </button>
+        <input type="range" id="ed-scrub" min="0" max="1000" value="0" aria-label="Position">
+        <span class="time" id="ed-time">0:00.0 / 0:00.0</span>
+      </div>
+      <div class="meta" id="ed-meta"></div>
+    </div>
+
+    <aside class="rail">
+      <section class="card" aria-labelledby="ed-h-text">
+        <h2 id="ed-h-text">Text</h2>
+        <label class="field">Highlighted word or phrase
+          <input type="text" id="ed-word" maxlength="23" value="nobody saw it coming" spellcheck="false" autocomplete="off">
+        </label>
+        <p class="hint" id="ed-wordCount"></p>
+        <label class="field">Text around it
+          <textarea id="ed-context" rows="3" placeholder="Leave empty for random article text"></textarea>
+        </label>
+      </section>
+
+      <section class="card" aria-labelledby="ed-h-look">
+        <h2 id="ed-h-look">Look</h2>
+        <div class="seg3" role="group" aria-label="Aspect ratio">
+          <button data-ratio="9:16" aria-pressed="true">9:16<small>Shorts · TikTok</small></button>
+          <button data-ratio="1:1" aria-pressed="false">1:1<small>Square post</small></button>
+          <button data-ratio="16:9" aria-pressed="false">16:9<small>YouTube · X</small></button>
+        </div>
+        <div class="field"><span>Page styles</span>
+          <div class="chipset" role="group" aria-label="Page styles">
+            <button data-style="newspaper" aria-pressed="true">Newspaper</button>
+            <button data-style="article" aria-pressed="true">Article</button>
+            <button data-style="book" aria-pressed="true">Book</button>
+            <button data-style="typewriter" aria-pressed="true">Typewriter</button>
+            <button data-style="notes" aria-pressed="false">Notes</button>
+            <button data-style="dark" aria-pressed="false">Dark mode</button>
+          </div>
+        </div>
+        <div class="field"><span>Highlight</span>
+          <div class="seg3" role="group" aria-label="Highlight style">
+            <button data-hl="marker" aria-pressed="true">Marker</button>
+            <button data-hl="box" aria-pressed="false">Box</button>
+            <button data-hl="underline" aria-pressed="false">Underline</button>
+          </div>
+        </div>
+        <div class="swatches" role="group" aria-label="Highlight color">
+          <button class="sw" data-hlc="#ffe14a" style="background:#ffe14a" aria-pressed="true" title="Yellow" aria-label="Yellow"></button>
+          <button class="sw" data-hlc="#8cf06a" style="background:#8cf06a" aria-pressed="false" title="Green" aria-label="Green"></button>
+          <button class="sw" data-hlc="#ff8fc7" style="background:#ff8fc7" aria-pressed="false" title="Pink" aria-label="Pink"></button>
+          <button class="sw" data-hlc="#ff5a36" style="background:#ff5a36" aria-pressed="false" title="Red" aria-label="Red"></button>
+          <button class="sw custom" data-hlc="custom" data-picker="ed-hlColor" aria-pressed="false" aria-haspopup="dialog" title="Pick a color" aria-label="Pick a color"></button>
+          <input type="hidden" id="ed-hlColor" value="#7fd4ff">
+        </div>
+        <button id="ed-shuffle" title="Make a new random set of pages">Shuffle pages</button>
+      </section>
+
+      <section class="card" aria-labelledby="ed-h-motion">
+        <h2 id="ed-h-motion">Motion</h2>
+        <div class="slider"><label for="ed-cps">Cuts per second</label><output id="ed-cpsOut" for="ed-cps"></output>
+          <input type="range" id="ed-cps" min="2" max="20" step="1" value="12"></div>
+        <div class="slider"><label for="ed-len">Length of the cuts</label><output id="ed-lenOut" for="ed-len"></output>
+          <input type="range" id="ed-len" min="1" max="10" step="0.5" value="3"></div>
+        <div class="slider"><label for="ed-hold">Hold the last page</label><output id="ed-holdOut" for="ed-hold"></output>
+          <input type="range" id="ed-hold" min="0" max="3" step="0.1" value="1"></div>
+        <div class="slider"><label for="ed-zoom">Zoom</label><output id="ed-zoomOut" for="ed-zoom"></output>
+          <input type="range" id="ed-zoom" min="1" max="3" step="0.1" value="1.5"></div>
+        <div class="slider"><label for="ed-blur">Blur around the word</label><output id="ed-blurOut" for="ed-blur"></output>
+          <input type="range" id="ed-blur" min="0" max="3" step="0.1" value="1"></div>
+        <label class="check" for="ed-ramp"><input type="checkbox" id="ed-ramp"> Slow down toward the end</label>
+      </section>
+
+      <section class="card" aria-labelledby="ed-h-sound">
+        <h2 id="ed-h-sound">Sound on each cut</h2>
+        <select id="ed-sound">
+          <option value="paper" selected>Paper shuffle</option>
+          <option value="shutter">Camera shutter</option>
+          <option value="film">Film advance</option>
+          <option value="polaroid">Polaroid</option>
+          <option value="flash">Flash pop</option>
+          <option value="none">No sound</option>
+        </select>
+        <button id="ed-hear">Hear it</button>
+      </section>
+
+      <section class="card" aria-labelledby="ed-h-out">
+        <h2 id="ed-h-out">Export</h2>
+        <div class="two">
+          <label class="field">Frame rate
+            <select id="ed-fps"><option value="24">24 fps</option><option value="30" selected>30 fps</option><option value="60">60 fps</option></select>
+          </label>
+          <label class="field">File type
+            <select id="ed-container"><option value="mov" selected>MOV</option><option value="mp4">MP4</option></select>
+          </label>
+        </div>
+        <button class="primary" id="ed-exportBtn">Export video</button>
+        <div class="progress" id="ed-progress" hidden>
+          <div class="bar"><i id="ed-progBar"></i></div>
+          <div class="row"><span class="time" id="ed-progText">0%</span><button id="ed-cancelBtn">Cancel</button></div>
+        </div>
+        <p class="note" id="ed-outNote" hidden></p>
+        <div class="result" id="ed-result" hidden>
+          <video id="ed-resultVideo" controls playsinline></video>
+          <button id="ed-saveBtn" class="primary">Save file</button>
+          <p class="hint" id="ed-saveHint" hidden>Saving directly isn't available in this view. Right-click the video above and choose “Save video as…”.</p>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <footer>1080p output: 1080 × 1920 (9:16), 1080 × 1080 (1:1) or 1920 × 1080 (16:9). Constant frame rate H.264 + AAC in MOV or MP4, ready for DaVinci Resolve, Premiere, CapCut and direct upload. The text around the phrase is filler written for this tool.</footer>
   </section>
 
 </div>
@@ -2158,6 +2302,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     render();
   }
   $("rz-exportBtn").addEventListener("click", startExport);
+  window.CutoutExport = { pickVideoCodec, toI420, setBrand, COLOR709 };
   $("rz-cancelBtn").addEventListener("click", () => { if (exporting) exporting.cancelled = true; });
 
   let downloads = null;
@@ -2194,15 +2339,491 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
 </script>
 <script>
 (() => {
-  const names = { bench: "Bench", resize: "Resize" };
+  const $ = (id) => document.getElementById(id);
+  const cv = $("ed-preview"), pctx = cv.getContext("2d");
+  const RATIOS = { "9:16": [1080, 1920], "1:1": [1080, 1080], "16:9": [1920, 1080] };
+  let ratio = "9:16", seed = 1 + Math.floor(Math.random() * 1e6), hlStyle = "marker", hlColor = "#ffe14a";
+
+  // ---------- filler text (written for this tool) ----------
+  const CORPUS = ("The committee met again on Thursday to review the proposal, but the discussion ran long and no vote was taken. " +
+    "Residents along the river said the water had risen faster than in any year they could remember. " +
+    "In the archive, the letters were sorted by date and tied with string, each one carefully labelled by hand. " +
+    "Officials declined to comment on the timing of the announcement, citing ongoing talks with several partners. " +
+    "By the end of the season the small team had travelled more than four thousand miles across the region. " +
+    "Critics argued that the plan relied too heavily on forecasts that had already proved unreliable. " +
+    "The museum will reopen in the spring with a new wing dedicated to maps, instruments and early photographs. " +
+    "Historians still disagree about what happened during those final weeks, and the records are incomplete. " +
+    "Market traders reported steady demand through the winter, even as prices for fuel continued to climb. " +
+    "The report notes that most of the changes were gradual, which made them easy to overlook at the time. " +
+    "Engineers tested the bridge for three days before allowing traffic back across the eastern span. " +
+    "Several witnesses described a bright light over the hills shortly after midnight on the second evening. " +
+    "The new rules take effect next month and apply to every school, library and public office in the district. " +
+    "Few people outside the village knew the story, and fewer still believed it when they first heard it. " +
+    "Analysts expect the figures to improve slowly, although much depends on decisions that have not yet been made. " +
+    "She kept a notebook on the kitchen table and wrote down every detail, from the weather to the price of bread. " +
+    "Construction on the station began almost a century ago and was halted twice before it was finally finished. " +
+    "The film was shot in eleven days with a borrowed camera and a cast made up mostly of friends and neighbours. " +
+    "Researchers collected samples from the lake every morning and compared them with readings from the previous year. " +
+    "When the results were published, the response was louder and faster than anyone on the team had expected.").split(/\s+/);
+
+  // ---------- page styles ----------
+  const STYLES = {
+    newspaper: { paper: "#efe9dc", ink: "#1c1a17", fonts: ['"Old Standard TT", Georgia, serif', '"Source Serif 4", Georgia, serif'], fs: [0.03, 0.038], lh: 1.3, cols: 3, justify: true, headline: true, rules: true },
+    article: { paper: "#ffffff", ink: "#202122", fonts: ['Roboto, Arial, sans-serif', '"IBM Plex Sans", Arial, sans-serif'], fs: [0.03, 0.035], lh: 1.6, link: "#3366cc", cols: 1, heading: true },
+    book: { paper: "#f5eedc", ink: "#2b251d", fonts: ['"Source Serif 4", Georgia, serif', '"Playfair Display", Georgia, serif'], fs: [0.034, 0.04], lh: 1.45, cols: 1, justify: true, pageNum: true },
+    typewriter: { paper: "#eeeadf", ink: "#262626", fonts: ['"Special Elite", "Courier New", monospace', '"Courier Prime", "Courier New", monospace'], fs: [0.031, 0.037], lh: 1.65, cols: 1, jitter: true },
+    notes: { paper: "#fbf5d6", ink: "#1e2a63", fonts: ['Caveat, "Segoe Print", cursive'], fs: [0.05, 0.058], lh: 1.32, cols: 1, ruled: true },
+    dark: { paper: "#15171c", ink: "#d8dce3", fonts: ['"IBM Plex Sans", Arial, sans-serif', 'Roboto, Arial, sans-serif'], fs: [0.03, 0.035], lh: 1.6, link: "#7aa7ff", cols: 1, dark: true }
+  };
+  function enabledStyles() {
+    const on = [...document.querySelectorAll("[data-style]")].filter((b) => b.getAttribute("aria-pressed") === "true").map((b) => b.dataset.style);
+    return on.length ? on : ["newspaper"];
+  }
+
+  // ---------- helpers ----------
+  function rng(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  const phrase = () => ($("ed-word").value.trim() || "nobody saw it coming");
+  function contextWords() {
+    const own = $("ed-context").value.trim().split(/\s+/).filter(Boolean);
+    return own.length >= 8 ? own : CORPUS;
+  }
+  let noise = null;
+  function noiseCanvas() {
+    if (noise) return noise;
+    noise = document.createElement("canvas"); noise.width = noise.height = 256;
+    const x = noise.getContext("2d"), id = x.createImageData(256, 256), r = rng(99);
+    for (let i = 0; i < id.data.length; i += 4) { const v = 110 + r() * 145; id.data[i] = id.data[i + 1] = id.data[i + 2] = v; id.data[i + 3] = 255; }
+    x.putImageData(id, 0, 0); return noise;
+  }
+  const canFilter = typeof CanvasRenderingContext2D !== "undefined" && "filter" in CanvasRenderingContext2D.prototype;
+
+  // ---------- one page (cut k) ----------
+  function drawPage(ctx, W, H, k) {
+    const r = rng(seed * 7919 + k * 104729 + 17);
+    const names = enabledStyles(), order = rng(seed)();
+    const st = STYLES[names[(Math.floor(order * names.length) + k) % names.length]];
+    const u = Math.min(W, H), cx = W / 2, cy = H / 2, zoom = +$("ed-zoom").value;
+    const font = st.fonts[Math.floor(r() * st.fonts.length)];
+    const fs = u * (st.fs[0] + r() * (st.fs[1] - st.fs[0])), lh = fs * st.lh;
+    const words = contextWords(); let wi = Math.floor(r() * words.length);
+    const next = () => words[wi++ % words.length];
+    const text = phrase();
+    ctx.save();
+    ctx.fillStyle = st.paper; ctx.fillRect(0, 0, W, H);
+    ctx.translate(cx, cy); ctx.rotate((r() - 0.5) * 0.045); ctx.scale(zoom, zoom); ctx.translate(-cx, -cy);
+    ctx.fillStyle = st.paper; ctx.fillRect(-W, -H, W * 3, H * 3);
+    const setFont = (size, bold) => { ctx.font = `${bold ? 700 : 400} ${size}px ${font}`; };
+    setFont(fs);
+    ctx.textBaseline = "alphabetic";
+    const sp = ctx.measureText(" ").width, ww = ctx.measureText(text).width;
+    const colW = Math.max(ww * 1.5, u * (st.cols > 1 ? 0.62 + r() * 0.12 : 0.78 + r() * 0.18)), gutter = fs * 1.6;
+    const baseY = cy + fs * 0.34;
+    // the phrase's line: words before it so the phrase lands dead centre
+    const target = (colW - ww) * (0.12 + r() * 0.55);
+    const prefix = []; let pw = 0;
+    while (true) { const w = next(), wd = ctx.measureText(w).width + sp; if (pw + wd > target || pw + wd > colW - ww - sp) { wi--; break; } prefix.push(w); pw += wd; }
+    const x0 = cx - ww / 2 - pw;
+    const visTop = cy - H / 2 / zoom - lh * 2, visBot = cy + H / 2 / zoom + lh * 2;
+    const visL = cx - W / 2 / zoom - fs * 4, visR = cx + W / 2 / zoom + fs * 4;
+    const linkOn = !!st.link;
+    function drawLine(x, y, width, firstLine) {
+      const items = []; let lw = firstLine ? fs * 1.5 : 0;
+      while (true) { const w = next(), wd = ctx.measureText(w).width; if (lw + wd > width && items.length) { wi--; break; } items.push([w, wd]); lw += wd + sp; if (lw > width) break; }
+      const total = items.reduce((a, b) => a + b[1], 0), gaps = Math.max(1, items.length - 1);
+      const gap = st.justify ? Math.max(sp, (width - (firstLine ? fs * 1.5 : 0) - total) / gaps) : sp;
+      let xx = x + (firstLine ? fs * 1.5 : 0);
+      for (const [w, wd] of items) {
+        const jy = st.jitter ? (r() - 0.5) * fs * 0.08 : 0;
+        ctx.globalAlpha = st.jitter ? 0.78 + r() * 0.22 : 1;
+        if (linkOn && r() < 0.05) { ctx.fillStyle = st.link; ctx.fillText(w, xx, y + jy); ctx.fillRect(xx, y + fs * 0.12, wd, Math.max(1, fs * 0.05)); }
+        else { ctx.fillStyle = st.ink; ctx.fillText(w, xx, y + jy); }
+        xx += wd + gap;
+      }
+      ctx.globalAlpha = 1;
+    }
+    let headY = null;
+    const nearHead = (y) => headY !== null && y > headY - lh * 0.5 && y < headY + lh * 1.6;
+    function column(x, skipLine) {
+      let para = 0;
+      for (let y = baseY - lh; y > visTop; y -= lh) {
+        if (nearHead(y)) continue;
+        if (st.headline && x === x0 && para === 0 && r() < 0.035 && y < baseY - lh * 4) { headline(x, y); y -= lh * 2.5; para = 1; continue; }
+        if (r() < 0.07) { para++; continue; }
+        drawLine(x, y, colW, r() < 0.12);
+      }
+      for (let y = baseY + lh; y < visBot; y += lh) { if (nearHead(y) || r() < 0.07) continue; drawLine(x, y, colW, r() < 0.1); }
+      if (!skipLine) drawLine(x, baseY, colW, false);
+    }
+    function headline(x, y) {
+      setFont(fs * 2.1, true); ctx.fillStyle = st.ink;
+      let line = "", hw = 0; const hs = ctx.measureText(" ").width;
+      while (true) { const w = next(), wd = ctx.measureText(w).width; if (hw + wd > colW) break; line += (line ? " " : "") + w; hw += wd + hs; }
+      ctx.fillText(line.replace(/[.,]$/, ""), x, y);
+      ctx.fillRect(x, y + fs * 0.6, colW, Math.max(1, fs * 0.06));
+      setFont(fs);
+    }
+    // ruled paper behind the notes style
+    if (st.ruled) {
+      ctx.strokeStyle = "rgba(70,110,200,.28)"; ctx.lineWidth = Math.max(1, fs * 0.04);
+      for (let y = baseY - Math.ceil((baseY - visTop) / lh) * lh; y < visBot; y += lh) { ctx.beginPath(); ctx.moveTo(visL, y + fs * 0.22); ctx.lineTo(visR, y + fs * 0.22); ctx.stroke(); }
+      ctx.strokeStyle = "rgba(220,60,60,.45)"; ctx.beginPath(); ctx.moveTo(x0 - fs * 0.8, visTop); ctx.lineTo(x0 - fs * 0.8, visBot); ctx.stroke();
+    }
+    // section heading in the article/dark styles
+    if (st.heading || st.dark) {
+      const hy = baseY - lh * (4 + Math.floor(r() * 6)) - lh * 0.4;
+      if (hy > visTop) { headY = hy; setFont(fs * 1.5, true); ctx.fillStyle = st.ink; const h = [next(), next(), next()].join(" ").replace(/[.,]/g, ""); ctx.fillText(h.charAt(0).toUpperCase() + h.slice(1), x0, hy); ctx.fillStyle = st.dark ? "rgba(255,255,255,.18)" : "rgba(0,0,0,.18)"; ctx.fillRect(x0, hy + fs * 0.45, colW, Math.max(1, fs * 0.04)); setFont(fs); }
+    }
+    // main column: lines above/below, then the phrase line
+    column(x0, true);
+    // phrase line itself
+    ctx.fillStyle = st.ink;
+    let xx = x0;
+    for (const w of prefix) { ctx.fillText(w, xx, baseY); xx += ctx.measureText(w).width + sp; }
+    const wx = cx - ww / 2;
+    // highlight behind the phrase
+    const pad = fs * 0.18, top = baseY - fs * 0.86, bot = baseY + fs * 0.26;
+    ctx.save();
+    if (hlStyle === "marker") {
+      const j = () => (r() - 0.5) * fs * 0.1;
+      ctx.fillStyle = hlColor; ctx.globalAlpha = 0.92;
+      ctx.beginPath(); ctx.moveTo(wx - pad + j(), top + j()); ctx.lineTo(wx + ww + pad + j(), top + j()); ctx.lineTo(wx + ww + pad + j(), bot + j()); ctx.lineTo(wx - pad + j(), bot + j()); ctx.closePath(); ctx.fill();
+    } else if (hlStyle === "box") {
+      ctx.strokeStyle = hlColor; ctx.lineWidth = fs * 0.09; ctx.lineJoin = "round";
+      ctx.strokeRect(wx - pad * 1.3, top - fs * 0.05, ww + pad * 2.6, bot - top + fs * 0.1);
+    } else {
+      ctx.fillStyle = hlColor; ctx.fillRect(wx - pad * 0.3, baseY + fs * 0.1, ww + pad * 0.6, fs * 0.13);
+    }
+    ctx.restore();
+    ctx.fillStyle = hlStyle === "marker" && st.dark ? "#111" : st.ink;
+    ctx.fillText(text, wx, baseY);
+    // rest of the phrase line after it
+    xx = wx + ww + sp;
+    while (xx < x0 + colW) { const w = next(), wd = ctx.measureText(w).width; if (xx + wd > x0 + colW + fs) break; ctx.fillStyle = st.ink; ctx.fillText(w, xx, baseY); xx += wd + sp; }
+    // neighbouring columns (newspaper)
+    if (st.cols > 1) {
+      for (let c = 1; c <= 2; c++) {
+        const xr = x0 + c * (colW + gutter), xl = x0 - c * (colW + gutter);
+        if (xr < visR) column(xr, false);
+        if (xl + colW > visL) column(xl, false);
+        if (st.rules) { ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.fillRect(x0 + c * (colW + gutter) - gutter / 2, visTop, Math.max(1, fs * 0.04), visBot - visTop); ctx.fillRect(x0 - (c - 1) * (colW + gutter) - gutter / 2, visTop, Math.max(1, fs * 0.04), visBot - visTop); }
+      }
+    }
+    if (st.pageNum) { setFont(fs * 0.8); ctx.fillStyle = st.ink; ctx.globalAlpha = 0.6; ctx.fillText(String(12 + Math.floor(r() * 300)), x0 + colW / 2, cy + H / 2 / zoom - fs * 2); ctx.globalAlpha = 1; }
+    ctx.restore();
+    // paper texture + light falloff (screen space)
+    ctx.save();
+    ctx.globalAlpha = st.dark ? 0.05 : 0.09; ctx.globalCompositeOperation = st.dark ? "screen" : "multiply";
+    const pat = ctx.createPattern(noiseCanvas(), "repeat"); ctx.fillStyle = pat; ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+    const vg = ctx.createRadialGradient(cx, cy, u * 0.3, cx, cy, Math.hypot(W, H) * 0.6);
+    vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, st.dark ? "rgba(0,0,0,.45)" : "rgba(40,30,10,.22)");
+    ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+    return { ww: ww * zoom, fs: fs * zoom };
+  }
+  // page + depth-of-field blur (sharp around the phrase, soft further out)
+  function renderCut(k, W, H) {
+    const a = document.createElement("canvas"); a.width = W; a.height = H;
+    const ax = a.getContext("2d");
+    const info = drawPage(ax, W, H, k);
+    const blur = +$("ed-blur").value;
+    if (!blur || !canFilter) return a;
+    const u = Math.min(W, H), cx = W / 2, cy = H / 2;
+    const out = document.createElement("canvas"); out.width = W; out.height = H;
+    const ox = out.getContext("2d");
+    ox.filter = `blur(${(blur * u / 1080 * 4).toFixed(2)}px)`; ox.drawImage(a, 0, 0); ox.filter = "none";
+    const sharp = document.createElement("canvas"); sharp.width = W; sharp.height = H;
+    const sx = sharp.getContext("2d"); sx.drawImage(a, 0, 0);
+    const rx = Math.max(info.ww * 0.62, u * 0.16), ry = info.fs * 2.2;
+    sx.globalCompositeOperation = "destination-in";
+    sx.translate(cx, cy); sx.scale(1, ry / rx);
+    const g = sx.createRadialGradient(0, 0, rx * 0.55, 0, 0, rx * (1.6 + 0.4 / Math.max(0.3, blur)));
+    g.addColorStop(0, "rgba(0,0,0,1)"); g.addColorStop(1, "rgba(0,0,0,0)");
+    sx.fillStyle = g; sx.fillRect(-W * 2, -H * 4, W * 4, H * 8);
+    ox.drawImage(sharp, 0, 0);
+    return out;
+  }
+
+  // ---------- timeline ----------
+  function timeline() {
+    const cps = +$("ed-cps").value, len = +$("ed-len").value, hold = +$("ed-hold").value, ramp = $("ed-ramp").checked;
+    const n = Math.max(1, Math.round(cps * len)), starts = [];
+    if (!ramp) for (let k = 0; k < n; k++) starts.push(k / cps);
+    else { // same number of cuts, gradually longer near the end
+      const w = []; for (let k = 0; k < n; k++) w.push(1 + 2.2 * Math.pow(k / Math.max(1, n - 1), 2.2));
+      const sum = w.reduce((p, q) => p + q, 0); let t = 0;
+      for (let k = 0; k < n; k++) { starts.push(t); t += w[k] / sum * len; }
+    }
+    const cutsEnd = ramp ? len : n / cps;
+    return { n, starts, cutsEnd, total: cutsEnd + hold };
+  }
+  function cutAt(t, tl) { let k = 0; while (k + 1 < tl.n && tl.starts[k + 1] <= t) k++; return k; }
+
+  // ---------- sound ----------
+  let noiseBuf = null;
+  function getNoise(ac) {
+    if (noiseBuf && noiseBuf.sampleRate === ac.sampleRate) return noiseBuf;
+    const b = ac.createBuffer(1, Math.floor(ac.sampleRate * 0.6), ac.sampleRate), d = b.getChannelData(0), r = rng(7);
+    for (let i = 0; i < d.length; i++) d[i] = r() * 2 - 1;
+    return (noiseBuf = b);
+  }
+  function burst(ac, dest, when, o) {
+    const s = ac.createBufferSource(); s.buffer = getNoise(ac);
+    const f = ac.createBiquadFilter(); f.type = o.type; f.frequency.value = o.freq; f.Q.value = o.q || 0.8;
+    const g = ac.createGain(); g.gain.setValueAtTime(0.0001, when); g.gain.linearRampToValueAtTime(o.gain, when + (o.attack || 0.002)); g.gain.exponentialRampToValueAtTime(0.0001, when + o.dur);
+    s.connect(f); f.connect(g); g.connect(dest); s.start(when, o.off || 0); s.stop(when + o.dur + 0.03);
+  }
+  function tone(ac, dest, when, o) {
+    const osc = ac.createOscillator(); osc.type = o.wave || "sine";
+    osc.frequency.setValueAtTime(o.f0, when); osc.frequency.exponentialRampToValueAtTime(o.f1, when + o.dur);
+    const g = ac.createGain(); g.gain.setValueAtTime(0.0001, when); g.gain.linearRampToValueAtTime(o.gain, when + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, when + o.dur);
+    osc.connect(g); g.connect(dest); osc.start(when); osc.stop(when + o.dur + 0.03);
+  }
+  function playCut(ac, dest, type, when, k) {
+    const r = rng(seed + k * 31), v = 0.85 + r() * 0.3, off = r() * 0.4;
+    if (type === "paper") { burst(ac, dest, when, { type: "bandpass", freq: 1800 + r() * 1400, q: 0.7, gain: 0.55 * v, dur: 0.075, off }); burst(ac, dest, when + 0.01, { type: "highpass", freq: 5500, gain: 0.22 * v, dur: 0.04, off }); tone(ac, dest, when, { f0: 150, f1: 70, dur: 0.05, gain: 0.18 * v }); }
+    else if (type === "shutter") { burst(ac, dest, when, { type: "highpass", freq: 3200, gain: 0.7 * v, dur: 0.018, off }); burst(ac, dest, when + 0.042, { type: "highpass", freq: 2600, gain: 0.5 * v, dur: 0.022, off }); tone(ac, dest, when, { f0: 2400, f1: 1600, dur: 0.012, gain: 0.08 }); }
+    else if (type === "film") { for (let i = 0; i < 3; i++) burst(ac, dest, when + i * 0.017, { type: "bandpass", freq: 3800 + r() * 800, q: 3, gain: 0.6 * v, dur: 0.009, off: off + i * 0.01 }); }
+    else if (type === "polaroid") { tone(ac, dest, when, { f0: 115, f1: 92, dur: 0.11, gain: 0.12 * v, wave: "sawtooth" }); burst(ac, dest, when, { type: "bandpass", freq: 900, q: 1.2, gain: 0.18 * v, dur: 0.11, off }); burst(ac, dest, when + 0.1, { type: "highpass", freq: 3000, gain: 0.4 * v, dur: 0.015, off }); }
+    else if (type === "flash") { tone(ac, dest, when, { f0: 1300, f1: 170, dur: 0.09, gain: 0.32 * v }); burst(ac, dest, when, { type: "lowpass", freq: 1600, gain: 0.4 * v, dur: 0.06, off }); }
+  }
+  function masterChain(ac) {
+    const comp = ac.createDynamicsCompressor(); comp.threshold.value = -12; comp.ratio.value = 4;
+    const g = ac.createGain(); g.gain.value = 0.9; g.connect(comp); comp.connect(ac.destination); return g;
+  }
+  let liveAc = null, liveOut = null;
+  function liveAudio() {
+    if (!liveAc) { try { liveAc = new (window.AudioContext || window.webkitAudioContext)(); liveOut = masterChain(liveAc); } catch { liveAc = null; } }
+    if (liveAc && liveAc.state === "suspended") liveAc.resume();
+    return liveAc;
+  }
+  $("ed-hear").addEventListener("click", () => {
+    const ac = liveAudio(), type = $("ed-sound").value; if (!ac || type === "none") return;
+    for (let i = 0; i < 4; i++) playCut(ac, liveOut, type, ac.currentTime + 0.05 + i * 0.12, i);
+  });
+
+  // ---------- preview ----------
+  const cache = new Map();
+  let playing = false, t = 0, lastTs = 0, lastK = -1, raf = 0;
+  function prevSize() { const [W, H] = RATIOS[ratio], k = Math.min(1, 720 / Math.max(W, H)); return [Math.round(W * k), Math.round(H * k)]; }
+  function invalidate() { cache.clear(); lastK = -1; draw(); updateMeta(); }
+  function cutCanvas(k) {
+    if (!cache.has(k)) { const [w, h] = prevSize(); cache.set(k, renderCut(k, w, h)); if (cache.size > 80) cache.delete(cache.keys().next().value); }
+    return cache.get(k);
+  }
+  function draw() {
+    const [w, h] = prevSize();
+    if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; fitPreview(); }
+    const tl = timeline(); if (t > tl.total) t = 0;
+    const k = cutAt(t, tl);
+    pctx.drawImage(cutCanvas(k), 0, 0);
+    $("ed-time").textContent = `${fmt(t)} / ${fmt(tl.total)}`;
+    $("ed-scrub").value = Math.round(t / tl.total * 1000);
+    return k;
+  }
+  function fmt(s) { const m = Math.floor(s / 60); return m + ":" + (s - m * 60).toFixed(1).padStart(4, "0"); }
+  function fitPreview() {
+    const st = $("ed-stage"), cs = getComputedStyle(st);
+    const aw = st.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), ah = st.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    if (aw <= 0 || ah <= 0) return;
+    const [W, H] = RATIOS[ratio], s = Math.min(aw / W, ah / H);
+    cv.style.width = Math.floor(W * s) + "px"; cv.style.height = Math.floor(H * s) + "px";
+    $("ed-frameLabel").textContent = `${W} × ${H}`;
+  }
+  new ResizeObserver(fitPreview).observe($("ed-stage"));
+  function loop(ts) {
+    if (!playing) return;
+    const tl = timeline();
+    t += lastTs ? (ts - lastTs) / 1000 : 0; lastTs = ts;
+    if (t >= tl.total) { t = 0; lastK = -1; }
+    const k = draw();
+    if (k !== lastK) { const type = $("ed-sound").value; if (liveAc && type !== "none" && t < tl.cutsEnd + 0.02) playCut(liveAc, liveOut, type, liveAc.currentTime + 0.01, k); lastK = k; }
+    raf = requestAnimationFrame(loop);
+  }
+  function setPlaying(p) {
+    playing = p;
+    $("ed-playIcon").innerHTML = p ? '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>' : '<path d="M7 4v16l13-8z"/>';
+    $("ed-play").setAttribute("aria-label", p ? "Pause" : "Play");
+    cancelAnimationFrame(raf); lastTs = 0;
+    if (p) { liveAudio(); lastK = -1; raf = requestAnimationFrame(loop); }
+  }
+  window.edPause = () => { if (playing) setPlaying(false); };
+  $("ed-play").addEventListener("click", () => { if (!exporting) setPlaying(!playing); });
+  $("ed-scrub").addEventListener("input", (e) => { const tl = timeline(); t = +e.target.value / 1000 * tl.total; draw(); });
+  function updateMeta() {
+    const tl = timeline(), [W, H] = RATIOS[ratio];
+    $("ed-meta").innerHTML = `<span>Cuts <b>${tl.n}</b></span><span>Length <b>${tl.total.toFixed(1)} s</b></span><span>Output <b>${W} × ${H}</b></span>`;
+    const n = phrase().length; $("ed-wordCount").textContent = `${n} of 23 characters. The phrase stays in the same spot on every page.`;
+    edDefaultName();
+  }
+
+  // ---------- controls ----------
+  const outs = () => {
+    $("ed-cpsOut").textContent = $("ed-cps").value + " / s"; $("ed-lenOut").textContent = (+$("ed-len").value).toFixed(1) + " s";
+    $("ed-holdOut").textContent = (+$("ed-hold").value).toFixed(1) + " s"; $("ed-zoomOut").textContent = (+$("ed-zoom").value).toFixed(1) + "×";
+    $("ed-blurOut").textContent = (+$("ed-blur").value).toFixed(1) + "×";
+  };
+  outs();
+  ["ed-cps", "ed-len", "ed-hold", "ed-ramp"].forEach((id) => $(id).addEventListener("input", () => { outs(); updateMeta(); draw(); }));
+  ["ed-zoom", "ed-blur"].forEach((id) => { $(id).addEventListener("input", outs); $(id).addEventListener("change", invalidate); });
+  let typing = 0;
+  ["ed-word", "ed-context"].forEach((id) => $(id).addEventListener("input", () => { clearTimeout(typing); typing = setTimeout(invalidate, 200); }));
+  document.querySelectorAll("[data-ratio]").forEach((b) => b.addEventListener("click", () => {
+    ratio = b.dataset.ratio; document.querySelectorAll("[data-ratio]").forEach((x) => x.setAttribute("aria-pressed", x === b)); invalidate(); fitPreview();
+  }));
+  document.querySelectorAll("[data-style]").forEach((b) => b.addEventListener("click", () => {
+    const on = b.getAttribute("aria-pressed") === "true";
+    if (on && enabledStyles().length === 1) return;              // keep at least one
+    b.setAttribute("aria-pressed", !on); invalidate();
+  }));
+  document.querySelectorAll("[data-hl]").forEach((b) => b.addEventListener("click", () => {
+    hlStyle = b.dataset.hl; document.querySelectorAll("[data-hl]").forEach((x) => x.setAttribute("aria-pressed", x === b)); invalidate();
+  }));
+  function setHlColor(v, btn) { hlColor = v; document.querySelectorAll("[data-hlc]").forEach((x) => x.setAttribute("aria-pressed", x === btn)); invalidate(); }
+  document.querySelectorAll("[data-hlc]").forEach((b) => b.addEventListener("click", () => { if (b.dataset.hlc !== "custom") setHlColor(b.dataset.hlc, b); }));
+  $("ed-hlColor").addEventListener("input", () => setHlColor($("ed-hlColor").value, document.querySelector('[data-hlc="custom"]')));
+  $("ed-shuffle").addEventListener("click", () => { seed = 1 + Math.floor(Math.random() * 1e6); invalidate(); });
+
+  // ---------- file name ----------
+  let nameTouched = false;
+  const slug = () => phrase().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 32) || "match-cut";
+  const edAuto = () => `${slug()}-match-cut`;
+  function edDefaultName() { if (!nameTouched) $("ed-fname").value = edAuto(); }
+  $("ed-fname").addEventListener("input", () => { nameTouched = true; });
+  document.querySelectorAll("[data-edadd]").forEach((b) => b.addEventListener("click", () => {
+    const k = b.dataset.edadd, inp = $("ed-fname");
+    if (k === "reset") { nameTouched = false; inp.value = edAuto(); return; }
+    const part = k === "ratio" ? ratio.replace(":", "x") : new Date().toISOString().slice(0, 10);
+    const v = inp.value.replace(/-+$/, ""); if (!v.endsWith("-" + part)) inp.value = (v ? v + "-" : "") + part;
+    nameTouched = true; inp.focus();
+  }));
+  const clean = (v, fb) => { v = (v || "").replace(/[\\/:*?"<>|\u0000-\u001f]+/g, "-").replace(/\.(mp4|mov|webm)$/i, "").trim(); return v || fb; };
+  $("ed-container").addEventListener("change", () => { $("ed-fnameExt").textContent = "." + $("ed-container").value; });
+
+  // ---------- export ----------
+  let exporting = null, resultBlob = null, resultName = "";
+  async function exportVideo() {
+    const E = window.CutoutExport;
+    setPlaying(false); $("ed-result").hidden = true; note("");
+    if (!E || !window.VideoEncoder || !window.Mp4Muxer) { note("This browser can't export video. Use a recent Chrome or Edge.", "err"); return; }
+    const [W, H] = RATIOS[ratio], fps = +$("ed-fps").value, tl = timeline(), frames = Math.max(1, Math.round(tl.total * fps));
+    const vcfg = await E.pickVideoCodec(W, H, fps, Math.round((fps > 30 ? 12 : 8) * 1e6 * (W * H) / (1920 * 1080)));
+    if (!vcfg) { note("This browser can't encode H.264 video. Use a recent Chrome or Edge.", "err"); return; }
+    const job = { cancelled: false }; exporting = job;
+    $("ed-exportBtn").disabled = true; $("ed-progress").hidden = false; $("ed-progBar").style.width = "0%"; $("ed-progText").textContent = "Preparing…";
+    try {
+      // sound: render all cut sounds offline, then encode as AAC
+      let audio = null, audioNote = "";
+      const type = $("ed-sound").value;
+      if (type !== "none") {
+        const acfg = { codec: "mp4a.40.2", sampleRate: 48000, numberOfChannels: 2, bitrate: 192000 };
+        let ok = false; try { ok = window.AudioEncoder && (await AudioEncoder.isConfigSupported(acfg)).supported; } catch {}
+        if (ok) {
+          const oac = new OfflineAudioContext(2, Math.ceil(tl.total * 48000), 48000), out = masterChain(oac);
+          noiseBuf = null;
+          for (let k = 0; k < tl.n; k++) playCut(oac, out, type, tl.starts[k] + 0.001, k);
+          audio = { cfg: acfg, buf: await oac.startRendering() };
+          noiseBuf = null;
+        } else audioNote = " Sound was left out: this browser can't make AAC audio. Chrome or Edge on Windows or Mac can.";
+      }
+      const muxer = new Mp4Muxer.Muxer({
+        target: new Mp4Muxer.ArrayBufferTarget(),
+        video: { codec: "avc", width: W, height: H, frameRate: fps },
+        audio: audio ? { codec: "aac", numberOfChannels: 2, sampleRate: 48000 } : undefined,
+        fastStart: "in-memory", firstTimestampBehavior: "offset"
+      });
+      let failed = null;
+      const venc = new VideoEncoder({
+        output: (chunk, meta) => { if (meta && meta.decoderConfig) meta = Object.assign({}, meta, { decoderConfig: Object.assign({}, meta.decoderConfig, { colorSpace: E.COLOR709 }) }); muxer.addVideoChunk(chunk, meta); },
+        error: (err) => { failed = err; }
+      });
+      venc.configure(vcfg);
+      if (audio) {
+        const aenc = new AudioEncoder({ output: (c, m) => muxer.addAudioChunk(c, m), error: (err) => { failed = err; } });
+        aenc.configure(audio.cfg);
+        const L = audio.buf.getChannelData(0), R = audio.buf.getChannelData(1), n = L.length, step = 4800;
+        for (let i = 0; i < n; i += step) {
+          const len = Math.min(step, n - i), pl = new Float32Array(len * 2); pl.set(L.subarray(i, i + len), 0); pl.set(R.subarray(i, i + len), len);
+          const ad = new AudioData({ format: "f32-planar", sampleRate: 48000, numberOfFrames: len, numberOfChannels: 2, timestamp: Math.round(i * 1e6 / 48000), data: pl });
+          aenc.encode(ad); ad.close();
+        }
+        await aenc.flush(); aenc.close();
+      }
+      const dur = Math.round(1e6 / fps), t0 = performance.now();
+      const fc = document.createElement("canvas"); fc.width = W; fc.height = H; const fx = fc.getContext("2d", { willReadFrequently: true });
+      let curK = -1, px = null;
+      for (let i = 0; i < frames; i++) {
+        if (job.cancelled || failed) break;
+        const k = cutAt((i + 0.5) / fps, tl);
+        if (k !== curK) { fx.drawImage(renderCut(k, W, H), 0, 0); px = E.toI420(fx.getImageData(0, 0, W, H).data, W, H); curK = k; pctx.drawImage(fc, 0, 0, cv.width, cv.height); }
+        const frame = new VideoFrame(px, { format: "I420", codedWidth: W, codedHeight: H, timestamp: i * dur, duration: dur, colorSpace: E.COLOR709 });
+        venc.encode(frame, { keyFrame: i % (fps * 2) === 0 }); frame.close();
+        while (venc.encodeQueueSize > 3) await new Promise((r) => setTimeout(r, 2));
+        if (i % 4 === 0 || i === frames - 1) {
+          const f = (i + 1) / frames, el = (performance.now() - t0) / 1000;
+          $("ed-progBar").style.width = (f * 100).toFixed(1) + "%";
+          $("ed-progText").textContent = `${Math.round(f * 100)}% · frame ${i + 1} of ${frames}` + (i > 10 ? ` · about ${fmt(el / f - el)} left` : "");
+          await new Promise((r) => setTimeout(r, 0));
+        }
+      }
+      if (failed) throw failed;
+      if (job.cancelled) { try { venc.close(); } catch {} note("Export cancelled."); return; }
+      await venc.flush(); venc.close(); muxer.finalize();
+      const bytes = new Uint8Array(muxer.target.buffer), mov = $("ed-container").value === "mov";
+      if (mov) E.setBrand(bytes, "qt  ");
+      resultBlob = new Blob([bytes], { type: mov ? "video/quicktime" : "video/mp4" });
+      resultName = `${clean($("ed-fname").value, edAuto())}.${mov ? "mov" : "mp4"}`;
+      const rv = $("ed-resultVideo"); if (rv.src) URL.revokeObjectURL(rv.src); rv.src = URL.createObjectURL(resultBlob);
+      $("ed-result").hidden = false; $("ed-saveHint").hidden = true; $("ed-saveBtn").hidden = false;
+      note(`Ready: ${resultName}, ${(resultBlob.size / 1048576).toFixed(1)} MB, ${tl.total.toFixed(1)} s.${audioNote}`, "ok");
+    } catch (err) {
+      console.error(err); note("The export stopped with an error (" + String(err && err.message || err).slice(0, 120) + "). Try a lower frame rate.", "err");
+    } finally {
+      exporting = null; $("ed-exportBtn").disabled = false; $("ed-progress").hidden = true; draw();
+    }
+  }
+  function note(text, kind) { const n = $("ed-outNote"); n.hidden = !text; n.textContent = text || ""; n.className = "note" + (kind ? " " + kind : ""); }
+  $("ed-exportBtn").addEventListener("click", exportVideo);
+  $("ed-cancelBtn").addEventListener("click", () => { if (exporting) exporting.cancelled = true; });
+  let downloads = null;
+  (async () => { try { downloads = window.claude?.use ? await window.claude.use("downloads") : null; } catch { downloads = null; } })();
+  $("ed-saveBtn").addEventListener("click", async () => {
+    if (!resultBlob) return;
+    if (downloads) {
+      try { await downloads.save({ filename: resultName, data: resultBlob }); note(`Saved ${resultName}.`, "ok"); return; }
+      catch (e) {
+        if (e && e.code === "declined") { note("Save cancelled."); return; }
+        if (e && e.code === "rate_limited") { note("A save prompt is already open. Finish that one first.", "warn"); return; }
+        if (/\.mov$/.test(resultName) && e && ["not_signed", "rejected_extension", "extension_not_enabled"].includes(e.code)) {
+          const mp4Name = resultName.replace(/\.mov$/, ".mp4"), bytes = window.CutoutExport.setBrand(new Uint8Array(await resultBlob.arrayBuffer()), "isom");
+          try { await downloads.save({ filename: mp4Name, data: new Blob([bytes], { type: "video/mp4" }) }); note(`Saved ${mp4Name}. This viewer can't save .mov files, so it was saved as MP4. On your own site it saves as .mov.`, "warn"); return; }
+          catch (e2) { if (e2 && e2.code === "declined") { note("Save cancelled."); return; } }
+        }
+      }
+    }
+    if (!window.claude) { const a = document.createElement("a"); a.href = URL.createObjectURL(resultBlob); a.download = resultName; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000); note(`Downloaded ${resultName}.`, "ok"); return; }
+    $("ed-saveHint").hidden = false; $("ed-saveBtn").hidden = true;
+  });
+
+  // ---------- start ----------
+  updateMeta(); draw();
+  if (document.fonts && document.fonts.load) {
+    const fams = ['"Old Standard TT"', '"Source Serif 4"', "Roboto", '"Playfair Display"', '"Special Elite"', '"Courier Prime"', "Caveat", '"IBM Plex Sans"'];
+    Promise.all(fams.flatMap((f) => [document.fonts.load(`400 40px ${f}`), document.fonts.load(`700 40px ${f}`)]).map((p) => p.catch(() => {}))).then(invalidate);
+  }
+})();
+</script>
+<script>
+(() => {
+  const names = { bench: "Bench", resize: "Resize", edit: "Edit" };
   function show() {
-    const v = location.hash === "#resize" ? "resize" : "bench";
-    document.getElementById("bench").hidden = v !== "bench";
-    document.getElementById("resize").hidden = v !== "resize";
+    const v = location.hash === "#resize" ? "resize" : location.hash === "#edit" ? "edit" : "bench";
+    for (const id of ["bench", "resize", "edit"]) document.getElementById(id).hidden = v !== id;
     document.documentElement.dataset.app = v;
     document.getElementById("pageName").textContent = names[v];
     document.querySelectorAll("[data-nav]").forEach((a) => { if (a.dataset.nav === v) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
     if (v !== "resize" && window.rzPause) window.rzPause();
+    if (v !== "edit" && window.edPause) window.edPause();
     window.dispatchEvent(new Event("resize"));
   }
   document.querySelectorAll("[data-nav]").forEach((a) => a.addEventListener("click", (e) => {
