@@ -10,7 +10,7 @@
 <title>Cutout Bench</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Old+Standard+TT:wght@400;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,700&family=Roboto:wght@400;700&family=Playfair+Display:wght@400;700&family=Special+Elite&family=Courier+Prime&family=Caveat:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Archivo+Black&family=Inter:wght@400;500;600;700;800&family=Old+Standard+TT:wght@400;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,700&family=Roboto:wght@400;700&family=Playfair+Display:wght@400;700&family=Special+Elite&family=Courier+Prime&family=Caveat:wght@400;600&display=swap">
 <style>
 /* Layout: a workbench — large stage on a cutting-mat grid, tool rail on the right, stacking under the stage on phones */
 :root {
@@ -31,31 +31,12 @@
   --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #121714; --panel: #1a211d; --ink: #e6ece8; --muted: #9aa69f; --line: #2c3631;
-    --mat: #4fae8c; --mat-ink: #0c1411; --mat-soft: #1f3a30;
-    --check-a: #2a302c; --check-b: #353c38; --warn: #e0a64a; --danger: #ff8a80; --ok: #6fd3a2;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #121714; --panel: #1a211d; --ink: #e6ece8; --muted: #9aa69f; --line: #2c3631;
-  --mat: #4fae8c; --mat-ink: #0c1411; --mat-soft: #1f3a30;
-  --check-a: #2a302c; --check-b: #353c38; --warn: #e0a64a; --danger: #ff8a80; --ok: #6fd3a2;
-  color-scheme: dark;
-}
+
 /* Resize page: same workbench, petrol-blue mat */
 :root[data-app="resize"] { --bg: #edf0f2; --panel: #fafbfc; --ink: #1b2226; --muted: #5a666e; --line: #d4dbe0; --mat: #1c5266; --mat-ink: #ffffff; --mat-soft: #d9e9ef; --ok: #1f7a4a; }
-@media (prefers-color-scheme: dark) {
-  :root[data-app="resize"]:not([data-theme="light"]) { --bg: #11161a; --panel: #192026; --ink: #e5ebef; --muted: #98a5ad; --line: #2b353d; --mat: #4ea6c4; --mat-ink: #0b1317; --mat-soft: #1c3743; --ok: #6fd3a2; }
-}
+
 :root[data-app="edit"] { --bg: #f1eef0; --panel: #fcfafb; --ink: #241c21; --muted: #685c63; --line: #ddd3d8; --mat: #6b2a52; --mat-ink: #ffffff; --mat-soft: #f0dce7; --ok: #1f7a4a; }
-@media (prefers-color-scheme: dark) {
-  :root[data-app="edit"]:not([data-theme="light"]) { --bg: #171215; --panel: #20181d; --ink: #eee5ea; --muted: #a8979f; --line: #3a2d34; --mat: #d58ab4; --mat-ink: #1a0f15; --mat-soft: #3f2333; --ok: #6fd3a2; }
-}
-:root[data-app="edit"][data-theme="dark"] { --bg: #171215; --panel: #20181d; --ink: #eee5ea; --muted: #a8979f; --line: #3a2d34; --mat: #d58ab4; --mat-ink: #1a0f15; --mat-soft: #3f2333; --ok: #6fd3a2; }
-:root[data-app="resize"][data-theme="dark"] { --bg: #11161a; --panel: #192026; --ink: #e5ebef; --muted: #98a5ad; --line: #2b353d; --mat: #4ea6c4; --mat-ink: #0b1317; --mat-soft: #1c3743; --ok: #6fd3a2; }
+
 
 * { box-sizing: border-box; }
 body {
@@ -269,13 +250,179 @@ body { transition: background-color .2s; }
 #edit textarea:focus-visible, #edit input[type=text]:focus-visible { outline: 2px solid var(--mat); outline-offset: 1px; }
 #edit .field > input[type=text] { width: 100%; font: inherit; font-size: 15px; font-weight: 500; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink); min-height: 40px; }
 footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
+
+/* ================= Brutalist theme layer =================
+   Layout: same workbench (stage left, tool rail right), restyled as chunky
+   sticker-like cards: 3px ink outlines, hard offset shadows, pill controls.
+   One deliberate light look on every system theme. */
+:root {
+  --ink: #0d0d0f; --cream: #fbf5ea; --cream-dim: #efe6d4;
+  --pink: #ff4667; --pink-soft: #ffe3e8; --violet: #8c7ae6; --violet-soft: #e6e1fb;
+  --lime: #d8ff5c; --lime-soft: #f2ffcf; --dim: #4a4a52;
+  --bg: var(--cream); --panel: #fffdf8; --muted: var(--dim); --line: var(--ink);
+  --mat: var(--pink); --mat-ink: var(--ink); --mat-soft: var(--pink-soft); --stage: var(--violet);
+  --check-a: #ffffff; --check-b: #efe6d4;
+  --warn: #a45200; --danger: #d0173a; --ok: #187a3a;
+  --b3: 3px solid var(--ink); --b2: 2px solid var(--ink);
+  --sh: 6px 6px 0 var(--ink); --sh-sm: 4px 4px 0 var(--ink); --sh-xs: 2px 2px 0 var(--ink);
+  --radius: 20px;
+  --font-display: "Archivo Black", "Arial Black", Impact, sans-serif;
+  --font-body: Inter, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: light;
+}
+:root[data-app="resize"] { --mat: var(--violet); --mat-soft: var(--violet-soft); --stage: var(--lime); }
+:root[data-app="edit"] { --mat: var(--lime); --mat-soft: var(--lime-soft); --stage: var(--pink); }
+body { background: var(--cream); color: var(--ink); font-family: var(--font-body); }
+::selection { background: var(--lime); color: var(--ink); }
+
+/* header: lime sticker bar */
+.appbar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 15;
+  background: var(--lime); border: var(--b3); border-radius: var(--radius); box-shadow: var(--sh);
+  padding: 10px 12px 10px 14px; align-items: center;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 16; background: var(--cream); }
+.appbar h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(24px, 3.4vw, 32px); letter-spacing: -0.01em; display: flex; align-items: center; gap: 10px; line-height: 1; }
+.appbar h1 .logo { width: 40px; height: 40px; flex: none; display: grid; place-items: center; background: var(--pink); border: var(--b3); border-radius: 12px; box-shadow: var(--sh-xs); }
+.appbar h1 .logo svg { width: 22px; height: 22px; }
+.appbar h1 span#pageName { color: var(--ink); background: var(--mat); border: var(--b3); border-radius: 12px; padding: 4px 10px 5px; transform: rotate(-2deg); display: inline-block; box-shadow: var(--sh-xs); }
+.nav { background: transparent; border: 0; padding: 0; gap: 8px; }
+.nav a {
+  color: var(--ink); background: var(--cream); border: var(--b3); border-radius: 999px; box-shadow: var(--sh-xs);
+  font-weight: 800; font-size: 14px; padding: 6px 14px; min-height: 40px; transition: transform .12s, box-shadow .12s;
+}
+.nav a:hover { color: var(--ink); transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--ink); }
+.nav a[aria-current="page"] { background: var(--ink); color: var(--cream); box-shadow: none; transform: translate(2px, 2px); }
+.nav a:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
+
+/* intro line under the header */
+.tag { color: var(--dim); font-size: 15px; }
+.tag::before { content: "Free · runs in your browser"; display: inline-flex; margin-right: 10px; background: var(--lime); border: var(--b2); border-radius: 999px; padding: 2px 10px; font-weight: 800; font-size: 12px; color: var(--ink); box-shadow: var(--sh-xs); vertical-align: 1px; }
+
+/* sticker cards */
+.card, .namebar {
+  background: var(--panel); border: var(--b3); border-radius: var(--radius); box-shadow: var(--sh);
+  transition: transform .15s, box-shadow .15s;
+}
+.card { padding: 16px; gap: 12px; }
+.card h2 { font-family: var(--font-body); color: var(--violet); font-weight: 800; font-size: 12px; letter-spacing: .06em; }
+:root[data-app="resize"] .card h2 { color: #6b56d6; }
+.rail { gap: 18px; }
+.namebar-label { color: var(--violet); font-weight: 800; letter-spacing: .06em; }
+.fname-box { border: var(--b2); border-radius: 12px; background: #fff; }
+.fname-box:focus-within { outline: 3px solid var(--mat); outline-offset: 2px; }
+.namebar .fname-box input { font-weight: 700; }
+
+/* stage: colored mat inside a thick frame */
+.stage {
+  background-color: var(--stage); border: var(--b3); border-radius: var(--radius); box-shadow: var(--sh);
+  background-image: radial-gradient(rgba(13, 13, 15, .18) 1.2px, transparent 1.4px);
+  background-size: 18px 18px;
+}
+.frame-label, #resize .frame-label, :is(#resize, #edit) .frame-label { background: var(--ink); color: var(--cream); border-radius: 999px; padding: 3px 10px; font-weight: 600; }
+.drop-hint { border: 3px dashed var(--ink); color: var(--ink); background: color-mix(in srgb, var(--stage) 88%, transparent); font-family: var(--font-display); font-weight: 400; }
+#rz-preview, #ed-preview { border: var(--b3); border-radius: 6px; box-shadow: var(--sh); }
+.busy { background: var(--panel); border: var(--b3); border-radius: 16px; box-shadow: var(--sh); }
+.bar { height: 12px; border: var(--b2); border-radius: 999px; background: #fff; }
+.bar i { background: var(--mat); border-right: var(--b2); }
+.meta { color: var(--dim); }
+.meta b { color: var(--ink); font-weight: 600; }
+
+/* buttons: pills that press in */
+button, .filebtn {
+  font-family: var(--font-body); font-weight: 800; color: var(--ink);
+  background: var(--cream); border: var(--b3); border-radius: 999px; box-shadow: var(--sh-sm);
+  transition: transform .1s, box-shadow .1s, background-color .1s;
+}
+button:hover:not(:disabled), .filebtn:hover { border-color: var(--ink); transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--ink); }
+button:active:not(:disabled), .filebtn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+button:disabled { opacity: .45; box-shadow: none; }
+button:focus-visible, .filebtn:focus-within { outline: 3px solid var(--ink); outline-offset: 3px; }
+.primary, button.primary { background: var(--mat); color: var(--ink); border-color: var(--ink); }
+.primary:hover:not(:disabled) { border-color: var(--ink); }
+:root[data-app="bench"] .primary, :root:not([data-app]) .primary { background: var(--pink); }
+
+/* toggles: pressed = filled ink, pushed into the page */
+.seg button, .seg2 button, .seg3 button, .tabs button, .res button, .chipset button, .chips button, .poly-actions button {
+  border-radius: 14px; box-shadow: var(--sh-xs); font-weight: 700;
+}
+.chipset button, .chips button { border-radius: 999px; }
+.seg button[aria-pressed="true"], .seg2 button[aria-pressed="true"],
+:is(#resize, #edit) [aria-pressed="true"]:not(.sw), .chipset button[aria-pressed="true"] {
+  background: var(--mat); border-color: var(--ink); color: var(--ink); font-weight: 800;
+  box-shadow: none; transform: translate(2px, 2px);
+}
+.seg button[aria-pressed="true"]:hover, .seg2 button[aria-pressed="true"]:hover,
+:is(#resize, #edit) [aria-pressed="true"]:not(.sw):hover, .chipset button[aria-pressed="true"]:hover { transform: translate(2px, 2px); box-shadow: none; }
+:is(#resize, #edit) .tabs button small, :is(#resize, #edit) .res small, #edit .seg3 button small { color: var(--dim); }
+.chips button.ghost { background: transparent; box-shadow: none; border-style: dashed; }
+.icon, :is(#resize, #edit) .icon { width: 44px; min-width: 44px; padding: 0; border-radius: 50%; background: var(--mat); }
+
+/* swatches */
+.sw { border: var(--b3); box-shadow: var(--sh-xs); width: 36px; height: 36px; }
+.sw[aria-pressed="true"] { border-color: var(--ink); box-shadow: 0 0 0 3px var(--panel), 0 0 0 6px var(--ink); transform: none; }
+:is(#resize, #edit) .sw[aria-pressed="true"] { border-color: var(--ink); box-shadow: 0 0 0 3px var(--panel), 0 0 0 6px var(--ink); transform: none; background-clip: padding-box; }
+
+/* fields */
+input[type=text], input[type=number], select, textarea,
+.field input[type=number], :is(#resize, #edit) .field input[type=number], :is(#resize, #edit) select, #edit textarea, #edit .field > input[type=text] {
+  border: var(--b2); border-radius: 12px; background: #fff; color: var(--ink); font-family: var(--font-body);
+}
+select { font-weight: 700; padding: 8px 10px; min-height: 42px; }
+:is(input, select, textarea):focus-visible { outline: 3px solid var(--mat); outline-offset: 2px; }
+.field, .slider, .check { font-weight: 600; }
+.hint { color: var(--dim); }
+kbd { border: var(--b2); border-radius: 6px; background: #fff; box-shadow: var(--sh-xs); }
+
+/* range sliders */
+input[type=range] { -webkit-appearance: none; appearance: none; height: 26px; background: transparent; accent-color: var(--ink); cursor: pointer; }
+input[type=range]::-webkit-slider-runnable-track { height: 10px; background: #fff; border: var(--b2); border-radius: 999px; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -8px; border-radius: 50%; background: var(--mat); border: var(--b3); box-shadow: var(--sh-xs); }
+input[type=range]::-moz-range-track { height: 6px; background: #fff; border: var(--b2); border-radius: 999px; }
+input[type=range]::-moz-range-progress { height: 6px; background: var(--ink); border-radius: 999px; }
+input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--mat); border: var(--b3); }
+input[type=range]:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; border-radius: 999px; }
+.slider output { color: var(--ink); background: var(--mat-soft); border: var(--b2); border-radius: 999px; padding: 0 8px; font-weight: 600; }
+.check input { accent-color: var(--ink); }
+
+/* result + notes */
+.note.ok { color: var(--ok); font-weight: 600; }
+.note.warn { color: var(--warn); font-weight: 600; }
+.note.err { color: var(--danger); font-weight: 600; }
+.result video, :is(#resize, #edit) .result video { border: var(--b3); border-radius: 14px; }
+.ai-tune { border-top: 3px dashed var(--ink); }
+
+/* pop-ups */
+.cp { background: var(--panel); border: var(--b3); border-radius: 18px; box-shadow: var(--sh); }
+.cp-sv, .cp-hue, .cp-preview, .cp-presets button { border: var(--b2); }
+.cp-presets button { box-shadow: none; border-radius: 8px; }
+.cp-hex { border: var(--b2); border-radius: 10px; background: #fff; }
+.modal { background: rgba(13, 13, 15, .6); }
+.modal .card { box-shadow: var(--sh); }
+.modal img { border: var(--b3); }
+
+footer { color: var(--dim); }
+footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pink); text-decoration-thickness: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .card, .namebar, button, .filebtn, .nav a { transition: none; }
+  button:hover:not(:disabled), .filebtn:hover, .nav a:hover { transform: none; }
+  .appbar h1 span#pageName { transform: none; }
+}
+@media (max-width: 560px) {
+  .appbar { position: static; }
+  .nav { width: 100%; }
+  .nav a { flex: 1 1 auto; justify-content: center; padding: 6px 10px; font-size: 13px; }
+  .tag::before { display: flex; width: max-content; margin: 0 0 6px; }
+}
 </style>
 
 </head>
 <body>
 <div class="wrap">
   <header class="appbar">
-    <h1>Cutout <span id="pageName">Bench</span></h1>
+    <h1><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#0d0d0f" stroke-width="2.6" stroke-linecap="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.5 7.5 20 18M8.5 16.5 20 6"/></svg></span>Cutout <span id="pageName">Bench</span></h1>
     <nav class="nav" aria-label="Tools">
       <a href="#bench" data-nav="bench" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.5 7.5 20 18M8.5 16.5 20 6"/></svg>Remove background</a>
       <a href="#resize" data-nav="resize"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/></svg>Resize video</a>
@@ -2824,6 +2971,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     document.querySelectorAll("[data-nav]").forEach((a) => { if (a.dataset.nav === v) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
     if (v !== "resize" && window.rzPause) window.rzPause();
     if (v !== "edit" && window.edPause) window.edPause();
+    requestAnimationFrame(() => window.scrollTo(0, 0));
     window.dispatchEvent(new Event("resize"));
   }
   document.querySelectorAll("[data-nav]").forEach((a) => a.addEventListener("click", (e) => {
@@ -2832,6 +2980,9 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     show();
   }));
   window.addEventListener("hashchange", show);
+  // the page names are also element ids, so the browser jumps to them on load; start at the top instead
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+  window.addEventListener("load", () => setTimeout(() => window.scrollTo(0, 0), 0));
   show();
 })();
 </script>
