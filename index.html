@@ -5,7 +5,9 @@
 <title>Cutout Bench</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="Remove photo backgrounds with AI and resize videos for YouTube Shorts or long-form, all in your browser.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231f5e4b'/%3E%3Cg fill='none' stroke='white' stroke-width='2.4'%3E%3Ccircle cx='10' cy='10' r='4'/%3E%3Ccircle cx='10' cy='22' r='4'/%3E%3Cpath d='M13 12l13 12M13 20l13-12'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#d8ff5c">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>Cutout Bench</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -422,7 +424,7 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
 <body>
 <div class="wrap">
   <header class="appbar">
-    <h1><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#0d0d0f" stroke-width="2.6" stroke-linecap="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.5 7.5 20 18M8.5 16.5 20 6"/></svg></span>Cutout <span id="pageName">Bench</span></h1>
+    <h1><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#0d0d0f" stroke-width="2.6" stroke-linecap="round"><path d="M8.5 7.5 20 18M8.5 16.5 20 6"/><circle cx="6" cy="6" r="3" fill="#d8ff5c"/><circle cx="6" cy="18" r="3" fill="#d8ff5c"/></svg></span>Cutout <span id="pageName">Bench</span></h1>
     <nav class="nav" aria-label="Tools">
       <a href="#bench" data-nav="bench" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.5 7.5 20 18M8.5 16.5 20 6"/></svg>Remove background</a>
       <a href="#resize" data-nav="resize"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/></svg>Resize video</a>
@@ -767,15 +769,29 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
       </section>
 
       <section class="card" aria-labelledby="ed-h-sound">
-        <h2 id="ed-h-sound">Sound on each cut</h2>
-        <select id="ed-sound">
-          <option value="paper" selected>Paper shuffle</option>
-          <option value="shutter">Camera shutter</option>
-          <option value="film">Film advance</option>
-          <option value="polaroid">Polaroid</option>
-          <option value="flash">Flash pop</option>
-          <option value="none">No sound</option>
-        </select>
+        <h2 id="ed-h-sound">Sound</h2>
+        <label class="field">On each cut
+          <select id="ed-sound">
+            <option value="paper" selected>Page flip</option>
+            <option value="typewriter">Typewriter key</option>
+            <option value="shutter">Camera shutter</option>
+            <option value="film">Film advance</option>
+            <option value="polaroid">Polaroid</option>
+            <option value="flash">Flash pop</option>
+            <option value="whoosh">Whoosh</option>
+            <option value="none">No sound</option>
+          </select>
+        </label>
+        <label class="field">On the last page
+          <select id="ed-end">
+            <option value="boom" selected>Deep boom</option>
+            <option value="bell">Typewriter bell</option>
+            <option value="flash">Camera flash</option>
+            <option value="none">Nothing</option>
+          </select>
+        </label>
+        <div class="slider"><label for="ed-vol">Volume</label><output id="ed-volOut" for="ed-vol"></output>
+          <input type="range" id="ed-vol" min="0" max="100" step="5" value="80"></div>
         <button id="ed-hear">Hear it</button>
       </section>
 
@@ -2706,47 +2722,164 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
   }
   function cutAt(t, tl) { let k = 0; while (k + 1 < tl.n && tl.starts[k + 1] <= t) k++; return k; }
 
-  // ---------- sound ----------
-  let noiseBuf = null;
-  function getNoise(ac) {
-    if (noiseBuf && noiseBuf.sampleRate === ac.sampleRate) return noiseBuf;
-    const b = ac.createBuffer(1, Math.floor(ac.sampleRate * 0.6), ac.sampleRate), d = b.getChannelData(0), r = rng(7);
-    for (let i = 0; i < d.length; i++) d[i] = r() * 2 - 1;
-    return (noiseBuf = b);
+  // ---------- sound (synthesised: granular paper, modal mechanical clicks, room, stereo) ----------
+  const bufs = new WeakMap();
+  function noiseFor(ac) {
+    let b = bufs.get(ac);
+    if (b) return b;
+    const n = Math.floor(ac.sampleRate * 1.5), nb = ac.createBuffer(1, n, ac.sampleRate), d = nb.getChannelData(0), r = rng(7);
+    let pink = 0;
+    for (let i = 0; i < n; i++) { const w = r() * 2 - 1; pink = 0.97 * pink + 0.03 * w; d[i] = w * 0.7 + pink * 2.2; }
+    // a 1-sample impulse with a 2 ms noisy tail: the "strike" that excites resonators
+    const ib = ac.createBuffer(1, Math.floor(ac.sampleRate * 0.004), ac.sampleRate), id = ib.getChannelData(0);
+    for (let i = 0; i < id.length; i++) id[i] = (i === 0 ? 1 : (r() * 2 - 1) * Math.exp(-i / (ac.sampleRate * 0.0006))) * 0.9;
+    b = { noise: nb, imp: ib }; bufs.set(ac, b); return b;
   }
-  function burst(ac, dest, when, o) {
-    const s = ac.createBufferSource(); s.buffer = getNoise(ac);
-    const f = ac.createBiquadFilter(); f.type = o.type; f.frequency.value = o.freq; f.Q.value = o.q || 0.8;
-    const g = ac.createGain(); g.gain.setValueAtTime(0.0001, when); g.gain.linearRampToValueAtTime(o.gain, when + (o.attack || 0.002)); g.gain.exponentialRampToValueAtTime(0.0001, when + o.dur);
-    s.connect(f); f.connect(g); g.connect(dest); s.start(when, o.off || 0); s.stop(when + o.dur + 0.03);
+  const ex = (g, t, v) => g.gain.exponentialRampToValueAtTime(Math.max(1e-4, v), t);
+  // short filtered noise grain
+  function grain(ac, dest, t, o) {
+    const s = ac.createBufferSource(); s.buffer = noiseFor(ac).noise;
+    const f = ac.createBiquadFilter(); f.type = o.type || "bandpass"; f.frequency.setValueAtTime(o.f, t); f.Q.value = o.q || 1;
+    if (o.f1) f.frequency.exponentialRampToValueAtTime(o.f1, t + o.d);
+    const g = ac.createGain(); g.gain.setValueAtTime(1e-4, t);
+    g.gain.linearRampToValueAtTime(o.g, t + (o.a || 0.0015)); ex(g, t + o.d, 1e-4);
+    s.connect(f); f.connect(g); g.connect(dest); s.start(t, o.off || 0); s.stop(t + o.d + 0.02);
   }
-  function tone(ac, dest, when, o) {
-    const osc = ac.createOscillator(); osc.type = o.wave || "sine";
-    osc.frequency.setValueAtTime(o.f0, when); osc.frequency.exponentialRampToValueAtTime(o.f1, when + o.dur);
-    const g = ac.createGain(); g.gain.setValueAtTime(0.0001, when); g.gain.linearRampToValueAtTime(o.gain, when + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, when + o.dur);
-    osc.connect(g); g.connect(dest); osc.start(when); osc.stop(when + o.dur + 0.03);
+  // impulse into a bank of resonant filters: metal/plastic "ting" of a mechanism
+  function strike(ac, dest, t, modes, gain) {
+    const s = ac.createBufferSource(); s.buffer = noiseFor(ac).imp;
+    const g = ac.createGain(); g.gain.value = gain;
+    for (const [f, q, a] of modes) { const bp = ac.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = f; bp.Q.value = q; const m = ac.createGain(); m.gain.value = a * Math.sqrt(q) * 0.9; s.connect(bp); bp.connect(m); m.connect(g); }
+    const hp = ac.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 3000; const hg = ac.createGain(); hg.gain.value = 0.35; s.connect(hp); hp.connect(hg); hg.connect(g);
+    g.connect(dest); s.start(t); s.stop(t + 0.05);
   }
-  function playCut(ac, dest, type, when, k) {
-    const r = rng(seed + k * 31), v = 0.85 + r() * 0.3, off = r() * 0.4;
-    if (type === "paper") { burst(ac, dest, when, { type: "bandpass", freq: 1800 + r() * 1400, q: 0.7, gain: 0.55 * v, dur: 0.075, off }); burst(ac, dest, when + 0.01, { type: "highpass", freq: 5500, gain: 0.22 * v, dur: 0.04, off }); tone(ac, dest, when, { f0: 150, f1: 70, dur: 0.05, gain: 0.18 * v }); }
-    else if (type === "shutter") { burst(ac, dest, when, { type: "highpass", freq: 3200, gain: 0.7 * v, dur: 0.018, off }); burst(ac, dest, when + 0.042, { type: "highpass", freq: 2600, gain: 0.5 * v, dur: 0.022, off }); tone(ac, dest, when, { f0: 2400, f1: 1600, dur: 0.012, gain: 0.08 }); }
-    else if (type === "film") { for (let i = 0; i < 3; i++) burst(ac, dest, when + i * 0.017, { type: "bandpass", freq: 3800 + r() * 800, q: 3, gain: 0.6 * v, dur: 0.009, off: off + i * 0.01 }); }
-    else if (type === "polaroid") { tone(ac, dest, when, { f0: 115, f1: 92, dur: 0.11, gain: 0.12 * v, wave: "sawtooth" }); burst(ac, dest, when, { type: "bandpass", freq: 900, q: 1.2, gain: 0.18 * v, dur: 0.11, off }); burst(ac, dest, when + 0.1, { type: "highpass", freq: 3000, gain: 0.4 * v, dur: 0.015, off }); }
-    else if (type === "flash") { tone(ac, dest, when, { f0: 1300, f1: 170, dur: 0.09, gain: 0.32 * v }); burst(ac, dest, when, { type: "lowpass", freq: 1600, gain: 0.4 * v, dur: 0.06, off }); }
+  // body thump: sine with a fast pitch drop
+  function thump(ac, dest, t, f0, f1, d, gain, wave) {
+    const o = ac.createOscillator(); o.type = wave || "sine"; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + d);
+    const g = ac.createGain(); g.gain.setValueAtTime(1e-4, t); g.gain.linearRampToValueAtTime(gain, t + 0.002); ex(g, t + d, 1e-4);
+    o.connect(g); g.connect(dest); o.start(t); o.stop(t + d + 0.02);
   }
+  function bell(ac, dest, t, f, d, gain) {
+    for (const [m, a, dm] of [[1, 1, 1], [2.756, 0.45, 0.6], [5.404, 0.25, 0.4], [8.933, 0.12, 0.25]]) {
+      const o = ac.createOscillator(); o.frequency.value = f * m; const g = ac.createGain();
+      g.gain.setValueAtTime(1e-4, t); g.gain.linearRampToValueAtTime(gain * a, t + 0.003); ex(g, t + d * dm, 1e-4);
+      o.connect(g); g.connect(dest); o.start(t); o.stop(t + d * dm + 0.02);
+    }
+  }
+  // one cut. gap = time until the next cut, so sounds never smear into each other
+  function playCut(ac, dest, type, t, k, gap) {
+    const r = rng(seed * 13 + k * 31 + 5), v = 0.85 + r() * 0.3, room = Math.min(1, Math.max(0.05, gap || 0.083));
+    const pan = ac.createStereoPanner ? ac.createStereoPanner() : null;
+    const trim = { film: 2.3, whoosh: 1.4, polaroid: 0.85 }[type] || 1;
+    const out = ac.createGain(); out.gain.value = v * trim;
+    if (pan) { pan.pan.value = (r() - 0.5) * 0.5; out.connect(pan); pan.connect(dest); } else out.connect(dest);
+    const det = 0.94 + r() * 0.12;
+    if (type === "paper") {
+      // page flip: a swell of tiny rustle grains, a soft air whoosh, then a crisp snap
+      const d = Math.min(0.16, room * 1.05), n = 18 + Math.floor(r() * 10);
+      for (let i = 0; i < n; i++) {
+        const p = Math.pow(r(), 0.8), at = t + p * d * 0.85, env = Math.sin(Math.PI * Math.min(1, p * 1.1));
+        grain(ac, out, at, { f: 1200 * Math.pow(6, r()), q: 0.8 + r() * 2.5, g: (0.12 + r() * 0.35) * env, d: 0.003 + r() * 0.011, off: r() });
+      }
+      grain(ac, out, t, { type: "lowpass", f: 700, f1: 2400, q: 0.7, g: 0.22, d: d * 0.9, a: d * 0.35, off: r() });
+      grain(ac, out, t + d * 0.82, { type: "highpass", f: 2500, q: 0.7, g: 0.55, d: 0.012, off: r() });
+      thump(ac, out, t + d * 0.82, 180, 70, 0.04, 0.12);
+    } else if (type === "shutter") {
+      // first curtain + mirror slap, second curtain a moment later
+      const d2 = Math.min(0.06, room * 0.5);
+      strike(ac, out, t, [[1850 * det, 28, 0.9], [3300 * det, 40, 0.7], [5200 * det, 32, 0.5], [7600 * det, 24, 0.35]], 0.55);
+      thump(ac, out, t, 150, 55, 0.045, 0.32);
+      grain(ac, out, t, { type: "bandpass", f: 4200, q: 1.2, g: 0.18, d: 0.02, off: r() });
+      strike(ac, out, t + d2, [[2100 * det, 30, 0.8], [3700 * det, 38, 0.6], [6100 * det, 30, 0.4]], 0.42);
+      thump(ac, out, t + d2, 120, 60, 0.03, 0.16);
+    } else if (type === "film") {
+      // advance lever ratchet: a few accelerating pawl clicks over a gear whirr
+      const d = Math.min(0.12, room * 0.9), c = 4;
+      let at = t;
+      for (let i = 0; i < c; i++) {
+        strike(ac, out, at, [[2600 * det * (1 + i * 0.02), 26, 0.8], [4100 * det, 30, 0.6], [6400 * det, 22, 0.35]], 0.38 + (i === c - 1 ? 0.15 : 0));
+        at += d / c * (1.25 - i * 0.18);
+      }
+      grain(ac, out, t, { type: "bandpass", f: 1500, f1: 2200, q: 2.5, g: 0.08, d, a: 0.01, off: r() });
+    } else if (type === "polaroid") {
+      // short motor run and the print sliding out, ending in a click
+      const d = Math.min(0.3, room * 0.95);
+      const m = ac.createOscillator(); m.type = "sawtooth"; m.frequency.setValueAtTime(82 * det, t); m.frequency.linearRampToValueAtTime(96 * det, t + d * 0.3); m.frequency.linearRampToValueAtTime(70 * det, t + d);
+      const lp = ac.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 900; lp.Q.value = 5;
+      const mg = ac.createGain(); mg.gain.setValueAtTime(1e-4, t); mg.gain.linearRampToValueAtTime(0.16, t + 0.015); mg.gain.setValueAtTime(0.16, t + d * 0.8); ex(mg, t + d, 1e-4);
+      m.connect(lp); lp.connect(mg); mg.connect(out); m.start(t); m.stop(t + d + 0.02);
+      grain(ac, out, t + 0.01, { type: "bandpass", f: 2600, q: 0.9, g: 0.1, d: d * 0.9, a: 0.02, off: r() });
+      strike(ac, out, t, [[1500, 18, 0.6], [3100, 24, 0.5]], 0.3);
+      strike(ac, out, t + d * 0.92, [[2300 * det, 22, 0.7], [4800 * det, 26, 0.45]], 0.36);
+    } else if (type === "flash") {
+      // capacitor discharge: a bright pop with a falling tone and a glassy tick
+      thump(ac, out, t, 1100 * det, 140, 0.07, 0.3);
+      grain(ac, out, t, { type: "lowpass", f: 5000, f1: 900, q: 0.7, g: 0.55, d: 0.045, off: r() });
+      strike(ac, out, t, [[6200 * det, 40, 0.6], [9100 * det, 30, 0.4]], 0.32);
+      thump(ac, out, t, 90, 45, 0.06, 0.25);
+    } else if (type === "typewriter") {
+      // key strike: typebar hitting the platen, then the key returning
+      thump(ac, out, t, 240 * det, 85, 0.03, 0.4, "triangle");
+      strike(ac, out, t, [[1150 * det, 14, 0.9], [2450 * det, 20, 0.7], [3900 * det, 26, 0.5], [6300 * det, 20, 0.3]], 0.6);
+      grain(ac, out, t, { type: "highpass", f: 2000, q: 0.7, g: 0.35, d: 0.008, off: r() });
+      strike(ac, out, t + Math.min(0.045, room * 0.45), [[1700 * det, 16, 0.6], [3300 * det, 20, 0.4]], 0.22);
+    } else if (type === "whoosh") {
+      // airy pass-by that sweeps across the stereo field
+      const d = Math.min(0.35, room * 1.1), up = k % 2 === 0;
+      grain(ac, out, t, { type: "bandpass", f: up ? 350 : 4500, f1: up ? 4500 : 350, q: 1.4, g: 0.55, d, a: d * 0.55, off: r() });
+      grain(ac, out, t, { type: "lowpass", f: 500, q: 0.7, g: 0.2, d: d * 0.8, a: d * 0.5, off: r() });
+      if (pan) { pan.pan.setValueAtTime(up ? -0.6 : 0.6, t); pan.pan.linearRampToValueAtTime(up ? 0.6 : -0.6, t + d); }
+    }
+  }
+  // the sting on the last page
+  function playEnding(ac, dest, type, t) {
+    if (type === "boom") {
+      thump(ac, dest, t, 75, 36, 1.4, 0.9);
+      thump(ac, dest, t, 140, 50, 0.25, 0.4, "triangle");
+      grain(ac, dest, t, { type: "lowpass", f: 900, f1: 120, q: 0.8, g: 0.6, d: 0.6, off: 0.3 });
+    } else if (type === "bell") {
+      strike(ac, dest, t, [[1200, 14, 0.8], [2600, 20, 0.5]], 0.4);
+      bell(ac, dest, t + 0.01, 1568, 1.6, 0.18);
+    } else if (type === "flash") {
+      const ts = Math.max(0.001, t - 0.6), te = Math.max(ts + 0.05, t - 0.02);
+      const w = ac.createOscillator(); w.frequency.setValueAtTime(2500, ts); w.frequency.exponentialRampToValueAtTime(9000, te);
+      const wg = ac.createGain(); wg.gain.setValueAtTime(1e-4, ts); wg.gain.linearRampToValueAtTime(0.035, te); ex(wg, te + 0.03, 1e-4);
+      w.connect(wg); wg.connect(dest); w.start(ts); w.stop(te + 0.05);
+      thump(ac, dest, t, 1300, 110, 0.12, 0.45);
+      grain(ac, dest, t, { type: "lowpass", f: 7000, f1: 600, q: 0.7, g: 0.8, d: 0.12, off: 0.2 });
+      thump(ac, dest, t, 80, 40, 0.3, 0.5);
+    }
+  }
+  // small room + glue compression + output level
   function masterChain(ac) {
-    const comp = ac.createDynamicsCompressor(); comp.threshold.value = -12; comp.ratio.value = 4;
-    const g = ac.createGain(); g.gain.value = 0.9; g.connect(comp); comp.connect(ac.destination); return g;
+    const input = ac.createGain();
+    const conv = ac.createConvolver(), len = Math.floor(ac.sampleRate * 0.45), ir = ac.createBuffer(2, len, ac.sampleRate), r = rng(3);
+    for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); let lp = 0; for (let i = 0; i < len; i++) { lp = lp * 0.6 + (r() * 2 - 1) * 0.4; d[i] = lp * Math.exp(-i / (ac.sampleRate * 0.09)); } }
+    conv.buffer = ir;
+    const wet = ac.createGain(); wet.gain.value = 0.16;
+    const hp = ac.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 30;
+    const comp = ac.createDynamicsCompressor(); comp.threshold.value = -14; comp.knee.value = 6; comp.ratio.value = 5; comp.attack.value = 0.002; comp.release.value = 0.09;
+    const lim = ac.createDynamicsCompressor(); lim.threshold.value = -2; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.001; lim.release.value = 0.05;
+    const vol = ac.createGain(); vol.gain.value = 1.35 * (+$("ed-vol").value / 100);
+    input.connect(hp); input.connect(conv); conv.connect(wet); wet.connect(hp);
+    hp.connect(comp); comp.connect(vol); vol.connect(lim); lim.connect(ac.destination);
+    input._vol = vol; return input;
   }
+  function endTime(tl) { return +$("ed-hold").value > 0.05 ? tl.cutsEnd : tl.starts[tl.n - 1]; }
+  function gapOf(tl, k) { return (k + 1 < tl.n ? tl.starts[k + 1] : tl.cutsEnd) - tl.starts[k]; }
   let liveAc = null, liveOut = null;
   function liveAudio() {
     if (!liveAc) { try { liveAc = new (window.AudioContext || window.webkitAudioContext)(); liveOut = masterChain(liveAc); } catch { liveAc = null; } }
     if (liveAc && liveAc.state === "suspended") liveAc.resume();
     return liveAc;
   }
+  $("ed-vol").addEventListener("input", () => { $("ed-volOut").textContent = $("ed-vol").value + "%"; if (liveOut) liveOut._vol.gain.value = 1.35 * (+$("ed-vol").value / 100); });
+  $("ed-volOut").textContent = $("ed-vol").value + "%";
   $("ed-hear").addEventListener("click", () => {
-    const ac = liveAudio(), type = $("ed-sound").value; if (!ac || type === "none") return;
-    for (let i = 0; i < 4; i++) playCut(ac, liveOut, type, ac.currentTime + 0.05 + i * 0.12, i);
+    const ac = liveAudio(); if (!ac) return;
+    const type = $("ed-sound").value, end = $("ed-end").value, gap = 1 / +$("ed-cps").value, t0 = ac.currentTime + 0.06;
+    if (type !== "none") for (let i = 0; i < 6; i++) playCut(ac, liveOut, type, t0 + i * gap, i, gap);
+    if (end !== "none") playEnding(ac, liveOut, end, t0 + (type === "none" ? 0.6 : 6 * gap + 0.05));
   });
 
   // ---------- preview ----------
@@ -2784,7 +2917,12 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
     t += lastTs ? (ts - lastTs) / 1000 : 0; lastTs = ts;
     if (t >= tl.total) { t = 0; lastK = -1; }
     const k = draw();
-    if (k !== lastK) { const type = $("ed-sound").value; if (liveAc && type !== "none" && t < tl.cutsEnd + 0.02) playCut(liveAc, liveOut, type, liveAc.currentTime + 0.01, k); lastK = k; }
+    if (k !== lastK) {
+      const type = $("ed-sound").value, end = $("ed-end").value;
+      if (liveAc && type !== "none" && t < tl.cutsEnd + 0.02) playCut(liveAc, liveOut, type, liveAc.currentTime + 0.01, k, gapOf(tl, k));
+      if (liveAc && end !== "none" && k === tl.n - 1) playEnding(liveAc, liveOut, end, liveAc.currentTime + 0.01 + Math.max(0, endTime(tl) - t));
+      lastK = k;
+    }
     raf = requestAnimationFrame(loop);
   }
   function setPlaying(p) {
@@ -2861,16 +2999,15 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
     try {
       // sound: render all cut sounds offline, then encode as AAC
       let audio = null, audioNote = "";
-      const type = $("ed-sound").value;
-      if (type !== "none") {
+      const type = $("ed-sound").value, end = $("ed-end").value;
+      if (type !== "none" || end !== "none") {
         const acfg = { codec: "mp4a.40.2", sampleRate: 48000, numberOfChannels: 2, bitrate: 192000 };
         let ok = false; try { ok = window.AudioEncoder && (await AudioEncoder.isConfigSupported(acfg)).supported; } catch {}
         if (ok) {
           const oac = new OfflineAudioContext(2, Math.ceil(tl.total * 48000), 48000), out = masterChain(oac);
-          noiseBuf = null;
-          for (let k = 0; k < tl.n; k++) playCut(oac, out, type, tl.starts[k] + 0.001, k);
+          if (type !== "none") for (let k = 0; k < tl.n; k++) playCut(oac, out, type, tl.starts[k] + 0.001, k, gapOf(tl, k));
+          if (end !== "none") playEnding(oac, out, end, endTime(tl) + 0.001);
           audio = { cfg: acfg, buf: await oac.startRendering() };
-          noiseBuf = null;
         } else audioNote = " Sound was left out: this browser can't make AAC audio. Chrome or Edge on Windows or Mac can.";
       }
       const muxer = new Mp4Muxer.Muxer({
