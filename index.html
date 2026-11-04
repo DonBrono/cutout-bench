@@ -253,6 +253,15 @@ body { transition: background-color .2s; }
 #edit .field > input[type=text] { width: 100%; font: inherit; font-size: 15px; font-weight: 500; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink); min-height: 40px; }
 footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
 
+
+/* export / save controls live in the name bar at the top */
+.namebar-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.namebar-actions > button { flex: 0 0 auto; }
+.namebar-actions .progress { flex: 1 1 240px; display: grid; gap: 6px; }
+.namebar-actions .progress .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.namebar-actions .progress .row > * { flex: 0 0 auto; }
+.namebar-actions .progress .row > button { min-height: 34px; padding: 4px 14px; }
+.namebar-actions .note { flex-basis: 100%; margin: 0; }
 /* ================= Brutalist theme layer =================
    Layout: same workbench (stage left, tool rail right), restyled as chunky
    sticker-like cards: 3px ink outlines, hard offset shadows, pill controls.
@@ -450,6 +459,11 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
           <button data-add="date" title="Add today's date">+ date</button>
           <button class="ghost" data-add="reset" title="Go back to the automatic name">Reset</button>
         </div>
+        <div class="namebar-actions">
+          <button class="primary" id="savePng">Save PNG</button>
+          <button id="saveJpg" disabled title="JPG has no transparency; pick a background color first">Save JPG</button>
+          <p class="note" id="saveNote" hidden></p>
+        </div>
       </div>
       <div class="stage" id="stage">
         <canvas id="view"></canvas>
@@ -551,11 +565,6 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
           <button class="sw custom" id="customSw" data-bg="custom" data-picker="customColor" aria-pressed="false" aria-haspopup="dialog" title="Pick a color" aria-label="Pick a color"></button>
           <input type="hidden" id="customColor" value="#f4c542">
         </div>
-        <div class="row">
-          <button class="primary" id="savePng">Save PNG</button>
-          <button id="saveJpg" disabled title="JPG has no transparency; pick a background color first">Save JPG</button>
-        </div>
-        <p class="note" id="saveNote" hidden></p>
       </section>
     </aside>
   </div>
@@ -574,6 +583,16 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
           <button data-rzadd="size" title="Add the output size">+ size</button>
           <button data-rzadd="date" title="Add today's date">+ date</button>
           <button class="ghost" data-rzadd="reset" title="Go back to the automatic name">Reset</button>
+        </div>
+        <div class="namebar-actions">
+          <button class="primary" id="rz-exportBtn">Export video</button>
+          <button id="rz-saveBtn" class="primary" hidden>Save file</button>
+          <div class="progress" id="rz-progress" hidden>
+            <div class="bar"><i id="rz-progBar"></i></div>
+            <div class="row"><span class="time" id="rz-progText">0%</span><button id="rz-cancelBtn">Cancel</button></div>
+            <p class="hint">Every frame is rendered one by one, so nothing is dropped. Keep this tab open until it finishes.</p>
+          </div>
+          <p class="note" id="rz-outNote" hidden></p>
         </div>
       </div>
       <div class="stage" id="rz-stage">
@@ -667,16 +686,8 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
           <select id="rz-container"><option value="mov" selected>MOV (QuickTime) · best for editing apps</option><option value="mp4">MP4 · best for uploading</option></select>
         </label>
         <p class="note" id="rz-lenNote" hidden></p>
-        <button class="primary" id="rz-exportBtn">Export video</button>
-        <div class="progress" id="rz-progress" hidden>
-          <div class="bar"><i id="rz-progBar"></i></div>
-          <div class="row"><span class="time" id="rz-progText">0%</span><button id="rz-cancelBtn">Cancel</button></div>
-          <p class="hint">Every frame is rendered one by one, so nothing is dropped. Keep this tab open until it finishes.</p>
-        </div>
-        <p class="note" id="rz-outNote" hidden></p>
         <div class="result" id="rz-result" hidden>
           <video id="rz-resultVideo" controls playsinline></video>
-          <button id="rz-saveBtn" class="primary">Save file</button>
           <p class="hint" id="rz-saveHint" hidden>Saving directly isn't available in this view. Right-click the video above and choose “Save video as…”.</p>
         </div>
       </section>
@@ -696,6 +707,15 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
           <button data-edadd="ratio" title="Add the aspect ratio">+ ratio</button>
           <button data-edadd="date" title="Add today's date">+ date</button>
           <button class="ghost" data-edadd="reset" title="Go back to the automatic name">Reset</button>
+        </div>
+        <div class="namebar-actions">
+          <button class="primary" id="ed-exportBtn">Export video</button>
+          <button id="ed-saveBtn" class="primary" hidden>Save file</button>
+          <div class="progress" id="ed-progress" hidden>
+            <div class="bar"><i id="ed-progBar"></i></div>
+            <div class="row"><span class="time" id="ed-progText">0%</span><button id="ed-cancelBtn">Cancel</button></div>
+          </div>
+          <p class="note" id="ed-outNote" hidden></p>
         </div>
       </div>
       <div class="stage" id="ed-stage">
@@ -872,15 +892,8 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
             <select id="ed-container"><option value="mov" selected>MOV</option><option value="mp4">MP4</option></select>
           </label>
         </div>
-        <button class="primary" id="ed-exportBtn">Export video</button>
-        <div class="progress" id="ed-progress" hidden>
-          <div class="bar"><i id="ed-progBar"></i></div>
-          <div class="row"><span class="time" id="ed-progText">0%</span><button id="ed-cancelBtn">Cancel</button></div>
-        </div>
-        <p class="note" id="ed-outNote" hidden></p>
         <div class="result" id="ed-result" hidden>
           <video id="ed-resultVideo" controls playsinline></video>
-          <button id="ed-saveBtn" class="primary">Save file</button>
           <p class="hint" id="ed-saveHint" hidden>Saving directly isn't available in this view. Right-click the video above and choose “Save video as…”.</p>
         </div>
       </section>
@@ -899,6 +912,15 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
         <div class="chips" role="group" aria-label="Add to file name">
           <button data-anadd="date" title="Add today's date">+ date</button>
           <button class="ghost" data-anadd="reset" title="Go back to the automatic name">Reset</button>
+        </div>
+        <div class="namebar-actions">
+          <button class="primary" id="an-exportBtn">Export video</button>
+          <button id="an-saveBtn" class="primary" hidden>Save file</button>
+          <div class="progress" id="an-progress" hidden>
+            <div class="bar"><i id="an-progBar"></i></div>
+            <div class="row"><span class="time" id="an-progText">0%</span><button id="an-cancelBtn">Cancel</button></div>
+          </div>
+          <p class="note" id="an-outNote" hidden></p>
         </div>
       </div>
       <div class="stage" id="an-stage">
@@ -1004,15 +1026,8 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
             <select id="an-container"><option value="mov" selected>MOV</option><option value="mp4">MP4</option></select>
           </label>
         </div>
-        <button class="primary" id="an-exportBtn">Export video</button>
-        <div class="progress" id="an-progress" hidden>
-          <div class="bar"><i id="an-progBar"></i></div>
-          <div class="row"><span class="time" id="an-progText">0%</span><button id="an-cancelBtn">Cancel</button></div>
-        </div>
-        <p class="note" id="an-outNote" hidden></p>
         <div class="result" id="an-result" hidden>
           <video id="an-resultVideo" controls playsinline></video>
-          <button id="an-saveBtn" class="primary">Save file</button>
           <p class="hint" id="an-saveHint" hidden>Saving directly isn't available in this view. Right-click the video above and choose “Save video as…”.</p>
         </div>
       </section>
@@ -2471,7 +2486,7 @@ window.setStageColor = (el, c) => {
   function loadFile(file) {
     if (!file) return;
     if (file.type && !file.type.startsWith("video/")) { note("rz-srcNote", "That file isn't a video. Pick an MP4, MOV or WebM.", "err"); return; }
-    setPlaying(false); note("rz-srcNote", ""); $("rz-result").hidden = true; note("rz-outNote", "");
+    setPlaying(false); note("rz-srcNote", ""); $("rz-result").hidden = true; $("rz-saveBtn").hidden = true; note("rz-outNote", "");
     const v = document.createElement("video");
     v.playsInline = true; v.preload = "auto"; v.crossOrigin = "anonymous";
     const url = URL.createObjectURL(file);
@@ -2671,7 +2686,7 @@ window.setStageColor = (el, c) => {
     render();
   }
   async function startExport() {
-    setPlaying(false); $("rz-result").hidden = true; note("rz-outNote", "");
+    setPlaying(false); $("rz-result").hidden = true; $("rz-saveBtn").hidden = true; note("rz-outNote", "");
     const job = { cancelled: false };
     exporting = job;
     $("rz-exportBtn").disabled = true; $("rz-progress").hidden = false; $("rz-progBar").style.width = "0%";
@@ -2688,7 +2703,7 @@ window.setStageColor = (el, c) => {
     const mime = pickMime();
     if (!mime) { note("rz-outNote", "This browser can't record video. Use a recent Chrome, Edge, Firefox or Safari.", "err"); return; }
     if (!preview.captureStream) { note("rz-outNote", "This browser can't capture canvas video. Use a recent Chrome, Edge or Firefox.", "err"); return; }
-    setPlaying(false); $("rz-result").hidden = true; note("rz-outNote", "");
+    setPlaying(false); $("rz-result").hidden = true; $("rz-saveBtn").hidden = true; note("rz-outNote", "");
     const { s, e } = trim(), fps = +$("rz-fps").value;
     const canvas = document.createElement("canvas"); canvas.width = out.w; canvas.height = out.h;
     const cctx = canvas.getContext("2d");
@@ -3561,7 +3576,7 @@ window.setStageColor = (el, c) => {
   let exporting = null, resultBlob = null, resultName = "";
   async function exportVideo() {
     const E = window.CutoutExport;
-    setPlaying(false); $("ed-result").hidden = true; note("");
+    setPlaying(false); $("ed-result").hidden = true; $("ed-saveBtn").hidden = true; note("");
     if (!E || !window.VideoEncoder || !window.Mp4Muxer) { note("This browser can't export video. Use a recent Chrome or Edge.", "err"); return; }
     const [W, H] = RATIOS[ratio], fps = +$("ed-fps").value, tl = timeline(), frames = Math.max(1, Math.round(tl.total * fps));
     const vcfg = await E.pickVideoCodec(W, H, fps, Math.round((fps > 30 ? 12 : 8) * 1e6 * (W * H) / (1920 * 1080)));
@@ -4034,7 +4049,7 @@ window.setStageColor = (el, c) => {
   let exporting = null, resultBlob = null, resultName = "";
   async function exportVideo() {
     const E = window.CutoutExport;
-    setPlaying(false); $("an-result").hidden = true; note2("an-outNote", "");
+    setPlaying(false); $("an-result").hidden = true; $("an-saveBtn").hidden = true; note2("an-outNote", "");
     if (!E || !window.VideoEncoder || !window.Mp4Muxer) { note2("an-outNote", "This browser can't export video. Use a recent Chrome or Edge.", "err"); return; }
     const [W, H] = RATIOS[ratio], fps = +$("an-fps").value, D = duration(), frames = Math.max(1, Math.round(D * fps));
     const vcfg = await E.pickVideoCodec(W, H, fps, Math.round((fps > 30 ? 12 : 8) * 1e6 * (W * H) / (1920 * 1080)));
