@@ -265,7 +265,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
 
 /* Animate: tabbed settings rail that stays beside the preview */
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-.rail-tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; position: sticky; top: 0; z-index: 3; background: var(--cream); padding: 2px 6px 8px 0; }
+.rail-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; position: sticky; top: 0; z-index: 3; background: var(--cream); padding: 2px 6px 8px 0; }
 .rail-tabs button { flex-direction: column; gap: 3px; min-height: 52px; padding: 6px 2px; font-size: 11.5px; font-weight: 800; border-radius: 14px; box-shadow: var(--sh-xs); }
 .rail-tabs button svg { width: 18px; height: 18px; }
 .rail-tabs button[aria-selected="true"] { background: var(--mat); transform: translate(2px, 2px); box-shadow: none; }
@@ -293,6 +293,13 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
 .zoom-group button { border-radius: 0; margin-left: -3px; min-width: 36px; padding: 3px 8px; }
 .zoom-group button:first-child { border-radius: 999px 0 0 999px; margin-left: 0; }
 .zoom-group button:last-child { border-radius: 0 999px 999px 0; }
+.subhead { margin: 6px 0 -2px; font: 800 11px/1.2 Inter, system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--muted, #555); }
+.vo-row { display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+.vo-tag { display: grid; place-items: center; width: 46px; height: 34px; border: var(--b2); border-radius: 999px; background: var(--pink); color: var(--ink); }
+.vo-strip { width: 100%; height: 34px; border: var(--b2); border-radius: 12px; background: #fff; cursor: grab; touch-action: none; display: block; }
+.vo-strip.dragging { cursor: grabbing; }
+#animate .transport, #animate .vo-row, #animate .kf-row { grid-template-columns: 46px minmax(0, 1fr) 132px; }
+#animate .transport .time, .vo-row .time, .kf-row > .time { text-align: left; white-space: nowrap; font-size: 12px; }
 .kf-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px 10px; align-items: center; }
 .kf-add { background: var(--lime) !important; color: var(--lime); }
 .kf-track { position: relative; height: 30px; border: var(--b2); border-radius: 999px; background: #fff; cursor: pointer; touch-action: none; }
@@ -989,6 +996,11 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
         <input type="range" id="an-scrub" min="0" max="1000" value="0" aria-label="Position">
         <span class="time" id="an-time">0:00.0 / 0:00.0</span>
       </div>
+      <div class="vo-row" id="an-voRow" hidden>
+        <span class="vo-tag" title="Voice clip"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span>
+        <canvas class="vo-strip" id="an-voStrip" height="34" title="Voice: the pink parts are where the mouth moves. Drag to move the voice, click to jump there"></canvas>
+        <span class="time" id="an-voTime"></span>
+      </div>
       <div class="kf-row" aria-label="Transform keyframes">
         <button class="icon kf-add" id="an-kfAdd" title="Add or update a keyframe at the playhead (K)" aria-label="Add keyframe"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3 21 12 12 21 3 12z" fill="currentColor" stroke="#0d0d0f" stroke-width="2" stroke-linejoin="round"/></svg></button>
         <div class="kf-track" id="an-kfTrack" title="Keyframes: click to jump, drag a diamond to move it"><div class="kf-play" id="an-kfPlay"></div></div>
@@ -1010,7 +1022,6 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
       <div class="rail-tabs" role="tablist" aria-label="Animate settings">
         <button role="tab" id="an-tab-person" data-antab="person" aria-controls="an-panel-person" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M5 21c.6-4 3.4-6.5 7-6.5s6.4 2.5 7 6.5"/></svg>Person</button>
         <button role="tab" id="an-tab-moves" data-antab="moves" aria-controls="an-panel-moves" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 17c3-6 5 4 8-2s5 4 8-2"/><path d="M4 9c3-4 5 2 8-1s5 2 8-1"/></svg>Moves</button>
-        <button role="tab" id="an-tab-voice" data-antab="voice" aria-controls="an-panel-voice" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>Voice</button>
         <button role="tab" id="an-tab-scene" data-antab="scene" aria-controls="an-panel-scene" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="16" cy="9" r="1.6"/></svg>Scene</button>
         <button role="tab" id="an-tab-output" data-antab="output" aria-controls="an-panel-output" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Output</button>
       </div>
@@ -1020,16 +1031,27 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
         <p class="hint" id="an-photoHint">Showing a sample character. Open a photo of a person, or drop it on the stage.</p>
         <button id="an-cut" disabled>Cut out the person (AI)</button>
         <p class="note" id="an-cutNote" hidden></p>
+        <h3 class="subhead">Mouth &amp; voice</h3>
         <div class="row">
           <button id="an-mouthBtn" aria-pressed="false">Place the mouth</button>
           <button id="an-neckBtn" aria-pressed="false">Place the neck</button>
         </div>
+        <label class="filebtn" for="an-audio">Add voice clip<input type="file" id="an-audio" accept="audio/*,video/*"></label>
+        <p class="hint" id="an-audioHint">No voice clip: the mouth does a made-up talking pattern. Add an MP3, WAV or M4A and the mouth opens only while the voice is speaking.</p>
+        <button id="an-audioClear" hidden>Remove voice clip</button>
         <div class="grid2">
         <div class="slider"><label for="an-jaw">Jaw width</label><output id="an-jawOut" for="an-jaw"></output>
           <input type="range" id="an-jaw" min="6" max="45" step="1" value="20"></div>
+        <div class="slider"><label for="an-sens">Mouth sensitivity</label><output id="an-sensOut" for="an-sens"></output>
+          <input type="range" id="an-sens" min="20" max="200" step="5" value="100"></div>
+        <div class="slider" id="an-vStartRow" hidden><label for="an-vStart">Voice starts at</label><output id="an-vStartOut" for="an-vStart"></output>
+          <input type="range" id="an-vStart" min="0" max="20" step="0.1" value="0"></div>
+        <div class="slider" id="an-lenRow"><label for="an-len">Video length</label><output id="an-lenOut" for="an-len"></output>
+          <input type="range" id="an-len" min="2" max="30" step="0.5" value="6"></div>
+        </div>
+        <h3 class="subhead">Size</h3>
         <div class="slider"><label for="an-size">Character size</label><output id="an-sizeOut" for="an-size"></output>
           <input type="range" id="an-size" min="20" max="250" step="1" value="90"></div>
-        </div>
       </section>
 
       <section class="card" id="an-panel-moves" data-panel="moves" role="tabpanel" aria-labelledby="an-tab-moves" hidden>
@@ -1053,19 +1075,6 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
           <input type="range" id="an-speed" min="40" max="250" step="5" value="100"></div>
         </div>
         <button id="an-shuffle">Shuffle the timing</button>
-      </section>
-
-      <section class="card" id="an-panel-voice" data-panel="voice" role="tabpanel" aria-labelledby="an-tab-voice" hidden>
-        <h2 id="an-h-voice" class="sr-only">Voice</h2>
-        <label class="filebtn" for="an-audio">Add voice clip<input type="file" id="an-audio" accept="audio/*,video/*"></label>
-        <p class="hint" id="an-audioHint">No voice clip: the mouth does a made-up talking pattern. Add an MP3, WAV or M4A and the mouth follows the voice.</p>
-        <button id="an-audioClear" hidden>Remove voice clip</button>
-        <div class="grid2">
-        <div class="slider" id="an-lenRow"><label for="an-len">Length</label><output id="an-lenOut" for="an-len"></output>
-          <input type="range" id="an-len" min="2" max="30" step="0.5" value="6"></div>
-        <div class="slider"><label for="an-sens">Mouth sensitivity</label><output id="an-sensOut" for="an-sens"></output>
-          <input type="range" id="an-sens" min="20" max="200" step="5" value="100"></div>
-        </div>
       </section>
 
       <section class="card" id="an-panel-scene" data-panel="scene" role="tabpanel" aria-labelledby="an-tab-scene" hidden>
@@ -4008,10 +4017,17 @@ window.setStageColor = (el, c) => {
   }
 
   // ---------- motion ----------
-  function duration() { return voice ? voice.dur : +$("an-len").value; }
+  const vStart = () => voice ? +$("an-vStart").value : 0;
+  function duration() { return voice ? Math.max(+$("an-len").value, vStart() + voice.dur) : +$("an-len").value; }
   function mouthOpen(t) {
     const sens = +$("an-sens").value / 100;
-    if (voice) { const i = Math.min(voice.env.length - 1, Math.max(0, Math.round(t * 100))); return Math.min(1, voice.env[i] * sens); }
+    if (voice) {
+      // mouth only moves while the voice is speaking: closed before it starts, in pauses, and after it ends
+      const vt = t - vStart(); if (vt < 0 || vt > voice.dur) return 0;
+      const f = vt * 100, i = Math.min(voice.env.length - 1, Math.floor(f)), j = Math.min(voice.env.length - 1, i + 1), u = f - Math.floor(f);
+      const v = voice.env[i] * (1 - u) + voice.env[j] * u;
+      return v <= 0 ? 0 : Math.min(1, Math.pow(v, 1 / Math.max(0.4, sens)) * Math.min(1.25, sens));
+    }
     // made-up talking: syllables in phrases with pauses
     const r = rng(seed * 101 + Math.floor(t / 1.7)), inPhrase = (t % 1.7) < 1.7 * (0.55 + r() * 0.35);
     if (!inPhrase) return 0;
@@ -4091,7 +4107,7 @@ window.setStageColor = (el, c) => {
     syncBgVideo();
     renderFrame(pctx, w, h, t, rest);
     if (rest) drawOverlay(w, h);
-    updateChip(); syncKeysUI();
+    updateChip(); syncKeysUI(); drawStrip();
     $("an-time").textContent = `${fmt(t)} / ${fmt(D)}`; $("an-scrub").value = Math.round(t / D * 1000);
   }
   // where the mouth line sits on screen (frame at rest)
@@ -4296,7 +4312,10 @@ window.setStageColor = (el, c) => {
     if (srcNode) { try { srcNode.stop(); } catch {} srcNode = null; }
     if (!p && bgVideo) bgVideo.pause();
     if (p) {
-      if (voice && audioCtx()) { srcNode = ac.createBufferSource(); srcNode.buffer = voice.buf; srcNode.connect(ac.destination); startAt = ac.currentTime - t; srcNode.start(0, t); }
+      if (voice && audioCtx()) {
+        startAt = ac.currentTime - t; const vt = t - vStart();
+        if (vt < voice.dur) { srcNode = ac.createBufferSource(); srcNode.buffer = voice.buf; srcNode.connect(ac.destination); if (vt >= 0) srcNode.start(0, vt); else srcNode.start(ac.currentTime - vt, 0); }
+      }
       raf = requestAnimationFrame(loop);
     }
   }
@@ -4311,21 +4330,76 @@ window.setStageColor = (el, c) => {
       const raw = await tmp.decodeAudioData(await f.arrayBuffer());
       const n = Math.ceil(raw.duration * 48000), oac = new OfflineAudioContext(2, n, 48000), s = oac.createBufferSource();
       s.buffer = raw; s.connect(oac.destination); s.start(); const buf = await oac.startRendering();
-      // loudness envelope at 100 Hz: fast attack, slower release, scaled to the clip's loud parts
-      const L = buf.getChannelData(0), R = buf.getChannelData(1), hop = 480, m = Math.ceil(n / hop), env = new Float32Array(m);
-      for (let i = 0; i < m; i++) { let ss = 0; for (let j = i * hop; j < Math.min(n, i * hop + 960); j++) { const v = (L[j] + R[j]) / 2; ss += v * v; } env[i] = Math.sqrt(ss / 960); }
-      const sorted = Array.from(env).sort((a, b) => a - b), hi = sorted[Math.floor(m * 0.95)] || 1, floor = sorted[Math.floor(m * 0.3)] || 0;
-      let lv = 0;
-      for (let i = 0; i < m; i++) { const target = Math.max(0, (env[i] - floor * 1.4) / Math.max(1e-4, hi - floor)); lv = target > lv ? lv + (target - lv) * 0.7 : lv + (target - lv) * 0.25; env[i] = Math.min(1, lv); }
+      // speech envelope at 100 Hz: band-pass to the voice range, measure loudness in dB against the clip's
+      // own noise floor, gate out silence (with hysteresis), open fast, close a bit slower, 30 ms lookahead
+      const aoc = new OfflineAudioContext(1, n, 48000), as = aoc.createBufferSource(), hp = aoc.createBiquadFilter(), lp = aoc.createBiquadFilter();
+      hp.type = "highpass"; hp.frequency.value = 220; lp.type = "lowpass"; lp.frequency.value = 3800;
+      as.buffer = buf; as.connect(hp); hp.connect(lp); lp.connect(aoc.destination); as.start();
+      const band = (await aoc.startRendering()).getChannelData(0);
+      const hop = 480, win = 960, m = Math.ceil(n / hop), db = new Float32Array(m), env = new Float32Array(m);
+      for (let i = 0; i < m; i++) { let ss = 0; const j0 = Math.max(0, i * hop - win / 2), j1 = Math.min(n, j0 + win); for (let j = j0; j < j1; j++) ss += band[j] * band[j]; db[i] = 10 * Math.log10(ss / Math.max(1, j1 - j0) + 1e-10); }
+      const sorted = Array.from(db).sort((x, y) => x - y), floorDb = sorted[Math.floor(m * 0.12)], peakDb = sorted[Math.min(m - 1, Math.floor(m * 0.97))];
+      const span = Math.max(12, peakDb - floorDb), openDb = floorDb + Math.max(6, span * 0.28), closeDb = openDb - Math.max(3, span * 0.08);
+      let gate = false, lv = 0, quiet = 0;
+      const gated = new Float32Array(m);
+      for (let i = 0; i < m; i++) {
+        const d = db[i];
+        if (!gate && d > openDb) gate = true;
+        if (gate) { quiet = d < closeDb ? quiet + 1 : 0; if (quiet > 6) gate = false; }   // stays open through 60 ms dips (between syllables)
+        gated[i] = gate ? Math.max(0.08, Math.min(1, (d - closeDb) / Math.max(1, peakDb - closeDb))) : 0;
+      }
+      for (let i = 0; i < m; i++) {
+        const target = Math.max(gated[i], gated[Math.min(m - 1, i + 1)], gated[Math.min(m - 1, i + 3)] * 0.85);   // lookahead: lips move just before the sound
+        lv = target > lv ? lv + (target - lv) * 0.75 : lv + (target - lv) * 0.4; if (target === 0 && lv < 0.04) lv = 0;
+        env[i] = lv;
+      }
       voice = { buf, env, dur: buf.duration };
-      $("an-audioHint").textContent = `${f.name} · ${fmt(buf.duration)}. The mouth follows this voice, and it is included in the export.`;
-      $("an-audioClear").hidden = false; $("an-lenRow").hidden = true;
+      const talkFr = env.reduce((c, v) => c + (v > 0 ? 1 : 0), 0) / m;
+      $("an-audioHint").textContent = `${f.name} · ${fmt(buf.duration)} (speaking ${Math.round(talkFr * 100)}% of it). The mouth moves only while the voice speaks, and the voice is in the export.`;
+      $("an-audioClear").hidden = false; $("an-vStartRow").hidden = false; $("an-voRow").hidden = false;
+      $("an-vStart").max = Math.max(1, 30 - Math.ceil(buf.duration)); if (+$("an-len").value < buf.duration) $("an-len").value = Math.min(30, Math.ceil(buf.duration * 2) / 2);
+      outs(); renderKeys();
       if (!moveOn("talk")) document.querySelector('[data-move="talk"]').setAttribute("aria-pressed", "true");
       t = 0; draw();
     } catch { $("an-audioHint").textContent = "This browser couldn't read that audio. Try an MP3, WAV or M4A file."; }
   }
   $("an-audio").addEventListener("change", (e) => { loadVoice(e.target.files[0]); e.target.value = ""; });
-  $("an-audioClear").addEventListener("click", () => { setPlaying(false); voice = null; $("an-audioClear").hidden = true; $("an-lenRow").hidden = false; $("an-audioHint").textContent = "No voice clip: the mouth does a made-up talking pattern. Add an MP3, WAV or M4A and the mouth follows the voice."; t = 0; draw(); });
+  $("an-audioClear").addEventListener("click", () => { setPlaying(false); voice = null; $("an-audioClear").hidden = true; $("an-vStartRow").hidden = true; $("an-voRow").hidden = true; $("an-audioHint").textContent = "No voice clip: the mouth does a made-up talking pattern. Add an MP3, WAV or M4A and the mouth opens only while the voice is speaking."; t = 0; renderKeys(); draw(); });
+
+  // ---------- voice strip: where the voice speaks on the timeline; drag it to move the voice ----------
+  const vstrip = $("an-voStrip");
+  function drawStrip() {
+    if (!voice || $("an-voRow").hidden) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1), cw = vstrip.clientWidth, chh = vstrip.clientHeight; if (!cw) return;
+    vstrip.width = Math.round(cw * dpr); vstrip.height = Math.round(chh * dpr);
+    const x = vstrip.getContext("2d"); x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, cw, chh);
+    const D = duration(), X = (tt) => 11 + (cw - 22) * tt / D, s0 = vStart(), mid = chh / 2;
+    x.fillStyle = "rgba(255,70,103,.14)"; x.fillRect(X(s0), 3, X(s0 + voice.dur) - X(s0), chh - 6);
+    x.fillStyle = "#ff4667"; x.strokeStyle = "#0d0d0f";
+    const step = Math.max(1, Math.floor(voice.env.length / Math.max(1, (X(s0 + voice.dur) - X(s0)) / 2)));
+    for (let i = 0; i < voice.env.length; i += step) {
+      let v = 0; for (let k = i; k < Math.min(voice.env.length, i + step); k++) v = Math.max(v, voice.env[k]);
+      const px = X(s0 + i / 100), hh = Math.max(1, v * (chh / 2 - 5));
+      x.fillStyle = v > 0 ? "#ff4667" : "rgba(13,13,15,.25)"; x.fillRect(px, mid - hh, Math.max(1.2, (cw - 22) * step / 100 / D), hh * 2);
+    }
+    x.lineWidth = 2; x.strokeRect(X(s0), 3, X(s0 + voice.dur) - X(s0), chh - 6);
+    x.fillStyle = "#0d0d0f"; x.fillRect(X(Math.min(t, D)) - 1.5, 0, 3, chh);
+    $("an-voTime").textContent = `${fmt(s0)} – ${fmt(s0 + voice.dur)}`;
+  }
+  new ResizeObserver(() => drawStrip()).observe(vstrip);
+  let vdrag = null;
+  vstrip.addEventListener("pointerdown", (e) => { if (!voice) return; setPlaying(false); vdrag = { x: e.clientX, s0: vStart(), moved: false }; vstrip.setPointerCapture(e.pointerId); });
+  vstrip.addEventListener("pointermove", (e) => {
+    if (!vdrag) return; const dx = e.clientX - vdrag.x; if (Math.abs(dx) > 3) vdrag.moved = true; if (!vdrag.moved) return;
+    vstrip.classList.add("dragging");
+    const D = duration(), ns = Math.max(0, Math.min(+$("an-vStart").max, Math.round((vdrag.s0 + dx / Math.max(1, vstrip.clientWidth - 22) * D) * 10) / 10));
+    $("an-vStart").value = ns; outs(); renderKeys(); draw();
+  });
+  vstrip.addEventListener("pointerup", (e) => {
+    if (vdrag && !vdrag.moved) { const r = vstrip.getBoundingClientRect(); t = Math.max(0, Math.min(1, (e.clientX - r.left - 11) / Math.max(1, r.width - 22))) * duration(); draw(); }
+    vdrag = null; vstrip.classList.remove("dragging");
+  });
+  vstrip.addEventListener("pointercancel", () => { vdrag = null; vstrip.classList.remove("dragging"); });
 
   // ---------- photos ----------
   async function readImage(f, max) {
@@ -4376,10 +4450,10 @@ window.setStageColor = (el, c) => {
   const outs = () => {
     $("an-jawOut").textContent = $("an-jaw").value + "%"; $("an-sizeOut").textContent = $("an-size").value + "%";
     $("an-energyOut").textContent = $("an-energy").value + "%"; $("an-speedOut").textContent = (+$("an-speed").value / 100).toFixed(2) + "×";
-    $("an-lenOut").textContent = (+$("an-len").value).toFixed(1) + " s"; $("an-sensOut").textContent = $("an-sens").value + "%"; $("an-outlineOut").textContent = $("an-outline").value + " px";
+    $("an-lenOut").textContent = (+$("an-len").value).toFixed(1) + " s"; $("an-sensOut").textContent = $("an-sens").value + "%"; $("an-vStartOut").textContent = (+$("an-vStart").value).toFixed(1) + " s"; $("an-outlineOut").textContent = $("an-outline").value + " px";
   };
   outs();
-  ["an-energy", "an-speed", "an-len", "an-sens"].forEach((id) => $(id).addEventListener("input", () => { outs(); draw(); renderKeys(); }));
+  ["an-energy", "an-speed", "an-len", "an-sens", "an-vStart"].forEach((id) => $(id).addEventListener("input", () => { outs(); draw(); renderKeys(); }));
   $("an-size").addEventListener("input", () => { setPlaying(false); setXf({ size: +$("an-size").value }); outs(); draw(); });
   ["an-jaw", "an-outline"].forEach((id) => { $(id).addEventListener("input", outs); $(id).addEventListener("change", () => { prep = null; draw(); }); });
   $("an-shadow").addEventListener("change", draw);
@@ -4442,7 +4516,7 @@ window.setStageColor = (el, c) => {
           if (useBgSound) { try { bgBuf = bgAudioBuf || (bgAudioBuf = await new OfflineAudioContext(2, 48000, 48000).decodeAudioData(await bgVideoFile.arrayBuffer())); } catch { audioNote = " The background video's sound couldn't be read."; } }
           if (voice || bgBuf) {
             const oac = new OfflineAudioContext(2, Math.max(1, Math.ceil(D * 48000)), 48000);
-            if (voice) { const sv = oac.createBufferSource(); sv.buffer = voice.buf; sv.connect(oac.destination); sv.start(0); }
+            if (voice) { const sv = oac.createBufferSource(); sv.buffer = voice.buf; sv.connect(oac.destination); sv.start(vStart()); }
             if (bgBuf) { const sb = oac.createBufferSource(); sb.buffer = bgBuf; sb.loop = true; const g = oac.createGain(); g.gain.value = voice ? 0.45 : 1; sb.connect(g); g.connect(oac.destination); sb.start(0); }
             mixBuf = await oac.startRendering(); audio = acfg;
           }
