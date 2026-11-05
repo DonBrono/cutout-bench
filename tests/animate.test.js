@@ -512,7 +512,7 @@ real("A25 The avatar fills the lower middle of the 16:9 frame", async (pg) => {
 // ---------- 25 edge cases ----------
 edge("ZE01 A silent clip gives no punches", async (pg) => {
   await loadVoice(pg, file("silent.wav", wav(3, () => 0))); assert((await cams(pg, 0, 3)).every((c) => c === 1), "punched on silence");
-  assert(/no loud moments/.test(await pg.textContent("#an-zoomHint")), await pg.textContent("#an-zoomHint"));
+  assert(/no punches/.test(await pg.textContent("#an-zoomHint")), await pg.textContent("#an-zoomHint"));
 });
 edge("ZE02 Noise alone gives no punches", async (pg) => {
   await loadVoice(pg, file("noise.wav", wav(3, () => noise() * 0.05))); assert((await cams(pg, 0, 3)).every((c) => c === 1), "punched on noise");
@@ -608,6 +608,295 @@ edge("ZE25 Phone screen shows the avatar on first load", async (pg) => {
     const p = await ph.evaluate(() => { const c = window.__an.cv; return [...c.getContext("2d").getImageData(c.width * 0.5, c.height * 0.85, 1, 1).data]; });
     assert(p[1] > p[0] && p[1] > p[2], "avatar missing on phone: " + p);
   } finally { await ph.close2(); }
+});
+
+// =====================================================================
+// Feature: choosable punch threshold on the voice
+// =====================================================================
+feature("Punch threshold");
+const setTh = (pg, v) => slider(pg, "an-punchTh", v);
+const thInfo = (pg) => an(pg, () => { const v = window.__an.voice; return v ? { th: v.thDb, floor: v.floorDb, max: v.maxDb, auto: v.autoDb, punches: v.punches } : null; });
+const punchCount = async (pg) => (await thInfo(pg)).punches;
+const isAuto = (pg) => pg.$eval("#an-punchAuto", (e) => e.checked);
+const autoClick = (pg) => pg.$eval("#an-punchAuto", (e) => e.click());
+const stripPx = (pg, x, y) => pg.$eval("#an-voStrip", (c, [x, y]) => [...c.getContext("2d").getImageData(Math.round(x * c.width / c.clientWidth), Math.round(y * c.height / c.clientHeight), 1, 1).data], [x, y]);
+const stripGeom = (pg) => pg.$eval("#an-voStrip", (c) => ({ w: c.clientWidth, h: c.clientHeight }));
+// x position on the strip of a voice time (seconds into the clip)
+const stripX = async (pg, vt) => { const g = await stripGeom(pg); const d = await an(pg, () => window.__an.duration()); const s0 = +(await pg.$eval("#an-vStart", (e) => e.value)); return 11 + (g.w - 22) * (s0 + vt) / d; };
+
+// ---------- 25 real-use cases ----------
+real("T01 Moves tab has a punch threshold slider and an Auto switch, off until a voice is added", async (pg) => {
+  assert(await pg.$("#an-panel-moves #an-punchTh") && await pg.$("#an-panel-moves #an-punchAuto"), "controls missing");
+  assert(await pg.$eval("#an-punchTh", (e) => e.disabled), "slider should wait for a voice clip");
+});
+real("T02 Adding a voice enables the slider and shows the auto value", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS));
+  assert(!(await pg.$eval("#an-punchTh", (e) => e.disabled)), "still disabled");
+  assert(/^Auto · \d+%$/.test(await pg.textContent("#an-punchThOut")), await pg.textContent("#an-punchThOut"));
+});
+real("T03 Auto threshold keeps the earlier behaviour (punch only on the loud part)", async (pg) => {
+  await loadVoice(pg, file("ql.wav", QUIET_LOUD));
+  assert((await cams(pg, 0, 3.4)).every((c) => c === 1) && (await cams(pg, 3.5, 5)).some((c) => c > 1.1), "auto changed");
+});
+real("T04 Lowering the threshold gives more punches", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); const a = await punchCount(pg); await setTh(pg, 10);
+  assert(await punchCount(pg) > a, `auto ${a}, 10%: ${await punchCount(pg)}`);
+});
+real("T05 Raising the threshold to the top leaves at most one punch", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); await setTh(pg, 100); assert(await punchCount(pg) <= 1, "punches at 100%: " + await punchCount(pg));
+});
+real("T06 Moving the slider switches Auto off", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); await setTh(pg, 40); assert(!(await isAuto(pg)), "Auto still on");
+  assert(await pg.textContent("#an-punchThOut") === "40%", await pg.textContent("#an-punchThOut"));
+});
+real("T07 Turning Auto back on restores the automatic punches", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); const a = await cams(pg, 0, 8, 0.05);
+  await setTh(pg, 5); await autoClick(pg); assert(await isAuto(pg), "Auto not on");
+  assert(JSON.stringify(await cams(pg, 0, 8, 0.05)) === JSON.stringify(a), "auto punches differ");
+});
+real("T08 The hint counts the punches for the chosen threshold", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); await setTh(pg, 10);
+  const n = await punchCount(pg), h = await pg.textContent("#an-zoomHint"); assert(h.includes(`${n} punch`), h);
+});
+real("T09 The dashed threshold line is drawn on the voice strip", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); await setTh(pg, 50); const g = await stripGeom(pg);
+  const i = await thInfo(pg), y = (g.h - 4) - (i.th - i.floor) / (i.max - i.floor) * (g.h - 8);
+  let dark = 0; for (let vt = 0.1; vt < 1.9; vt += 0.02) { const p = await stripPx(pg, await stripX(pg, vt), y); if (p[0] < 40 && p[1] < 40 && p[2] < 40) dark++; }
+  assert(dark > 15, "no threshold line (" + dark + " dark samples)");
+});
+real("T10 Punch zones show in lime on the strip", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS));
+  const p = await stripPx(pg, await stripX(pg, 6.3), 1); assert(p[1] > 200 && p[0] > 150 && p[2] < 120, "no lime at the loud phrase: " + p);
+});
+real("T11 Bars above the threshold are darker", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); await setTh(pg, 30); const g = await stripGeom(pg);
+  let hit = false; for (let vt = 6.05; vt < 6.95 && !hit; vt += 0.01) { const p = await stripPx(pg, await stripX(pg, vt), g.h - 6); if (p[0] > 190 && p[1] < 60 && p[2] < 80) hit = true; }
+  assert(hit, "no dark-red bars above the line");
+});
+real("T12 Mid threshold punches on the emphasis and the shout; high threshold only on the shout", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); await setTh(pg, 45);
+  assert((await cams(pg, 2, 3.2)).some((c) => c > 1) && (await cams(pg, 6, 7.2)).some((c) => c > 1), "missing a punch at 45%");
+  await setTh(pg, 93); assert((await cams(pg, 2, 3.2)).every((c) => c === 1) && (await cams(pg, 6, 7.2)).some((c) => c > 1), "wrong punches at 93%");
+});
+real("T13 Louder moments still punch harder with a manual threshold", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); await setTh(pg, 45);
+  const a = Math.max(...await cams(pg, 2, 3.2)), b = Math.max(...await cams(pg, 6, 7.2)); assert(b > a + 0.03, `${a} vs ${b}`);
+});
+real("T14 Punches follow the voice start with a manual threshold", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); await setTh(pg, 45); await slider(pg, "an-vStart", 3);
+  assert((await cams(pg, 5, 6.2)).some((c) => c > 1) && (await cams(pg, 0, 4.9)).every((c) => c === 1), "punches did not move");
+});
+real("T15 A manual threshold carries over to a new voice clip", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); await setTh(pg, 25); await loadVoice(pg, file("ql.wav", QUIET_LOUD));
+  assert(!(await isAuto(pg)) && await pg.$eval("#an-punchTh", (e) => e.value) === "25", "threshold reset");
+});
+real("T16 Turning Zoom punch off hides the line and lime zones", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); await setMove(pg, "zoom", false); await pg.waitForTimeout(50);
+  const p = await stripPx(pg, await stripX(pg, 6.3), 1); assert(!(p[1] > 200 && p[2] < 120), "lime still shown: " + p);
+});
+real("T17 The preview zooms on the emphasis only when the threshold is low enough", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); await setTh(pg, 93); assert(await camAt(pg, 2.3) === 1, "zoomed at 93%");
+  await setTh(pg, 45); assert(await camAt(pg, 2.3) > 1 || (await cams(pg, 2, 2.6)).some((c) => c > 1), "no zoom at 45%");
+});
+real("T18 Keyboard arrows on the slider change the threshold", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); await pg.click('[data-antab="moves"]'); const v0 = +(await pg.$eval("#an-punchTh", (e) => e.value));
+  await pg.focus("#an-punchTh"); await pg.keyboard.press("ArrowLeft"); await pg.keyboard.press("ArrowLeft");
+  assert(+(await pg.$eval("#an-punchTh", (e) => e.value)) === v0 - 2 && !(await isAuto(pg)), "arrows did nothing");
+});
+real("T19 Removing the voice disables the slider again", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); await pg.click("#an-audioClear");
+  assert(await pg.$eval("#an-punchTh", (e) => e.disabled) && await pg.textContent("#an-punchThOut") === "Auto", "not reset");
+});
+real("T20 Energy still scales punches with a manual threshold", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); await setTh(pg, 45); await slider(pg, "an-energy", 50); const lo = Math.max(...await cams(pg, 6, 7.2));
+  await slider(pg, "an-energy", 150); const hi = Math.max(...await cams(pg, 6, 7.2)); assert(hi - 1 > (lo - 1) * 2.5, `${lo} → ${hi}`);
+});
+real("T21 Low thresholds still keep punches at least 1 s apart", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); await setTh(pg, 5); const seg = segments(await cams(pg, 0, 8, 0.01), 0.01);
+  for (let i = 1; i < seg.length; i++) assert(seg[i][0] - seg[i - 1][0] >= 0.99, "too close: " + JSON.stringify(seg));
+});
+real("T22 Even at 0% it never punches during silence", async (pg) => {
+  await loadVoice(pg, file("ql.wav", QUIET_LOUD)); await setTh(pg, 0);
+  const starts = segments(await cams(pg, 0, 6, 0.01), 0.01).map((s) => s[0]);
+  assert(starts.every((s) => (s >= 0.45 && s <= 2.5) || (s >= 3.45 && s <= 5)), "punch started in silence: " + starts);   // 30 ms lookahead is allowed
+});
+real("T23 The label matches the slider", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); for (const v of [0, 33, 77, 100]) { await setTh(pg, v); assert(await pg.textContent("#an-punchThOut") === v + "%", "label at " + v); }
+});
+real("T24 The voice strip is tall enough to read the threshold", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); assert((await stripGeom(pg)).h >= 44, "strip too short");
+});
+real("T25 Changing the threshold updates the current preview frame", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); await setMove(pg, "talk", false); await setTh(pg, 93); await setT(pg, 2.3); await an(pg, () => { window.__an.selected = false; window.__an.t = 2.3; });
+  const a = await regionDiff(pg); await setTh(pg, 45); await an(pg, () => { window.__an.t = 2.3; }); const b = await regionDiff(pg);
+  let d = 0; for (let i = 0; i < a.length; i += 4 * 101) d += Math.abs(a[i] - b[i]); assert(d > 500, "frame did not change");
+});
+
+// ---------- 25 edge cases ----------
+edge("TE01 Silent clip: no punches at any threshold", async (pg) => {
+  await loadVoice(pg, file("silent.wav", wav(3, () => 0))); for (const v of [0, 50, 100]) { await setTh(pg, v); assert(await punchCount(pg) === 0, "punch at " + v); }
+});
+edge("TE02 Noise-only clip: no punches even at 0%", async (pg) => {
+  await loadVoice(pg, file("noise.wav", wav(3, () => noise() * 0.05))); await setTh(pg, 0); assert(await punchCount(pg) === 0, "punched on noise");
+});
+edge("TE03 100% gives at most one punch", async (pg) => {
+  await loadVoice(pg, file("rant.wav", wav(10, (t) => say(t, 0.9) + noise() * 0.002))); await setTh(pg, 100); assert(await punchCount(pg) <= 1, "" + await punchCount(pg));
+});
+edge("TE04 0% on non-stop talking keeps the 2 s cap and rests", async (pg) => {
+  await loadVoice(pg, file("rant.wav", wav(10, (t) => say(t, 0.9) + noise() * 0.002))); await setTh(pg, 0);
+  const seg = segments(await cams(pg, 0, 10, 0.01), 0.01); assert(seg.length > 1 && seg.every(([a, b]) => b - a <= 2.05), JSON.stringify(seg));
+});
+edge("TE05 Flipping Auto on and off repeatedly is stable", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); await setTh(pg, 30); const manual = await punchCount(pg);
+  for (let i = 0; i < 6; i++) await autoClick(pg); assert(!(await isAuto(pg)) && await punchCount(pg) === manual, "state drifted");
+});
+edge("TE06 Moving the slider without a voice does nothing", async (pg) => {
+  await setTh(pg, 20); assert(await isAuto(pg), "Auto switched off without a voice"); assert(pg.errs.length === 0, pg.errs.join("; "));
+});
+edge("TE07 A 0.2 s clip at any threshold", async (pg) => {
+  await loadVoice(pg, file("blip.wav", wav(0.2, (t) => say(t + 0.1, 0.9)))); for (const v of [0, 50, 100]) { await setTh(pg, v); assert(await punchCount(pg) <= 1, "at " + v); }
+});
+edge("TE08 Clipped audio at a low threshold keeps punch sizes in range", async (pg) => {
+  await loadVoice(pg, file("clip.wav", wav(3, (t) => (t > 0.5 && t < 2.5 ? Math.sign(Math.sin(2 * Math.PI * 150 * t)) : 0)))); await setTh(pg, 2);
+  const a = await an(pg, () => Array.from(window.__an.voice.punch).filter((v) => v > 0)); assert(a.every((v) => v >= 0.55 && v <= 1), "amounts out of range");
+});
+edge("TE09 A whisper-quiet recording still punches at a low threshold", async (pg) => {
+  await loadVoice(pg, file("whisper.wav", wav(4, (t) => (t > 0.5 && t < 3.5 ? say(t, 0.01 * (t > 2.5 ? 3 : 1)) : 0) + noise() * 0.0003)));
+  await setTh(pg, 40); assert(await punchCount(pg) >= 1, "no punch on a quiet recording");
+});
+edge("TE10 A 35 s clip recalculates quickly", async (pg) => {
+  await loadVoice(pg, file("long.wav", wav(35, (t) => (t % 3 < 1.5 ? say(t, (t % 6 < 3 ? 0.9 : 0.15)) : 0) + noise() * 0.002, { sr: 16000 })));
+  const ms = await an(pg, () => { const t0 = performance.now(); for (let i = 0; i < 20; i++) { document.getElementById("an-punchTh").value = i * 5; window.__an.computePunches(); } return (performance.now() - t0) / 20; });
+  assert(ms < 30, `slow: ${ms.toFixed(1)} ms per change`);
+});
+edge("TE11 Home and End jump to 0% and 100%", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); await pg.click('[data-antab="moves"]'); await pg.focus("#an-punchTh");
+  await pg.keyboard.press("Home"); assert(await pg.$eval("#an-punchTh", (e) => e.value) === "0", "Home");
+  await pg.keyboard.press("End"); assert(await pg.$eval("#an-punchTh", (e) => e.value) === "100", "End");
+});
+edge("TE12 Changing the threshold while playing pauses playback", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); await pg.click("#an-play"); await pg.waitForTimeout(150); await setTh(pg, 40);
+  assert(await pg.$eval("#an-play", (b) => b.getAttribute("aria-label")) === "Play", "still playing");
+});
+edge("TE13 Toggling Auto without a voice is harmless", async (pg) => {
+  await autoClick(pg); await autoClick(pg); assert(pg.errs.length === 0, pg.errs.join("; "));
+});
+edge("TE14 Manual threshold survives removing and re-adding a voice", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); await setTh(pg, 22); await pg.click("#an-audioClear"); await loadVoice(pg, file("peaks.wav", TWO_PEAKS));
+  assert(await pg.$eval("#an-punchTh", (e) => e.value) === "22" && !(await isAuto(pg)), "threshold lost");
+});
+edge("TE15 Manual threshold with the voice starting at 20 s", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); await setTh(pg, 45); await slider(pg, "an-vStart", 20);
+  assert((await cams(pg, 26, 27.2)).some((c) => c > 1) && (await cams(pg, 0, 19.9, 0.1)).every((c) => c === 1), "wrong timing");
+});
+edge("TE16 Voice only on the right channel with a manual threshold", async (pg) => {
+  await loadVoice(pg, file("right.wav", wav(8, (t, c) => (c === 1 ? (t >= 2 && t <= 3 ? say(t, 0.4) : t >= 6 && t <= 7 ? say(t, 1) : t > 0.3 ? say(t, 0.12) : 0) : 0) + noise() * 0.002, { channels: 2 })));
+  await setTh(pg, 45); assert((await cams(pg, 6, 7.2)).some((c) => c > 1), "no punch");
+});
+edge("TE17 A shout at the very end with a low threshold doesn't overrun", async (pg) => {
+  await loadVoice(pg, file("end.wav", wav(3, (t) => (t > 0.3 && t < 2.6 ? say(t, 0.08) : t >= 2.8 ? say(t, 1) : 0)))); await setTh(pg, 5);
+  assert(await camAt(pg, 3.05) === 1 && (await cams(pg, 0, 3, 0.01)).every(Number.isFinite), "overrun");
+});
+edge("TE18 The strip draws in 9:16 without errors", async (pg) => {
+  await pg.$eval('[data-anratio="9:16"]', (b) => b.click()); await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); await setTh(pg, 30); assert(pg.errs.length === 0, pg.errs.join("; "));
+});
+edge("TE19 Phone screen: the threshold slider fits", async (pg) => {
+  const ph = await open({ viewport: { width: 390, height: 844 }, tab: "moves" });
+  try {
+    const r = await ph.$eval("#an-punchTh", (e) => { const b = e.getBoundingClientRect(); return [b.left, b.right, window.innerWidth]; });
+    assert(r[0] >= 0 && r[1] <= r[2], "slider off screen: " + r); assert(await ph.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 1, "sideways scroll");
+  } finally { await ph.close2(); }
+});
+edge("TE20 Resizing the window redraws the strip", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); await pg.setViewportSize({ width: 900, height: 900 }); await pg.waitForTimeout(150);
+  const g = await stripGeom(pg); assert(await pg.$eval("#an-voStrip", (c) => c.width) >= g.w - 1, "strip not redrawn"); assert(pg.errs.length === 0, pg.errs.join("; "));
+});
+edge("TE21 Changing the threshold with Zoom punch off gives no zoom", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); await setMove(pg, "zoom", false); await setTh(pg, 10);
+  assert((await cams(pg, 0, 8, 0.05)).every((c) => c === 1), "zoomed while off");
+});
+edge("TE22 A low-quality 8 kHz mono clip works", async (pg) => {
+  await loadVoice(pg, file("phone.wav", wav(6, (t) => (t >= 0.5 && t <= 2.5 ? say(t, 0.12) : t >= 3.5 && t <= 5 ? say(t, 0.95) : 0) + noise() * 0.003, { sr: 8000 })));
+  await setTh(pg, 50); assert((await cams(pg, 3.5, 5)).some((c) => c > 1), "no punch");
+});
+edge("TE23 Loading the same clip twice gives the same punches", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); await setTh(pg, 40); const a = await cams(pg, 0, 8, 0.05);
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); assert(JSON.stringify(await cams(pg, 0, 8, 0.05)) === JSON.stringify(a), "different");
+});
+edge("TE24 Auto on a clip with no speech shows 100%", async (pg) => {
+  await loadVoice(pg, file("silent.wav", wav(2, () => 0))); assert(await pg.textContent("#an-punchThOut") === "Auto · 100%", await pg.textContent("#an-punchThOut"));
+});
+edge("TE25 The hint says “1 punch”, not “1 punches”", async (pg) => {
+  await loadVoice(pg, file("peaks.wav", TWO_PEAKS)); await setTh(pg, 100); const n = await punchCount(pg); const h = await pg.textContent("#an-zoomHint");
+  assert(n === 1 ? /1 punch where/.test(h) : /no punches/.test(h), h);
+});
+
+// =====================================================================
+// Fix: smooth head tilt and jaw (regression tests)
+// =====================================================================
+feature("Smooth head tilt + jaw (fix)");
+const greenScreen = async (pg) => { await pg.$eval('[data-anbg="color"]', (b) => b.click()); await pg.$eval('[data-anc="#00b140"]', (b) => b.click()); await pg.$eval("#an-shadow", (c) => { c.checked = false; c.dispatchEvent(new Event("change", { bubbles: true })); }); };
+const stillMoves = (pg, keep) => Promise.all(["talk", "headbob", "headtilt", "headshake", "bob", "sway", "shake", "hop", "slide", "zoom"].map((m) => setMove(pg, m, keep.includes(m))));
+// green pixels inside a box around the neck pivot = holes between head and body
+const neckHoles = (pg) => an(pg, () => {
+  const A = window.__an, P = A.prep, c = A.cv, X = A.charXf(c.width, c.height), Hd = P.head; if (!Hd) return -1;
+  const px = X.cx + (Hd.px - P.W / 2) * X.s * X.f, py = X.cy + (Hd.py - P.H) * X.s, hw = 0.05 * P.W * X.s, h0 = 0.07 * P.H * X.s, h1 = 0.03 * P.H * X.s;
+  const d = c.getContext("2d").getImageData(Math.round(px - hw), Math.round(py - h0), Math.round(hw * 2), Math.round(h0 + h1)).data; let n = 0;
+  for (let i = 0; i < d.length; i += 4) if (d[i + 1] > 140 && d[i] < 60 && d[i + 2] < 110) n++; return n;
+});
+const maxTiltTime = (pg) => an(pg, () => { const A = window.__an; let bt = 1, bv = -1; for (let t = 0.6; t < 6; t += 0.01) { const p = A.pose(t, false); if (Math.abs(p.hrot) > bv) { bv = Math.abs(p.hrot); bt = t; } } return bt; });
+const jawProfile = (pg, tOpen, tShut) => an(pg, ([a, b]) => {
+  const A = window.__an, P = A.prep, J = P.jaw, c = A.cv, X = A.charXf(c.width, c.height), g = c.getContext("2d");
+  const x0 = Math.round(X.cx + (J.jx - P.W / 2) * X.s), w = Math.round(J.jw * X.s), y0 = Math.round(X.cy + (J.jy - P.H) * X.s), h = Math.round(J.jh * X.s);
+  A.t = b; const s = g.getImageData(x0, y0, w, h).data; A.t = a; const o = g.getImageData(x0, y0, w, h).data;
+  const col = new Array(w).fill(0); for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; col[x] += Math.abs(s[i] - o[i]) + Math.abs(s[i + 1] - o[i + 1]); } return col;
+}, [tOpen, tShut]);
+const openShut = (pg) => an(pg, () => { const A = window.__an; let bo = 1, bv = 0, sh = null; for (let t = 0.6; t < 6; t += 0.01) { const v = A.mouthOpen(t); if (v > bv) { bv = v; bo = t; } if (v === 0 && sh == null && t > 0.7) sh = t; } return [bo, sh]; });
+
+real("S01 At the strongest head tilt nothing shows through between chin and neck", async (pg) => {
+  await greenScreen(pg); await slider(pg, "an-energy", 200); await an(pg, () => { window.__an.selected = false; }); await setT(pg, await maxTiltTime(pg));
+  const n = await neckHoles(pg); assert(n === 0, `${n} background pixels in the neck`);
+});
+real("S02 Opening the mouth bends the chin: the middle moves, the sides of the jaw don't", async (pg) => {
+  await stillMoves(pg, ["talk"]); await slider(pg, "an-energy", 10); await an(pg, () => { window.__an.selected = false; });
+  const [o, sh] = await openShut(pg); const col = await jawProfile(pg, o, sh); const w = col.length, mid = col.slice(Math.floor(w * 0.4), Math.ceil(w * 0.6)), edge = [...col.slice(0, Math.ceil(w * 0.05)), ...col.slice(Math.floor(w * 0.95))];
+  const avg = (a) => a.reduce((x, y) => x + y, 0) / a.length; assert(avg(mid) > avg(edge) * 2.5 && avg(mid) > 200, `middle ${avg(mid).toFixed(0)}, edges ${avg(edge).toFixed(0)}`);
+});
+real("S03 The open mouth shows a dark mouth and tongue", async (pg) => {
+  await stillMoves(pg, ["talk"]); await an(pg, () => { window.__an.selected = false; }); const [o] = await openShut(pg); await setT(pg, o);
+  const n = await an(pg, () => { const A = window.__an, P = A.prep, J = P.jaw, c = A.cv, X = A.charXf(c.width, c.height); const d = c.getContext("2d").getImageData(Math.round(X.cx + (J.jx - P.W / 2) * X.s), Math.round(X.cy + (J.jy - P.H) * X.s), Math.round(J.jw * X.s), Math.round(J.jw * 0.4 * X.s)).data; let k = 0; for (let i = 0; i < d.length; i += 4) if (d[i] > 40 && d[i] < 90 && d[i + 1] < 30) k++; return k; });
+  assert(n > 20, "no mouth interior (" + n + ")");
+});
+real("S04 With the mouth shut, the face looks exactly like the still picture", async (pg) => {
+  await stillMoves(pg, ["talk"]); await an(pg, () => { window.__an.selected = false; }); const [, sh] = await openShut(pg); await setT(pg, sh);
+  const a = await regionDiff(pg); await setMove(pg, "talk", false); await setT(pg, sh); const b = await regionDiff(pg);
+  let d = 0; for (let i = 0; i < a.length; i++) d += Math.abs(a[i] - b[i]); assert(d < a.length * 0.5, "shut mouth differs from the still picture (" + d + ")");
+});
+real("S05 Six seconds of head tilt and talking never open a gap at the neck", async (pg) => {
+  await greenScreen(pg); await slider(pg, "an-energy", 200); await an(pg, () => { window.__an.selected = false; });
+  for (let t = 0.7; t < 6; t += 0.25) { await setT(pg, t); const n = await neckHoles(pg); assert(n === 0, `${n} background pixels at ${t.toFixed(2)} s`); }
+});
+edge("SE01 Narrowest and widest jaw: no gaps at full tilt", async (pg) => {
+  await greenScreen(pg); await slider(pg, "an-energy", 200); await an(pg, () => { window.__an.selected = false; }); const tt = await maxTiltTime(pg);
+  for (const v of [6, 45]) { await slider(pg, "an-jaw", v); await setT(pg, tt); const n = await neckHoles(pg); assert(n === 0, `${n} holes at jaw ${v}%`); }
+});
+edge("SE02 A neck point placed right at the mouth still renders", async (pg) => {
+  await pg.click("#an-neckBtn"); const m = await an(pg, () => { const A = window.__an, P = A.prep, J = P.jaw, c = A.cv, X = A.charXf(c.width, c.height), r = c.getBoundingClientRect(); return { x: r.left + (X.cx + (J.jx + J.jw / 2 - P.W / 2) * X.s) * r.width / c.width, y: r.top + (X.cy + (J.jy - P.H) * X.s) * r.height / c.height }; });
+  await pg.mouse.click(m.x, m.y); for (let t = 0.7; t < 3; t += 0.3) await setT(pg, t); assert(pg.errs.length === 0, pg.errs.join("; "));
+});
+edge("SE03 Your own photo with the automatic neck point talks and tilts without errors", async (pg) => {
+  const png = Buffer.from(await an(pg, () => { const c = document.createElement("canvas"); c.width = 500; c.height = 700; const x = c.getContext("2d"); x.fillStyle = "#4a6"; x.fillRect(100, 420, 300, 280); x.fillStyle = "#fc9"; x.fillRect(215, 330, 70, 110); x.beginPath(); x.ellipse(250, 250, 110, 140, 0, 0, 7); x.fill(); return c.toDataURL().split(",")[1]; }), "base64");
+  await pg.setInputFiles("#an-file", { name: "me.png", mimeType: "image/png", buffer: png }); await pg.waitForTimeout(600);
+  await pg.click("#an-mouthBtn"); const r = await cvRect(pg); await pg.mouse.click(r.x + r.w / 2, r.y + r.h * 0.45);
+  for (let t = 0.7; t < 4; t += 0.2) await setT(pg, t); assert(pg.errs.length === 0, pg.errs.join("; "));
+});
+edge("SE04 Without a paper edge the neck stays joined", async (pg) => {
+  await greenScreen(pg); await slider(pg, "an-outline", 0); await slider(pg, "an-energy", 200); await an(pg, () => { window.__an.selected = false; }); await setT(pg, await maxTiltTime(pg));
+  const n = await neckHoles(pg); assert(n === 0, `${n} holes`);
+});
+edge("SE05 Mirrored character at full tilt has no gaps", async (pg) => {
+  await greenScreen(pg); await pg.click("#an-flip"); await slider(pg, "an-energy", 200); await an(pg, () => { window.__an.selected = false; }); await setT(pg, await maxTiltTime(pg));
+  const n = await neckHoles(pg); assert(n === 0, `${n} holes`);
 });
 
 // ---------- runner ----------

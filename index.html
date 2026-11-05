@@ -296,7 +296,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
 .subhead { margin: 6px 0 -2px; font: 800 11px/1.2 Inter, system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--muted, #555); }
 .vo-row { display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 10px; align-items: center; }
 .vo-tag { display: grid; place-items: center; width: 46px; height: 34px; border: var(--b2); border-radius: 999px; background: var(--pink); color: var(--ink); }
-.vo-strip { width: 100%; height: 34px; border: var(--b2); border-radius: 12px; background: #fff; cursor: grab; touch-action: none; display: block; }
+.vo-strip { width: 100%; height: 52px; border: var(--b2); border-radius: 12px; background: #fff; cursor: grab; touch-action: none; display: block; }
 .vo-strip.dragging { cursor: grabbing; }
 #animate .transport, #animate .vo-row, #animate .kf-row { grid-template-columns: 46px minmax(0, 1fr) 132px; }
 #animate .transport .time, .vo-row .time, .kf-row > .time { text-align: left; white-space: nowrap; font-size: 12px; }
@@ -1000,7 +1000,7 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
       </div>
       <div class="vo-row" id="an-voRow" hidden>
         <span class="vo-tag" title="Voice clip"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span>
-        <canvas class="vo-strip" id="an-voStrip" height="34" title="Voice: the pink parts are where the mouth moves. Drag to move the voice, click to jump there"></canvas>
+        <canvas class="vo-strip" id="an-voStrip" height="52" title="Voice loudness: pink bars are speech, darker bars are above the dashed punch threshold, lime zones are where the camera punches in. Drag to move the voice, click to jump there"></canvas>
         <span class="time" id="an-voTime"></span>
       </div>
       <div class="kf-row" aria-label="Transform keyframes">
@@ -1076,6 +1076,9 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
           <button data-move="slide" aria-pressed="true">Slide in</button>
           <button data-move="zoom" aria-pressed="true" title="Punches in on the loud moments of the voice clip">Zoom punch</button>
         </div>
+        <div class="slider" id="an-punchRow"><label for="an-punchTh">Punch threshold</label><output id="an-punchThOut" for="an-punchTh">Auto</output>
+          <input type="range" id="an-punchTh" min="0" max="100" step="1" value="70" disabled aria-describedby="an-zoomHint"></div>
+        <label class="check" for="an-punchAuto"><input type="checkbox" id="an-punchAuto" checked> Auto threshold (picked from the clip)</label>
         <p class="hint" id="an-zoomHint">Zoom punch follows the voice: add a voice clip in the Person tab and it punches in on the loud moments. Without a voice clip there are no punches.</p>
         <div class="grid2">
         <div class="slider"><label for="an-energy">Energy</label><output id="an-energyOut" for="an-energy"></output>
@@ -3941,7 +3944,7 @@ window.setStageColor = (el, c) => {
     x.lineWidth = 8; x.strokeStyle = INK; x.beginPath(); x.moveTo(452, 500); x.quadraticCurveTo(428, 552, 466, 556); x.stroke();
     x.lineWidth = 10; x.beginPath(); x.moveTo(390, 600); x.quadraticCurveTo(455, 618, 520, 592); x.stroke();
     x.lineWidth = 7; x.beginPath(); x.moveTo(514, 582); x.quadraticCurveTo(526, 592, 522, 604); x.stroke();
-    return { c, mouth: { x: 452, y: 603 }, neck: { x: 450, y: 702 } };
+    return { c, mouth: { x: 452, y: 603 }, neck: { x: 450, y: 748 } };
   }
   function sampleRoom() {
     // studio set in the app's style: cream dotted wall, lime sun, sky window, violet floor, sticker shapes
@@ -3996,24 +3999,29 @@ window.setStageColor = (el, c) => {
     }
     f.drawImage(s, -ox, -oy);
     const shadow = mk(W, H), sh = shadow.getContext("2d"); sh.drawImage(full, 0, 0); sh.globalCompositeOperation = "source-in"; sh.fillStyle = "rgba(13,13,15,.42)"; sh.fillRect(0, 0, W, H);
-    // jaw: a rectangle below the mouth line, as in paper cut-out animation
-    let jaw = null, head = null, jh = 0;
-    if (mouth) {
-      const jw = Math.max(4, Math.round(+$("an-jaw").value / 100 * (x1 - x0))), jx = Math.round(mouth.x - ox - jw / 2), jy = Math.round(mouth.y - oy); jh = Math.round(jw * 0.72);
-      const body = mk(W, H), b = body.getContext("2d"); b.drawImage(full, 0, 0); b.clearRect(jx, jy, jw, jh);
-      const piece = mk(jw, jh), p = piece.getContext("2d"); p.drawImage(full, -jx, -jy);
-      jaw = { body, piece, jx, jy, jw, jh };
-    }
-    // head: everything above the neck line, as its own cut-out piece that can bob, tilt and shake
-    const nk = neck || (mouth ? { x: mouth.x, y: mouth.y + jh * 1.35 } : null);
+    // head: everything above the neck line, its own cut-out piece that can bob, tilt and shake.
+    // The body's neck is continued up under the chin and the head fades softly into it, so tilting never shows a torn edge.
+    let jaw = null, head = null;
+    const jw = mouth ? Math.max(4, Math.round(+$("an-jaw").value / 100 * (x1 - x0))) : 0;
+    const nk = neck || (mouth ? { x: mouth.x, y: mouth.y + Math.round(jw * 0.72) * 1.35 } : null);
+    const fade = (c, stops, horiz) => { const x = c.getContext("2d"), L = horiz ? c.width : c.height, g = horiz ? x.createLinearGradient(0, 0, L, 0) : x.createLinearGradient(0, 0, 0, L);
+      for (const [v, a] of stops) g.addColorStop(Math.max(0, Math.min(1, v / L)), `rgba(0,0,0,${a})`);
+      x.globalCompositeOperation = "destination-in"; x.fillStyle = g; x.fillRect(0, 0, c.width, c.height); x.globalCompositeOperation = "source-over"; };
+    let headSrc = full, ny = 0, fe = 0;
     if (nk) {
-      const ny = Math.round(nk.y - oy), ov = Math.max(4, Math.round(H * 0.025));
-      const headL = mk(W, H), hx = headL.getContext("2d"); hx.drawImage(full, 0, 0); hx.clearRect(0, ny + ov, W, H);
-      const bodyL = mk(W, H), bx = bodyL.getContext("2d"); bx.drawImage(full, 0, 0); bx.clearRect(0, 0, W, ny);
-      const noJaw = mk(W, H), nx = noJaw.getContext("2d"); nx.drawImage(headL, 0, 0);
-      if (jaw) { nx.clearRect(jaw.jx, jaw.jy, jaw.jw, jaw.jh); bx.clearRect(jaw.jx, jaw.jy, jaw.jw, jaw.jh); }
+      ny = Math.round(nk.y - oy); fe = Math.max(4, Math.round(H * 0.02));
+      const headL = mk(W, H), hx = headL.getContext("2d"); hx.drawImage(full, 0, 0); fade(headL, [[0, 1], [ny - fe * 1.2, 1], [ny + fe * 0.2, 0], [H, 0]]);
+      const bodyL = mk(W, H), bx = bodyL.getContext("2d"); bx.drawImage(full, 0, 0); bx.clearRect(0, 0, W, ny + 2);
+      bx.drawImage(full, 0, ny + 2, W, 2, 0, ny - 3 * fe, W, 3 * fe + 4);          // neck continues up behind the chin
       const shade = (src) => { const c = mk(W, H), x = c.getContext("2d"); x.drawImage(src, 0, 0); x.globalCompositeOperation = "source-in"; x.fillStyle = "rgba(13,13,15,.42)"; x.fillRect(0, 0, W, H); return c; };
-      head = { head: headL, headNoJaw: noJaw, body: bodyL, headShadow: shade(headL), bodyShadow: shade(bodyL), px: nk.x - ox, py: ny };
+      head = { head: headL, headNoJaw: headL, body: bodyL, headShadow: shade(headL), bodyShadow: shade(bodyL), px: nk.x - ox, py: ny };
+      headSrc = headL;
+    }
+    // jaw: the lower face below the mouth line, chin outline included, with soft sides; it drops down to open the mouth
+    if (mouth) {
+      const jx = Math.round(mouth.x - ox - jw / 2), jy = Math.round(mouth.y - oy);
+      const jh = nk ? Math.max(Math.round(jw * 0.5), ny + fe - jy) : Math.round(jw * 0.95);
+      jaw = { body: full, src: headSrc, jx, jy, jw, jh, dropMax: jw * 0.72 * 0.42 };
     }
     prep = { W, H, ox, oy, full, shadow, jaw, head, edge };
   }
@@ -4139,15 +4147,19 @@ window.setStageColor = (el, c) => {
     const bg = background(W, H); ctx.drawImage(bg, -W * 0.02, -H * 0.02, W * 1.04, H * 1.04);
     ctx.translate(fx, fy); ctx.rotate(ps.rot + X0.rot); ctx.scale(scale * ps.sx * (flip ? -1 : 1), scale * ps.sy); ctx.translate(-prep.W / 2, -prep.H);
     const sh = $("an-shadow").checked, so0 = prep.W * 0.018 * (flip ? -1 : 1), so1 = prep.H * 0.012, J = prep.jaw;
-    const talking = J && moveOn("talk"), drop = talking ? ps.talk * J.jh * 0.42 : 0;
+    const talking = J && moveOn("talk"), drop = talking ? ps.talk * J.dropMax : 0;
+    // talking: the lower face bends down (most in the middle, nothing at the sides) instead of a block moving,
+    // so the chin outline curves smoothly as the mouth opens
+    const bend = (u) => Math.pow(Math.sin(Math.PI * Math.max(0, Math.min(1, u))), 0.85);
     const face = (withJaw, noJaw) => {
-      if (!talking) { ctx.drawImage(withJaw, 0, 0); return; }
+      if (!talking || drop <= 0.5) { ctx.drawImage(withJaw, 0, 0); return; }
       ctx.drawImage(noJaw, 0, 0);
-      if (drop > 0.5) {
-        ctx.fillStyle = "#3a0d16"; ctx.beginPath(); ctx.roundRect(J.jx + J.jw * 0.06, J.jy - 1, J.jw * 0.88, drop + 2, Math.min(drop, J.jw * 0.2)); ctx.fill();
-        ctx.fillStyle = "#e05570"; ctx.beginPath(); ctx.ellipse(J.jx + J.jw / 2, J.jy + drop * 0.85, J.jw * 0.22, drop * 0.3, 0, 0, 7); ctx.fill();
-      }
-      ctx.drawImage(J.piece, J.jx, J.jy + drop);
+      const N = Math.max(8, Math.ceil(J.jw / 2)), sw = J.jw / N;
+      ctx.fillStyle = "#3a0d16"; ctx.beginPath(); ctx.moveTo(J.jx, J.jy - 1);
+      for (let i = 0; i <= N; i++) ctx.lineTo(J.jx + i * sw, J.jy + bend(i / N) * drop + 1);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#e05570"; ctx.beginPath(); ctx.ellipse(J.jx + J.jw / 2, J.jy + drop * 0.8, J.jw * 0.18, drop * 0.28, 0, 0, 7); ctx.fill();
+      for (let i = 0; i < N; i++) { const sx = J.jx + i * sw, d = bend((i + 0.5) / N) * drop; ctx.drawImage(J.src, sx, J.jy, sw, J.jh, sx, J.jy + d, sw + 0.6, J.jh); }
     };
     if (prep.head) {
       const Hd = prep.head, headXf = () => { ctx.translate(Hd.px, Hd.py + ps.hdy * prep.H); ctx.rotate(ps.hrot); ctx.scale(ps.hs, ps.hs); ctx.translate(-Hd.px, -Hd.py); };
@@ -4411,6 +4423,35 @@ window.setStageColor = (el, c) => {
   window.anPause = () => { if (playing) setPlaying(false); };
   $("an-play").addEventListener("click", () => { if (!exporting) setPlaying(!playing); });
   $("an-scrub").addEventListener("input", (e) => { setPlaying(false); t = +e.target.value / 1000 * duration(); draw(); });
+  // ---------- zoom punch from the voice: loud moments above a threshold ----------
+  // threshold slider: 0% = the clip's noise floor, 100% = its loudest moment; Auto picks it from the clip
+  const pctOfDb = (v, d) => Math.max(0, Math.min(100, Math.round((d - v.floorDb) / (v.maxDb - v.floorDb) * 100)));
+  function computePunches() {
+    const v = voice; if (!v) return;
+    const { env, db } = v, m = env.length;
+    const spk = []; for (let i = 0; i < m; i++) if (env[i] > 0) spk.push(db[i]); spk.sort((x, y) => x - y);
+    v.autoDb = spk.length > 10 ? Math.max(Math.min(spk[Math.floor(spk.length * 0.8)], spk[Math.floor(spk.length * 0.5)] + 6), v.floorDb + v.span * 0.55) : Infinity;
+    const auto = $("an-punchAuto").checked;
+    const loudDb = auto ? v.autoDb : v.floorDb + (v.maxDb - v.floorDb) * +$("an-punchTh").value / 100;
+    v.thDb = loudDb;
+    if (auto) $("an-punchTh").value = Number.isFinite(v.autoDb) ? pctOfDb(v, v.autoDb) : 100;
+    const topDb = Math.max(loudDb + 1, spk.length ? spk[spk.length - 1] : -Infinity);
+    const punch = new Float32Array(m); let punches = 0;
+    if (spk.length && Number.isFinite(loudDb)) {
+      for (let i = 0, last = -1e9; i < m;) {
+        if (env[i] > 0 && db[i] >= loudDb && i - last >= 100 && i + 50 <= m) {
+          let j = i, below = 0, peak = db[i];
+          while (j < m && below < 25 && j - i < 200) { if (env[j] === 0 || db[j] < loudDb - 6) below++; else { below = 0; peak = Math.max(peak, db[j]); } j++; }
+          const end = Math.min(m, Math.max(i + 50, j - below)), amt = 0.55 + 0.45 * Math.min(1, (peak - loudDb) / Math.max(1, topDb - loudDb));
+          for (let k = i; k < end; k++) punch[k] = amt;
+          punches++; last = i; i = end + 60;   // let the camera rest 0.6 s before the next punch
+        } else i++;
+      }
+    }
+    v.punch = punch; v.punches = punches;
+    $("an-punchThOut").textContent = (auto ? "Auto · " : "") + $("an-punchTh").value + "%";
+    $("an-zoomHint").textContent = punches ? `Zoom punch: ${punches} punch${punches > 1 ? "es" : ""} where the voice gets louder than the threshold.` : "Zoom punch: nothing in the voice clip is louder than the threshold, so there are no punches.";
+  }
   async function loadVoice(f) {
     if (!f) return;
     $("an-audioHint").textContent = "Reading the voice clip…";
@@ -4444,22 +4485,9 @@ window.setStageColor = (el, c) => {
       }
       // zoom punches: start on a loud moment (top 20% of the speaking loudness and clearly above the noise),
       // hold through that loud phrase (0.5–2 s), at least 1 s apart with a 0.6 s rest; louder peaks punch harder
-      const spk = []; for (let i = 0; i < m; i++) if (env[i] > 0) spk.push(db[i]); spk.sort((x, y) => x - y);
-      const punch = new Float32Array(m); let punches = 0;
-      if (spk.length > 10) {
-        const loudDb = Math.max(Math.min(spk[Math.floor(spk.length * 0.8)], spk[Math.floor(spk.length * 0.5)] + 6), floorDb + span * 0.55), topDb = spk[spk.length - 1];
-        for (let i = 0, last = -1e9; i < m;) {
-          if (env[i] > 0 && db[i] >= loudDb && i - last >= 100 && i + 50 <= m) {
-            let j = i, below = 0, peak = db[i];
-            while (j < m && below < 25 && j - i < 200) { if (env[j] === 0 || db[j] < loudDb - 6) below++; else { below = 0; peak = Math.max(peak, db[j]); } j++; }
-            const end = Math.min(m, Math.max(i + 50, j - below)), amt = 0.55 + 0.45 * Math.min(1, (peak - loudDb) / Math.max(1, topDb - loudDb));
-            for (let k = i; k < end; k++) punch[k] = amt;
-            punches++; last = i; i = end + 60;   // let the camera rest 0.6 s before the next punch
-          } else i++;
-        }
-      }
-      voice = { buf, env, dur: buf.duration, punch, punches, db };
-      $("an-zoomHint").textContent = punches ? `Zoom punch: ${punches} punch${punches > 1 ? "es" : ""} on the loudest moments of the voice clip.` : "Zoom punch: the voice clip has no loud moments, so there are no punches.";
+      let maxDb = -Infinity; for (let i = 0; i < m; i++) if (db[i] > maxDb) maxDb = db[i];
+      voice = { buf, env, dur: buf.duration, db, floorDb, maxDb: Math.max(maxDb, floorDb + 1), span };
+      computePunches(); $("an-punchTh").disabled = false;
       const talkFr = env.reduce((c, v) => c + (v > 0 ? 1 : 0), 0) / m;
       $("an-audioHint").textContent = `${f.name} · ${fmt(buf.duration)} (speaking ${Math.round(talkFr * 100)}% of it). The mouth moves only while the voice speaks, and the voice is in the export.`;
       $("an-audioClear").hidden = false; $("an-vStartRow").hidden = false; $("an-voRow").hidden = false;
@@ -4470,8 +4498,11 @@ window.setStageColor = (el, c) => {
     } catch { $("an-audioHint").textContent = "This browser couldn't read that audio. Try an MP3, WAV or M4A file."; }
   }
   $("an-audio").addEventListener("change", (e) => { loadVoice(e.target.files[0]); e.target.value = ""; });
-  $("an-audioClear").addEventListener("click", () => { setPlaying(false); voice = null; $("an-audioClear").hidden = true; $("an-vStartRow").hidden = true; $("an-zoomHint").textContent = "Zoom punch follows the voice: add a voice clip in the Person tab and it punches in on the loud moments. Without a voice clip there are no punches."; $("an-voRow").hidden = true; $("an-audioHint").textContent = "No voice clip: the mouth does a made-up talking pattern. Add an MP3, WAV or M4A and the mouth opens only while the voice is speaking."; t = 0; renderKeys(); draw(); });
+  $("an-audioClear").addEventListener("click", () => { setPlaying(false); voice = null; $("an-audioClear").hidden = true; $("an-vStartRow").hidden = true; $("an-punchTh").disabled = true; $("an-punchThOut").textContent = "Auto"; $("an-zoomHint").textContent = "Zoom punch follows the voice: add a voice clip in the Person tab and it punches in on the loud moments. Without a voice clip there are no punches."; $("an-voRow").hidden = true; $("an-audioHint").textContent = "No voice clip: the mouth does a made-up talking pattern. Add an MP3, WAV or M4A and the mouth opens only while the voice is speaking."; t = 0; renderKeys(); draw(); });
 
+  let manualTh = null;
+  $("an-punchTh").addEventListener("input", () => { if (!voice) return; manualTh = $("an-punchTh").value; $("an-punchAuto").checked = false; setPlaying(false); computePunches(); drawStrip(); draw(); });
+  $("an-punchAuto").addEventListener("change", () => { if (!voice) return; if (!$("an-punchAuto").checked && manualTh != null) $("an-punchTh").value = manualTh; computePunches(); drawStrip(); draw(); });
   // ---------- voice strip: where the voice speaks on the timeline; drag it to move the voice ----------
   const vstrip = $("an-voStrip");
   function drawStrip() {
@@ -4479,15 +4510,26 @@ window.setStageColor = (el, c) => {
     const dpr = Math.min(2, window.devicePixelRatio || 1), cw = vstrip.clientWidth, chh = vstrip.clientHeight; if (!cw) return;
     vstrip.width = Math.round(cw * dpr); vstrip.height = Math.round(chh * dpr);
     const x = vstrip.getContext("2d"); x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, cw, chh);
-    const D = duration(), X = (tt) => 11 + (cw - 22) * tt / D, s0 = vStart(), mid = chh / 2;
-    x.fillStyle = "rgba(255,70,103,.14)"; x.fillRect(X(s0), 3, X(s0 + voice.dur) - X(s0), chh - 6);
-    x.fillStyle = "#ff4667"; x.strokeStyle = "#0d0d0f";
-    const step = Math.max(1, Math.floor(voice.env.length / Math.max(1, (X(s0 + voice.dur) - X(s0)) / 2)));
-    for (let i = 0; i < voice.env.length; i += step) {
-      let v = 0; for (let k = i; k < Math.min(voice.env.length, i + step); k++) v = Math.max(v, voice.env[k]);
-      const px = X(s0 + i / 100), hh = Math.max(1, v * (chh / 2 - 5));
-      x.fillStyle = v > 0 ? "#ff4667" : "rgba(13,13,15,.25)"; x.fillRect(px, mid - hh, Math.max(1.2, (cw - 22) * step / 100 / D), hh * 2);
+    const D = duration(), X = (tt) => 11 + (cw - 22) * tt / D, s0 = vStart(), top = 4, bot = chh - 4, H = bot - top;
+    x.fillStyle = "rgba(255,70,103,.10)"; x.fillRect(X(s0), 3, X(s0 + voice.dur) - X(s0), chh - 6);
+    const n = voice.env.length, step = Math.max(1, Math.floor(n / Math.max(1, (X(s0 + voice.dur) - X(s0)) / 2))), bw = Math.max(1.2, (cw - 22) * step / 100 / D);
+    // punch zones (lime) where the camera will punch in
+    if (voice.punch && moveOn("zoom")) for (let i = 0; i < n; i += step) if (voice.punch[i] > 0) {
+      x.fillStyle = "rgba(216,255,92,.75)"; x.fillRect(X(s0 + i / 100), 3, bw + 0.5, chh - 6);
+      x.fillStyle = "#b8e62e"; x.fillRect(X(s0 + i / 100), 0, bw + 0.5, 4);            // solid marker along the top edge
     }
+    // loudness bars: 0 = the clip's noise floor, full height = its loudest moment
+    for (let i = 0; i < n; i += step) {
+      let d = -Infinity, sp = false; for (let k = i; k < Math.min(n, i + step); k++) { d = Math.max(d, voice.db[k]); sp = sp || voice.env[k] > 0; }
+      const u = Math.max(0, Math.min(1, (d - voice.floorDb) / (voice.maxDb - voice.floorDb))), hh = Math.max(1, u * H);
+      x.fillStyle = !sp ? "rgba(13,13,15,.22)" : d >= voice.thDb ? "#d6213f" : "#ff4667"; x.fillRect(X(s0 + i / 100), bot - hh, bw, hh);
+    }
+    // threshold line
+    if (Number.isFinite(voice.thDb) && moveOn("zoom")) {
+      const ty = bot - Math.max(0, Math.min(1, (voice.thDb - voice.floorDb) / (voice.maxDb - voice.floorDb))) * H;
+      x.save(); x.setLineDash([5, 4]); x.lineWidth = 2; x.strokeStyle = "#0d0d0f"; x.beginPath(); x.moveTo(X(s0), ty); x.lineTo(X(s0 + voice.dur), ty); x.stroke(); x.restore();
+    }
+    x.strokeStyle = "#0d0d0f";
     x.lineWidth = 2; x.strokeRect(X(s0), 3, X(s0 + voice.dur) - X(s0), chh - 6);
     x.fillStyle = "#0d0d0f"; x.fillRect(X(Math.min(t, D)) - 1.5, 0, 3, chh);
     $("an-voTime").textContent = `${fmt(s0)} – ${fmt(s0 + voice.dur)}`;
@@ -4713,11 +4755,12 @@ window.setStageColor = (el, c) => {
   // ---------- start ----------
   anDefaultName(); fitPreview(); draw(); renderKeys();
   requestAnimationFrame(() => { fitPreview(); if (!playing) draw(); });
+  document.querySelector('[data-move="zoom"]').addEventListener("click", () => setTimeout(drawStrip));
   // test hook for the automated test suite (tests/animate.test.js); only present with ?test in the address
   if (/[?&]test\b/.test(location.search)) window.__an = {
     valAt, xfAt, mouthOpen, duration, pose, charXf, handles, tracks, base, eases, cv, sampleArt: () => sampleCharacter(),
     get t() { return t; }, set t(v) { setPlaying(false); t = v; draw(); },
-    get zoom() { return viewZoom; }, get spaceDown() { return spaceDown; }, get voice() { return voice; },
+    get zoom() { return viewZoom; }, computePunches, get prep() { if (!prep) prepare(); return prep; }, get spaceDown() { return spaceDown; }, get voice() { return voice; },
     get selected() { return selected; }, set selected(v) { selected = v; draw(); },
   };
 })();
