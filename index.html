@@ -4148,7 +4148,8 @@ window.setStageColor = (el, c) => {
   function charXf(w, h) { if (!prep) prepare(); const X0 = xfAt(t); return { cx: w * X0.x, cy: h * X0.y, s: h * 0.95 * (X0.size / 100) / prep.H, rot: X0.rot, f: flip ? -1 : 1 }; }
   function toLocal(p, X) { const dx = p.x - X.cx, dy = p.y - X.cy, c = Math.cos(-X.rot), sn = Math.sin(-X.rot); return { x: (dx * c - dy * sn) / (X.s * X.f) + prep.W / 2, y: (dx * sn + dy * c) / X.s + prep.H }; }
   function toScreen(q, X) { const lx = (q.x - prep.W / 2) * X.s * X.f, ly = (q.y - prep.H) * X.s, c = Math.cos(X.rot), sn = Math.sin(X.rot); return { x: X.cx + lx * c - ly * sn, y: X.cy + lx * sn + ly * c }; }
-  const cpx = () => cv.width / Math.max(1, cv.getBoundingClientRect().width);   // canvas pixels per screen pixel
+  // canvas pixels per screen pixel (1 until the canvas has a real size on screen, so guides never draw huge)
+  const cpx = () => { const sw = cv.getBoundingClientRect().width; return sw > 40 ? cv.width / sw : 1; };
   function handles(X) {
     const corners = [{ x: 0, y: 0 }, { x: prep.W, y: 0 }, { x: prep.W, y: prep.H }, { x: 0, y: prep.H }].map((q) => toScreen(q, X));
     const top = toScreen({ x: prep.W / 2, y: 0 }, X), k = 34 * cpx();
@@ -4653,7 +4654,8 @@ window.setStageColor = (el, c) => {
   });
   { let first = "person"; try { first = localStorage.getItem("cutout-animate-tab") || first; } catch {} showTab(anTabs.some((b) => b.dataset.antab === first) ? first : "person"); }
   // ---------- start ----------
-  anDefaultName(); draw(); renderKeys();
+  anDefaultName(); fitPreview(); draw(); renderKeys();
+  requestAnimationFrame(() => { fitPreview(); if (!playing) draw(); });
 })();
 </script>
 <script>
