@@ -34,6 +34,7 @@ Every new feature ships with 50 automated browser tests: 25 real-use cases and 2
 npm i -D playwright && npx playwright install chromium   # once
 node tests/animate.test.js            # run everything
 node tests/animate.test.js keyframe   # run only tests whose name matches
+node tests/bench.test.js              # Bench (magic tool) tests
 ```
 
 The export test also needs `ffmpeg`/`ffprobe` on your PATH (it is skipped otherwise).

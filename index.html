@@ -594,6 +594,7 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
             <input type="range" id="tol" min="1" max="120" value="32">
           </div>
           <label class="check" for="wGlobal"><input type="checkbox" id="wGlobal"> Every matching pixel, not just the touching area</label>
+          <label class="check" for="wClean" title="Removes the thin, faint lines left between colors after erasing. Turn off for hair or very thin details."><input type="checkbox" id="wClean" checked> Clean up leftover lines</label>
         </div>
         <div class="slider">
           <label for="feather">Edge softness</label><output id="featherOut" for="feather"></output>
@@ -1794,8 +1795,39 @@ window.setStageColor = (el, c) => {
     const reg = magicRegion(srcData.data, w, h, sx, sy, +tolEl.value, $("wGlobal").checked);
     const md = mctx.getImageData(0, 0, w, h), m = md.data;
     if (mode === "keep") { for (let p = 0, i = 3; p < reg.length; p++, i += 4) if (reg[p] > m[i]) m[i] = reg[p]; }
-    else { for (let p = 0, i = 3; p < reg.length; p++, i += 4) if (reg[p]) m[i] = m[i] * (255 - reg[p]) / 255; }
+    else {
+      for (let p = 0, i = 3; p < reg.length; p++, i += 4) if (reg[p] && m[i] > 255 - reg[p]) m[i] = 255 - reg[p];   // same click twice = same result
+      if ($("wClean").checked) cleanLeftovers(m, reg, w, h);
+    }
     mctx.putImageData(md, 0, 0);
+  }
+  // After erasing: the anti-aliased edge pixels between two colors don't match either color, so they stay
+  // behind as thin faint lines. Remove visible strands about 2r px wide or less (a morphological opening) and
+  // faint half-transparent pixels, but only right next to what this click erased, so the subject is untouched.
+  function cleanLeftovers(m, reg, w, h) {
+    const r = Math.max(1, Math.round(Math.min(w, h) / 900));             // 1 px on normal images: catches 1–2 px fringes, keeps 3 px+ strokes
+    let x0 = w, y0 = h, x1 = -1, y1 = -1;
+    for (let y = 0, p = 0; y < h; y++) for (let x = 0; x < w; x++, p++) if (reg[p] > 128) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    if (x1 < 0) return;
+    const pad = 3 * r + 2; x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad); x1 = Math.min(w - 1, x1 + pad); y1 = Math.min(h - 1, y1 + pad);
+    const bw = x1 - x0 + 1, bh = y1 - y0 + 1, n = bw * bh;
+    const vis = new Uint8Array(n), near = new Uint8Array(n);
+    for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) { const p = (y + y0) * w + x + x0, k = y * bw + x; vis[k] = m[p * 4 + 3] > 40 ? 1 : 0; near[k] = reg[p] > 128 ? 1 : 0; }
+    // separable square min/max filter of radius rad
+    const filt = (src, rad, isMax) => {
+      const tmp = new Uint8Array(n), out = new Uint8Array(n);
+      for (let y = 0; y < bh; y++) { const row = y * bw; let cnt = 0;
+        for (let x = -rad; x < bw; x++) { const a = x + rad; if (a < bw) cnt += src[row + a]; const b = x - rad - 1; if (b >= 0) cnt -= src[row + b]; if (x >= 0) { const win = Math.min(bw - 1, x + rad) - Math.max(0, x - rad) + 1; tmp[row + x] = isMax ? (cnt > 0 ? 1 : 0) : (cnt === win ? 1 : 0); } } }
+      for (let x = 0; x < bw; x++) { let cnt = 0;
+        for (let y = -rad; y < bh; y++) { const a = y + rad; if (a < bh) cnt += tmp[a * bw + x]; const b = y - rad - 1; if (b >= 0) cnt -= tmp[b * bw + x]; if (y >= 0) { const win = Math.min(bh - 1, y + rad) - Math.max(0, y - rad) + 1; out[y * bw + x] = isMax ? (cnt > 0 ? 1 : 0) : (cnt === win ? 1 : 0); } } }
+      return out;
+    };
+    const opened = filt(filt(vis, r, false), r, true), zone = filt(near, r + 1, true);
+    for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) {
+      const k = y * bw + x; if (!zone[k]) continue;
+      const i = ((y + y0) * w + x + x0) * 4 + 3;
+      if ((vis[k] && !opened[k]) || (m[i] > 0 && m[i] <= 40)) m[i] = 0;
+    }
   }
   // Low-resolution copy of the photo for the hover preview
   let small = null;
@@ -1840,6 +1872,18 @@ window.setStageColor = (el, c) => {
     });
   });
   $("wGlobal").addEventListener("change", () => { lastMagic = null; drawCursor(lastPt); });
+  $("wClean").addEventListener("change", () => {           // re-apply the last click with or without the clean-up
+    if (!lastMagic) return;
+    mctx.save(); mctx.globalCompositeOperation = "copy"; mctx.drawImage(lastMagic.base, 0, 0); mctx.restore();
+    magic(lastMagic.x, lastMagic.y, lastMagic.mode); render();
+  });
+  // test hook for tests/bench.test.js; only with ?test in the address
+  if (/[?&]test\b/.test(location.search)) window.__bench = {
+    get src() { return src; }, get mask() { return mask; }, magicRegion, cleanLeftovers,
+    load: (f) => loadFile(f), undo: () => undo(),
+    click: (x, y, mode) => { pushUndo(); magic(x, y, mode || "erase"); lastMagic = { x, y, mode: mode || "erase", base: undoStack[undoStack.length - 1] }; render(); },
+    alpha: () => mctx.getImageData(0, 0, mask.width, mask.height).data,
+  };
 
   // compare
   const cmpOn = () => { if (!src) return; comparing = true; render(); }, cmpOff = () => { comparing = false; render(); };
