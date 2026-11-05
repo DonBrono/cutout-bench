@@ -1074,8 +1074,9 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
           <button data-move="shake" aria-pressed="false">Shake</button>
           <button data-move="hop" aria-pressed="false">Hop</button>
           <button data-move="slide" aria-pressed="true">Slide in</button>
-          <button data-move="zoom" aria-pressed="true">Zoom punch</button>
+          <button data-move="zoom" aria-pressed="true" title="Punches in on the loud moments of the voice clip">Zoom punch</button>
         </div>
+        <p class="hint" id="an-zoomHint">Zoom punch follows the voice: add a voice clip in the Person tab and it punches in on the loud moments. Without a voice clip there are no punches.</p>
         <div class="grid2">
         <div class="slider"><label for="an-energy">Energy</label><output id="an-energyOut" for="an-energy"></output>
           <input type="range" id="an-energy" min="10" max="200" step="5" value="100"></div>
@@ -3872,40 +3873,75 @@ window.setStageColor = (el, c) => {
 
   // ---------- sample: an original cartoon presenter on transparent paper, plus a room ----------
   function sampleCharacter() {
-    // flat sticker-style presenter in the app's palette: ink hair, violet jacket, lime tie, sky-blue glasses
+    // flat sticker-style presenter: dark wavy hair, round thin glasses, stubble, sage tee with a dark leaf print
     const c = mk(900, 1150), x = c.getContext("2d"); x.lineJoin = "round"; x.lineCap = "round";
     const out = (fill, lw) => { x.fillStyle = fill; x.fill(); x.lineWidth = lw || 11; x.strokeStyle = INK; x.stroke(); };
-    // jacket, shirt, lapels, tie, pocket square
-    x.beginPath(); x.moveTo(140, 1150); x.bezierCurveTo(140, 860, 250, 755, 450, 755); x.bezierCurveTo(650, 755, 760, 860, 760, 1150); x.closePath(); out("#8c7ae6");
-    x.beginPath(); x.moveTo(372, 762); x.lineTo(450, 920); x.lineTo(528, 762); x.closePath(); out("#fbf5ea", 9);
-    x.beginPath(); x.moveTo(372, 762); x.lineTo(330, 830); x.lineTo(400, 860); x.lineTo(450, 940); x.lineTo(392, 1150); x.lineTo(330, 1150); x.lineTo(300, 880); x.closePath(); out("#7563d8", 9);
-    x.beginPath(); x.moveTo(528, 762); x.lineTo(570, 830); x.lineTo(500, 860); x.lineTo(450, 940); x.lineTo(508, 1150); x.lineTo(570, 1150); x.lineTo(600, 880); x.closePath(); out("#7563d8", 9);
-    x.beginPath(); x.moveTo(450, 800); x.lineTo(480, 838); x.lineTo(466, 1010); x.lineTo(450, 1040); x.lineTo(434, 1010); x.lineTo(420, 838); x.closePath(); out("#d8ff5c", 8);
-    x.beginPath(); x.moveTo(600, 960); x.lineTo(660, 948); x.lineTo(668, 990); x.lineTo(606, 1000); x.closePath(); out("#ff4667", 8);
-    // neck
-    x.beginPath(); x.roundRect(395, 640, 110, 150, 30); out("#f5b48e", 10);
+    const SKIN = "#efc29f", SKIN2 = "#e3aa84", HAIR = "#1d1512", TEE = "#93a882", TEE2 = "#7d9370", PRINT = "#22343f";
+    // t-shirt
+    const tee = () => { x.beginPath(); x.moveTo(105, 1150); x.bezierCurveTo(105, 880, 235, 770, 450, 770); x.bezierCurveTo(665, 770, 795, 880, 795, 1150); x.closePath(); };
+    tee(); out(TEE);
+    // leaf print across the chest, clipped to the shirt
+    x.save(); tee(); x.clip();
+    const leaf = (lx, ly, len, ang, wid) => {
+      x.save(); x.translate(lx, ly); x.rotate(ang); x.beginPath(); x.moveTo(0, 0); x.bezierCurveTo(len * 0.3, -wid, len * 0.75, -wid * 0.8, len, 0); x.bezierCurveTo(len * 0.75, wid * 0.8, len * 0.3, wid, 0, 0); x.closePath();
+      x.fillStyle = PRINT; x.fill(); x.strokeStyle = TEE2; x.lineWidth = 3; x.beginPath(); x.moveTo(len * 0.08, 0); x.lineTo(len * 0.9, 0); x.stroke();
+      for (let k = 1; k < 5; k++) { const q = len * k / 5.2; x.beginPath(); x.moveTo(q, 0); x.lineTo(q + len * 0.08, -wid * 0.55); x.moveTo(q, 0); x.lineTo(q + len * 0.08, wid * 0.55); x.stroke(); }
+      x.restore();
+    };
+    const L = [[150, 1010, 150, -0.5, 38], [210, 960, 170, 0.25, 42], [320, 1040, 160, -0.9, 40], [380, 950, 150, 0.1, 36], [470, 1030, 175, -0.35, 44],
+      [560, 960, 160, 0.45, 40], [640, 1035, 150, -0.75, 38], [700, 955, 140, 0.2, 34], [250, 1080, 140, -0.2, 34], [560, 1085, 150, 0.1, 36], [90, 935, 140, 0.4, 34], [760, 1010, 130, -0.4, 32]];
+    for (const [lx, ly, len, ang, wid] of L) leaf(lx, ly, len, ang, wid);
+    x.restore();
+    tee(); x.lineWidth = 11; x.strokeStyle = INK; x.stroke();
+    // short-sleeve seams
+    x.save(); tee(); x.clip(); x.fillStyle = "rgba(13,13,15,.10)"; x.beginPath(); x.ellipse(160, 1150, 120, 330, -0.15, 0, 7); x.ellipse(740, 1150, 120, 330, 0.15, 0, 7); x.fill(); x.restore();
+    // neck, collar
+    x.beginPath(); x.roundRect(392, 640, 116, 160, 32); out(SKIN2, 10);
+    x.beginPath(); x.moveTo(352, 776); x.quadraticCurveTo(450, 880, 548, 776); x.quadraticCurveTo(450, 836, 352, 776); x.closePath(); out(TEE2, 9);
     // ears and head
-    x.beginPath(); x.ellipse(236, 492, 36, 54, 0, 0, 7); out("#f5b48e", 9); x.beginPath(); x.ellipse(664, 492, 36, 54, 0, 0, 7); out("#f5b48e", 9);
-    x.beginPath(); x.ellipse(450, 470, 215, 245, 0, 0, 7); out("#ffcfae");
-    // chunky ink hair with a quiff
-    x.beginPath(); x.moveTo(234, 450); x.bezierCurveTo(205, 260, 300, 170, 430, 168); x.bezierCurveTo(470, 120, 560, 130, 590, 190);
-    x.bezierCurveTo(690, 230, 700, 340, 666, 450); x.bezierCurveTo(640, 360, 590, 320, 520, 330); x.bezierCurveTo(450, 340, 400, 300, 360, 340);
-    x.bezierCurveTo(300, 360, 260, 400, 234, 450); x.closePath(); out(INK, 8);
-    x.strokeStyle = "rgba(255,255,255,.35)"; x.lineWidth = 9; x.beginPath(); x.moveTo(330, 230); x.quadraticCurveTo(420, 190, 500, 200); x.stroke();
+    x.beginPath(); x.ellipse(238, 492, 36, 54, 0, 0, 7); out(SKIN2, 9); x.beginPath(); x.ellipse(662, 492, 36, 54, 0, 0, 7); out(SKIN2, 9);
+    x.beginPath(); x.ellipse(450, 470, 215, 245, 0, 0, 7); x.fillStyle = SKIN; x.fill();
+    // stubble on the jaw and above the lip
+    x.save(); x.beginPath(); x.ellipse(450, 470, 215, 245, 0, 0, 7); x.clip();
+    const beard = () => { x.beginPath(); x.moveTo(240, 505); x.bezierCurveTo(262, 690, 360, 722, 450, 722); x.bezierCurveTo(540, 722, 638, 690, 660, 505);
+      x.bezierCurveTo(612, 596, 560, 632, 450, 636); x.bezierCurveTo(340, 632, 288, 596, 240, 505); x.closePath();
+      x.moveTo(376, 590); x.quadraticCurveTo(450, 560, 524, 590); x.quadraticCurveTo(450, 578, 376, 590); x.closePath(); };
+    x.fillStyle = "rgba(70,48,38,.16)"; beard(); x.fill();
+    x.save(); beard(); x.clip(); x.fillStyle = "rgba(45,30,24,.30)";
+    for (let i = 0; i < 1400; i++) { const px = 236 + ((i * 97) % 431), py = 548 + ((i * 61 + (i >> 3) * 13) % 180); x.beginPath(); x.arc(px, py, 1.7, 0, 7); x.fill(); }
+    x.restore();
+    x.restore();
     x.beginPath(); x.ellipse(450, 470, 215, 245, 0, 0, 7); x.lineWidth = 11; x.strokeStyle = INK; x.stroke();
-    // eyes behind sky-blue glasses
+    // dark wavy hair: full on top, short at the sides
+    const curls = [[262, 352, 48], [292, 282, 58], [352, 228, 62], [430, 202, 66], [510, 206, 64], [582, 240, 60], [632, 300, 54], [652, 372, 42], [400, 250, 50], [480, 240, 52], [555, 280, 48]];
+    for (const [cx, cy, r] of curls) { x.beginPath(); x.arc(cx, cy, r, 0, 7); out(HAIR, 10); }
+    x.beginPath(); x.moveTo(236, 458); x.bezierCurveTo(222, 360, 270, 300, 340, 290); x.bezierCurveTo(420, 280, 500, 284, 570, 300); x.bezierCurveTo(636, 316, 676, 370, 664, 458);
+    x.bezierCurveTo(640, 392, 600, 352, 548, 346); x.bezierCurveTo(500, 362, 460, 338, 420, 352); x.bezierCurveTo(372, 368, 330, 352, 300, 372); x.bezierCurveTo(268, 392, 248, 420, 236, 458); x.closePath(); out(HAIR, 10);
+    x.fillStyle = HAIR; for (const [cx, cy, r] of curls) { if (cy < 300) { x.beginPath(); x.arc(cx, cy + 6, r - 9, 0, 7); x.fill(); } }
+    x.strokeStyle = "rgba(255,255,255,.28)"; x.lineWidth = 8;
+    for (const [cx, cy, r] of [[352, 228, 62], [430, 202, 66], [510, 206, 64], [582, 240, 60]]) { x.beginPath(); x.arc(cx, cy, r * 0.62, Math.PI * 1.1, Math.PI * 1.55); x.stroke(); }
+    // eyebrows, eyes
+    x.lineWidth = 16; x.strokeStyle = HAIR; x.beginPath(); x.moveTo(318, 398); x.quadraticCurveTo(362, 380, 408, 392); x.moveTo(492, 390); x.quadraticCurveTo(540, 376, 584, 396); x.stroke();
     for (const ex of [365, 535]) {
-      x.beginPath(); x.ellipse(ex, 462, 40, 36, 0, 0, 7); out("#ffffff", 7);
-      x.beginPath(); x.arc(ex + 6, 466, 16, 0, 7); x.fillStyle = INK; x.fill(); x.beginPath(); x.arc(ex + 12, 459, 5, 0, 7); x.fillStyle = "#fff"; x.fill();
-      x.beginPath(); x.roundRect(ex - 66, 410, 132, 106, 34); x.lineWidth = 15; x.strokeStyle = INK; x.stroke(); x.lineWidth = 8; x.strokeStyle = "#5cc8ff"; x.stroke();
+      x.beginPath(); x.ellipse(ex, 465, 34, 26, 0, 0, 7); out("#ffffff", 6);
+      x.beginPath(); x.arc(ex + 4, 467, 14, 0, 7); x.fillStyle = "#4a2f20"; x.fill(); x.beginPath(); x.arc(ex + 4, 467, 7, 0, 7); x.fillStyle = INK; x.fill();
+      x.beginPath(); x.arc(ex + 9, 461, 4, 0, 7); x.fillStyle = "#fff"; x.fill();
+      x.lineWidth = 6; x.strokeStyle = INK; x.beginPath(); x.moveTo(ex - 34, 458); x.quadraticCurveTo(ex, 438, ex + 34, 458); x.stroke();
     }
-    x.lineWidth = 12; x.strokeStyle = INK; x.beginPath(); x.moveTo(431, 450); x.quadraticCurveTo(450, 436, 469, 450); x.stroke();
-    x.lineWidth = 14; x.beginPath(); x.moveTo(318, 380); x.lineTo(408, 372); x.moveTo(492, 372); x.lineTo(582, 380); x.stroke();
-    // nose, blush, mouth
-    x.lineWidth = 8; x.beginPath(); x.moveTo(455, 505); x.quadraticCurveTo(432, 556, 472, 558); x.stroke();
-    x.fillStyle = "rgba(255,70,103,.35)"; x.beginPath(); x.ellipse(318, 566, 34, 20, 0, 0, 7); x.fill(); x.beginPath(); x.ellipse(582, 566, 34, 20, 0, 0, 7); x.fill();
-    x.lineWidth = 10; x.strokeStyle = INK; x.beginPath(); x.moveTo(382, 600); x.quadraticCurveTo(450, 616, 518, 600); x.stroke();
-    return { c, mouth: { x: 450, y: 602 }, neck: { x: 450, y: 702 } };
+    // round, thin gold glasses
+    for (const ex of [365, 535]) {
+      x.beginPath(); x.arc(ex, 466, 64, 0, 7); x.fillStyle = "rgba(255,255,255,.14)"; x.fill();
+      x.lineWidth = 12; x.strokeStyle = INK; x.stroke(); x.lineWidth = 5; x.strokeStyle = "#c9a15e"; x.stroke();
+      x.strokeStyle = "rgba(255,255,255,.55)"; x.lineWidth = 5; x.beginPath(); x.arc(ex, 466, 48, Math.PI * 1.15, Math.PI * 1.4); x.stroke();
+    }
+    x.lineWidth = 10; x.strokeStyle = INK; x.beginPath(); x.moveTo(429, 458); x.quadraticCurveTo(450, 444, 471, 458); x.stroke();
+    x.lineWidth = 4; x.strokeStyle = "#c9a15e"; x.stroke();
+    x.lineWidth = 10; x.strokeStyle = INK; x.beginPath(); x.moveTo(301, 456); x.lineTo(248, 468); x.moveTo(599, 456); x.lineTo(652, 468); x.stroke();
+    // nose and a half smile
+    x.lineWidth = 8; x.strokeStyle = INK; x.beginPath(); x.moveTo(452, 500); x.quadraticCurveTo(428, 552, 466, 556); x.stroke();
+    x.lineWidth = 10; x.beginPath(); x.moveTo(390, 600); x.quadraticCurveTo(455, 618, 520, 592); x.stroke();
+    x.lineWidth = 7; x.beginPath(); x.moveTo(514, 582); x.quadraticCurveTo(526, 592, 522, 604); x.stroke();
+    return { c, mouth: { x: 452, y: 603 }, neck: { x: 450, y: 702 } };
   }
   function sampleRoom() {
     // studio set in the app's style: cream dotted wall, lime sun, sky window, violet floor, sticker shapes
@@ -4081,7 +4117,11 @@ window.setStageColor = (el, c) => {
     if (moveOn("headtilt")) p.hrot += Math.sin(t * Math.PI * 1.15 * sp + r() * 6) * 0.09 * e + Math.sin(t * 6.5 * sp) * talk * 0.06 * e;
     if (moveOn("headbob")) { p.hdy -= (Math.abs(Math.sin(t * Math.PI * 3 * sp)) * 0.008 + talk * 0.016) * e; p.hs *= 1 + talk * 0.03 * e; }
     if (moveOn("headshake")) { const per = 2.2 / sp, ph = (t + 0.7) % per; if (ph < 0.45) p.hrot += Math.sin(ph * Math.PI * 14) * 0.09 * e * Math.sin(ph / 0.45 * Math.PI); }
-    if (moveOn("zoom")) { const per = 2.6 / Math.max(0.6, sp), first = 0.9; if (t > first) { const ph = (t - first) % per; if (ph < per * 0.42) p.cam = 1 + 0.28 * Math.min(1.4, e); } }
+    // zoom punch: only on the loud moments of the voice clip, harder for louder ones; off without a voice
+    if (moveOn("zoom") && voice && voice.punch) {
+      const vt = t - vStart();
+      if (vt >= 0 && vt < voice.dur) { const a = voice.punch[Math.min(voice.punch.length - 1, Math.floor(vt * 100))]; if (a > 0) p.cam = 1 + 0.28 * Math.min(1.4, e) * a; }
+    }
     return { ...p, talk };
   }
 
@@ -4402,7 +4442,24 @@ window.setStageColor = (el, c) => {
         lv = target > lv ? lv + (target - lv) * 0.75 : lv + (target - lv) * 0.4; if (target === 0 && lv < 0.04) lv = 0;
         env[i] = lv;
       }
-      voice = { buf, env, dur: buf.duration };
+      // zoom punches: start on a loud moment (top 20% of the speaking loudness and clearly above the noise),
+      // hold through that loud phrase (0.5–2 s), at least 1 s apart with a 0.6 s rest; louder peaks punch harder
+      const spk = []; for (let i = 0; i < m; i++) if (env[i] > 0) spk.push(db[i]); spk.sort((x, y) => x - y);
+      const punch = new Float32Array(m); let punches = 0;
+      if (spk.length > 10) {
+        const loudDb = Math.max(Math.min(spk[Math.floor(spk.length * 0.8)], spk[Math.floor(spk.length * 0.5)] + 6), floorDb + span * 0.55), topDb = spk[spk.length - 1];
+        for (let i = 0, last = -1e9; i < m;) {
+          if (env[i] > 0 && db[i] >= loudDb && i - last >= 100 && i + 50 <= m) {
+            let j = i, below = 0, peak = db[i];
+            while (j < m && below < 25 && j - i < 200) { if (env[j] === 0 || db[j] < loudDb - 6) below++; else { below = 0; peak = Math.max(peak, db[j]); } j++; }
+            const end = Math.min(m, Math.max(i + 50, j - below)), amt = 0.55 + 0.45 * Math.min(1, (peak - loudDb) / Math.max(1, topDb - loudDb));
+            for (let k = i; k < end; k++) punch[k] = amt;
+            punches++; last = i; i = end + 60;   // let the camera rest 0.6 s before the next punch
+          } else i++;
+        }
+      }
+      voice = { buf, env, dur: buf.duration, punch, punches, db };
+      $("an-zoomHint").textContent = punches ? `Zoom punch: ${punches} punch${punches > 1 ? "es" : ""} on the loudest moments of the voice clip.` : "Zoom punch: the voice clip has no loud moments, so there are no punches.";
       const talkFr = env.reduce((c, v) => c + (v > 0 ? 1 : 0), 0) / m;
       $("an-audioHint").textContent = `${f.name} · ${fmt(buf.duration)} (speaking ${Math.round(talkFr * 100)}% of it). The mouth moves only while the voice speaks, and the voice is in the export.`;
       $("an-audioClear").hidden = false; $("an-vStartRow").hidden = false; $("an-voRow").hidden = false;
@@ -4413,7 +4470,7 @@ window.setStageColor = (el, c) => {
     } catch { $("an-audioHint").textContent = "This browser couldn't read that audio. Try an MP3, WAV or M4A file."; }
   }
   $("an-audio").addEventListener("change", (e) => { loadVoice(e.target.files[0]); e.target.value = ""; });
-  $("an-audioClear").addEventListener("click", () => { setPlaying(false); voice = null; $("an-audioClear").hidden = true; $("an-vStartRow").hidden = true; $("an-voRow").hidden = true; $("an-audioHint").textContent = "No voice clip: the mouth does a made-up talking pattern. Add an MP3, WAV or M4A and the mouth opens only while the voice is speaking."; t = 0; renderKeys(); draw(); });
+  $("an-audioClear").addEventListener("click", () => { setPlaying(false); voice = null; $("an-audioClear").hidden = true; $("an-vStartRow").hidden = true; $("an-zoomHint").textContent = "Zoom punch follows the voice: add a voice clip in the Person tab and it punches in on the loud moments. Without a voice clip there are no punches."; $("an-voRow").hidden = true; $("an-audioHint").textContent = "No voice clip: the mouth does a made-up talking pattern. Add an MP3, WAV or M4A and the mouth opens only while the voice is speaking."; t = 0; renderKeys(); draw(); });
 
   // ---------- voice strip: where the voice speaks on the timeline; drag it to move the voice ----------
   const vstrip = $("an-voStrip");
@@ -4658,7 +4715,7 @@ window.setStageColor = (el, c) => {
   requestAnimationFrame(() => { fitPreview(); if (!playing) draw(); });
   // test hook for the automated test suite (tests/animate.test.js); only present with ?test in the address
   if (/[?&]test\b/.test(location.search)) window.__an = {
-    valAt, xfAt, mouthOpen, duration, pose, charXf, handles, tracks, base, eases, cv,
+    valAt, xfAt, mouthOpen, duration, pose, charXf, handles, tracks, base, eases, cv, sampleArt: () => sampleCharacter(),
     get t() { return t; }, set t(v) { setPlaying(false); t = v; draw(); },
     get zoom() { return viewZoom; }, get spaceDown() { return spaceDown; }, get voice() { return voice; },
     get selected() { return selected; }, set selected(v) { selected = v; draw(); },
