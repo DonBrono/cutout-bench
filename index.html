@@ -996,10 +996,10 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
         </div>
         <div class="field"><span>Background</span>
           <div class="seg2" role="group" aria-label="Background">
-            <button data-anbg="blur" aria-pressed="true">Photo, blurred</button>
-            <button data-anbg="photo" aria-pressed="false">Photo</button>
-            <button data-anbg="color" aria-pressed="false">Flat color</button>
+            <button data-anbg="photo" aria-pressed="true">Photo</button>
+            <button data-anbg="video" aria-pressed="false">Video</button>
             <button data-anbg="image" aria-pressed="false">Other image</button>
+            <button data-anbg="color" aria-pressed="false">Flat color</button>
           </div>
         </div>
         <div class="swatches" id="an-bgColors" role="group" aria-label="Background color" hidden>
@@ -1011,6 +1011,25 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
           <input type="hidden" id="an-bgColor" value="#5cc8ff">
         </div>
         <label class="filebtn" for="an-bgFile" id="an-bgFileRow" hidden>Choose background image<input type="file" id="an-bgFile" accept="image/*"></label>
+        <div id="an-bgVidRow" class="wand-opts" hidden>
+          <label class="filebtn" for="an-bgVid">Choose background video<input type="file" id="an-bgVid" accept="video/*"></label>
+          <p class="hint" id="an-bgVidHint">MP4, MOV or WebM, or drop it on the stage. It loops behind the character.</p>
+          <label class="check" for="an-bgSound"><input type="checkbox" id="an-bgSound"> Include the video's sound</label>
+        </div>
+        <div id="an-bgFx" class="wand-opts">
+          <div class="slider"><label for="an-blur">Background blur</label><output id="an-blurOut" for="an-blur"></output>
+            <input type="range" id="an-blur" min="0" max="100" step="5" value="40"></div>
+          <div class="seg2" role="group" aria-label="Blur style">
+            <button data-blurtype="even" aria-pressed="true">Even blur</button>
+            <button data-blurtype="edges" aria-pressed="false">Edges only</button>
+          </div>
+          <div class="slider"><label for="an-bright">Background brightness</label><output id="an-brightOut" for="an-bright"></output>
+            <input type="range" id="an-bright" min="40" max="130" step="5" value="90"></div>
+        </div>
+        <div class="slider"><label for="an-vig">Vignette</label><output id="an-vigOut" for="an-vig"></output>
+          <input type="range" id="an-vig" min="0" max="100" step="5" value="35"></div>
+        <div class="slider"><label for="an-vigSize">Vignette size</label><output id="an-vigSizeOut" for="an-vigSize"></output>
+          <input type="range" id="an-vigSize" min="10" max="100" step="5" value="55"></div>
         <div class="slider"><label for="an-outline">Paper edge</label><output id="an-outlineOut" for="an-outline"></output>
           <input type="range" id="an-outline" min="0" max="40" step="1" value="14"></div>
         <label class="check" for="an-shadow"><input type="checkbox" id="an-shadow" checked> Drop shadow</label>
@@ -3691,7 +3710,7 @@ window.setStageColor = (el, c) => {
   const cv = $("an-preview"), pctx = cv.getContext("2d");
   const RATIOS = { "16:9": [1920, 1080], "9:16": [1080, 1920], "1:1": [1080, 1080] };
   const INK = "#0d0d0f";
-  let ratio = "16:9", seed = 7, bgMode = "blur", bgColor = "#8c7ae6", bgImage = null;
+  let ratio = "16:9", seed = 7, bgMode = "photo", bgColor = "#8c7ae6", bgImage = null;
   let photo = null, photoName = "sample-character", subject = null;   // subject: canvas with alpha (the cut-out)
   let mouth = null;                                                   // {x, y} in subject pixels
   let neck = null;                                                    // where the head separates (null = just under the mouth)
@@ -3783,19 +3802,71 @@ window.setStageColor = (el, c) => {
     }
     prep = { W, H, ox, oy, full, shadow, jaw, head, edge };
   }
-  let bgCanvas = null;
-  function background(W, H) {
-    const key = `${bgMode}|${bgColor}|${W}x${H}`;
-    if (bgCanvas && bgCanvas._key === key) return bgCanvas;
-    const c = mk(W, H), x = c.getContext("2d");
-    const img = bgMode === "image" ? bgImage : photo;
-    if (bgMode === "color" || !img) { x.fillStyle = bgColor; x.fillRect(0, 0, W, H); }
-    else {
-      const k = Math.max(W / img.width, H / img.height) * (bgMode === "blur" ? 1.08 : 1), dw = img.width * k, dh = img.height * k;
-      if (bgMode === "blur") x.filter = `blur(${Math.round(Math.min(W, H) / 70)}px) brightness(0.88) saturate(1.1)`;
-      x.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh); x.filter = "none";
+  let bgCanvas = null, blurType = "even", bgVideo = null, bgVideoFile = null, bgAudioBuf = null;
+  function fitDraw(x, src, sw, sh, W, H, pad) { const k = Math.max(W / sw, H / sh) * pad, dw = sw * k, dh = sh * k; x.drawImage(src, (W - dw) / 2, (H - dh) / 2, dw, dh); }
+  function bgSource() {
+    if (bgMode === "video") return bgVideo && bgVideo.readyState >= 2 ? [bgVideo, bgVideo.videoWidth, bgVideo.videoHeight] : null;
+    const img = bgMode === "image" ? bgImage : bgMode === "photo" ? photo : null;
+    return img ? [img, img.width, img.height] : null;
+  }
+  // background with brightness and blur: even over the whole frame, or only towards the edges
+  function paintBg(x, W, H) {
+    const src = bgSource(), blur = +$("an-blur").value / 100 * Math.min(W, H) / 40, br = +$("an-bright").value / 100;
+    x.clearRect(0, 0, W, H);
+    if (!src) {
+      x.fillStyle = bgMode === "color" ? bgColor : "#1b1b1f"; x.fillRect(0, 0, W, H);
+      if (br !== 1) { x.fillStyle = br < 1 ? `rgba(0,0,0,${(1 - br).toFixed(2)})` : `rgba(255,255,255,${Math.min(0.6, br - 1).toFixed(2)})`; x.fillRect(0, 0, W, H); }
+      return;
     }
-    c._key = key; return (bgCanvas = c);
+    const pad = blur > 0 ? 1.06 : 1;
+    x.filter = `brightness(${br})` + (blur > 0 && blurType === "even" ? ` blur(${blur.toFixed(1)}px)` : "");
+    fitDraw(x, src[0], src[1], src[2], W, H, pad); x.filter = "none";
+    if (blur > 0 && blurType === "edges") {
+      const b = mk(W, H), bx = b.getContext("2d");
+      bx.filter = `brightness(${br}) blur(${blur.toFixed(1)}px)`; fitDraw(bx, src[0], src[1], src[2], W, H, pad); bx.filter = "none";
+      bx.globalCompositeOperation = "destination-in";
+      const g = bx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.2, W / 2, H / 2, Math.hypot(W, H) * 0.5);
+      g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(1, "#000"); bx.fillStyle = g; bx.fillRect(0, 0, W, H);
+      x.drawImage(b, 0, 0);
+    }
+  }
+  function background(W, H) {
+    if (bgMode === "video") {
+      const c = bgCanvas && bgCanvas._video && bgCanvas.width === W && bgCanvas.height === H ? bgCanvas : mk(W, H);
+      c._video = true; paintBg(c.getContext("2d"), W, H); return (bgCanvas = c);
+    }
+    const key = [bgMode, bgColor, W, H, $("an-blur").value, blurType, $("an-bright").value, !!bgImage].join("|");
+    if (bgCanvas && bgCanvas._key === key) return bgCanvas;
+    const c = mk(W, H); paintBg(c.getContext("2d"), W, H); c._key = key; return (bgCanvas = c);
+  }
+  // keep the background video in step with the timeline
+  function syncBgVideo() {
+    if (bgMode !== "video" || !bgVideo || !isFinite(bgVideo.duration) || !bgVideo.duration || exporting) return;
+    const want = t % bgVideo.duration;
+    if (playing) {
+      bgVideo.muted = !$("an-bgSound").checked;
+      if (bgVideo.paused) bgVideo.play().catch(() => {});
+      if (Math.abs(bgVideo.currentTime - want) > 0.25) bgVideo.currentTime = want;
+    } else {
+      if (!bgVideo.paused) bgVideo.pause();
+      if (Math.abs(bgVideo.currentTime - want) > 0.04 && !bgVideo.seeking) bgVideo.currentTime = want;
+    }
+  }
+  function seekBg(tt) {
+    return new Promise((res) => {
+      const want = tt % bgVideo.duration;
+      if (Math.abs(bgVideo.currentTime - want) < 0.002 && bgVideo.readyState >= 2) return res();
+      const done = () => { clearTimeout(to); res(); }, to = setTimeout(done, 3000);
+      bgVideo.addEventListener("seeked", done, { once: true }); bgVideo.currentTime = want;
+    });
+  }
+  function loadBgVideo(f) {
+    if (bgVideo) { bgVideo.pause(); URL.revokeObjectURL(bgVideo.src); }
+    const v = document.createElement("video"); v.muted = true; v.playsInline = true; v.loop = true; v.preload = "auto";
+    v.addEventListener("loadeddata", () => { $("an-bgVidHint").textContent = `${f.name} · ${fmt(v.duration)} · loops behind the character`; bgCanvas = null; draw(); }, { once: true });
+    v.addEventListener("seeked", () => { if (!playing && !exporting) draw(); });
+    v.onerror = () => { $("an-bgVidHint").textContent = "This browser can't play that video. Try an MP4 (H.264) or WebM file."; };
+    v.src = URL.createObjectURL(f); bgVideo = v; bgVideoFile = f; bgAudioBuf = null;
   }
 
   // ---------- motion ----------
@@ -3861,6 +3932,13 @@ window.setStageColor = (el, c) => {
       face(prep.full, J ? J.body : prep.full);
     }
     ctx.restore();
+    const vg = +$("an-vig").value / 100;
+    if (vg > 0) {
+      const size = +$("an-vigSize").value / 100, r1 = Math.hypot(W, H) / 2;
+      const g = ctx.createRadialGradient(W / 2, H / 2, r1 * (1 - size) * 0.95, W / 2, H / 2, r1 * 1.02);
+      g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(1, `rgba(0,0,0,${Math.min(0.95, vg * 0.95).toFixed(2)})`);
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    }
   }
 
   // ---------- preview & interaction ----------
@@ -3872,6 +3950,7 @@ window.setStageColor = (el, c) => {
     if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; bgCanvas = null; fitPreview(); }
     const D = duration(); if (t > D) t = 0;
     const rest = placing || (!playing && t === 0);
+    syncBgVideo();
     renderFrame(pctx, w, h, t, rest);
     if (rest) markMouth(w, h);
     $("an-time").textContent = `${fmt(t)} / ${fmt(D)}`; $("an-scrub").value = Math.round(t / D * 1000);
@@ -3936,6 +4015,7 @@ window.setStageColor = (el, c) => {
     $("an-playIcon").innerHTML = p ? '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>' : '<path d="M7 4v16l13-8z"/>';
     $("an-play").setAttribute("aria-label", p ? "Pause" : "Play");
     if (srcNode) { try { srcNode.stop(); } catch {} srcNode = null; }
+    if (!p && bgVideo) bgVideo.pause();
     if (p) {
       if (voice && audioCtx()) { srcNode = ac.createBufferSource(); srcNode.buffer = voice.buf; srcNode.connect(ac.destination); startAt = ac.currentTime - t; srcNode.start(0, t); }
       raf = requestAnimationFrame(loop);
@@ -3990,7 +4070,12 @@ window.setStageColor = (el, c) => {
   st.addEventListener("dragenter", (e) => { e.preventDefault(); dd++; $("an-dropHint").hidden = false; });
   st.addEventListener("dragover", (e) => e.preventDefault());
   st.addEventListener("dragleave", () => { if (--dd <= 0) { dd = 0; $("an-dropHint").hidden = true; } });
-  st.addEventListener("drop", (e) => { e.preventDefault(); dd = 0; $("an-dropHint").hidden = true; loadPhoto(e.dataTransfer.files[0]); });
+  st.addEventListener("drop", (e) => {
+    e.preventDefault(); dd = 0; $("an-dropHint").hidden = true;
+    const f = e.dataTransfer.files[0]; if (!f) return;
+    if (f.type && f.type.startsWith("video/")) { document.querySelector('[data-anbg="video"]').click(); loadBgVideo(f); }
+    else loadPhoto(f);
+  });
   function note2(id, text, kind) { const n = $(id); n.hidden = !text; n.textContent = text || ""; n.className = "note" + (kind ? " " + kind : ""); }
   $("an-cut").addEventListener("click", async () => {
     if (!window.CutoutAI) { note2("an-cutNote", "The cutout model isn't available on this page.", "err"); return; }
@@ -4025,11 +4110,20 @@ window.setStageColor = (el, c) => {
   }));
   document.querySelectorAll("[data-anbg]").forEach((b) => b.addEventListener("click", () => {
     bgMode = b.dataset.anbg; document.querySelectorAll("[data-anbg]").forEach((x) => x.setAttribute("aria-pressed", x === b));
-    $("an-bgColors").hidden = bgMode !== "color"; $("an-bgFileRow").hidden = bgMode !== "image"; bgCanvas = null; draw(); syncAnStage();
+    $("an-bgColors").hidden = bgMode !== "color"; $("an-bgFileRow").hidden = bgMode !== "image"; $("an-bgVidRow").hidden = bgMode !== "video";
+    $("an-blur").closest(".slider").hidden = $("an-bgFx").querySelector(".seg2").hidden = bgMode === "color";
+    if (bgMode !== "video" && bgVideo) bgVideo.pause();
+    bgCanvas = null; draw(); syncAnStage();
   }));
   function syncAnStage() { window.setStageColor($("an-stage"), bgMode === "color" ? bgColor : null); }
   document.querySelectorAll("[data-anc]").forEach((b) => b.addEventListener("click", () => { if (b.dataset.anc === "custom") return; bgColor = b.dataset.anc; document.querySelectorAll("[data-anc]").forEach((x) => x.setAttribute("aria-pressed", x === b)); bgCanvas = null; draw(); syncAnStage(); }));
   $("an-bgColor").addEventListener("input", () => { bgColor = $("an-bgColor").value; document.querySelectorAll("[data-anc]").forEach((x) => x.setAttribute("aria-pressed", x.dataset.anc === "custom")); bgCanvas = null; draw(); syncAnStage(); });
+  $("an-bgVid").addEventListener("change", (e) => { const f = e.target.files[0]; e.target.value = ""; if (f) loadBgVideo(f); });
+  document.querySelectorAll("[data-blurtype]").forEach((b) => b.addEventListener("click", () => { blurType = b.dataset.blurtype; document.querySelectorAll("[data-blurtype]").forEach((x) => x.setAttribute("aria-pressed", x === b)); bgCanvas = null; draw(); }));
+  const fxOuts = () => { $("an-blurOut").textContent = $("an-blur").value + "%"; $("an-brightOut").textContent = $("an-bright").value + "%"; $("an-vigOut").textContent = $("an-vig").value + "%"; $("an-vigSizeOut").textContent = $("an-vigSize").value + "%"; };
+  fxOuts();
+  ["an-blur", "an-bright"].forEach((id) => $(id).addEventListener("input", () => { fxOuts(); bgCanvas = null; draw(); }));
+  ["an-vig", "an-vigSize"].forEach((id) => $(id).addEventListener("input", () => { fxOuts(); draw(); }));
   $("an-bgFile").addEventListener("change", async (e) => { const f = e.target.files[0]; e.target.value = ""; if (!f) return; try { bgImage = await readImage(f, 2400); bgCanvas = null; draw(); } catch {} });
 
   // ---------- file name ----------
@@ -4058,11 +4152,21 @@ window.setStageColor = (el, c) => {
     $("an-exportBtn").disabled = true; $("an-progress").hidden = false; $("an-progBar").style.width = "0%"; $("an-progText").textContent = "Preparing…";
     const savedBg = bgCanvas; bgCanvas = null;
     try {
-      let audio = null, audioNote = "";
-      if (voice) {
+      let audio = null, audioNote = "", mixBuf = null;
+      const useBgSound = bgMode === "video" && bgVideoFile && $("an-bgSound").checked;
+      if (voice || useBgSound) {
         const acfg = { codec: "mp4a.40.2", sampleRate: 48000, numberOfChannels: 2, bitrate: 192000 };
         let ok = false; try { ok = window.AudioEncoder && (await AudioEncoder.isConfigSupported(acfg)).supported; } catch {}
-        if (ok) audio = acfg; else audioNote = " The voice was left out: this browser can't make AAC audio. Chrome or Edge on Windows or Mac can.";
+        if (ok) {
+          let bgBuf = null;
+          if (useBgSound) { try { bgBuf = bgAudioBuf || (bgAudioBuf = await new OfflineAudioContext(2, 48000, 48000).decodeAudioData(await bgVideoFile.arrayBuffer())); } catch { audioNote = " The background video's sound couldn't be read."; } }
+          if (voice || bgBuf) {
+            const oac = new OfflineAudioContext(2, Math.max(1, Math.ceil(D * 48000)), 48000);
+            if (voice) { const sv = oac.createBufferSource(); sv.buffer = voice.buf; sv.connect(oac.destination); sv.start(0); }
+            if (bgBuf) { const sb = oac.createBufferSource(); sb.buffer = bgBuf; sb.loop = true; const g = oac.createGain(); g.gain.value = voice ? 0.45 : 1; sb.connect(g); g.connect(oac.destination); sb.start(0); }
+            mixBuf = await oac.startRendering(); audio = acfg;
+          }
+        } else audioNote = " The sound was left out: this browser can't make AAC audio. Chrome or Edge on Windows or Mac can.";
       }
       const muxer = new Mp4Muxer.Muxer({ target: new Mp4Muxer.ArrayBufferTarget(), video: { codec: "avc", width: W, height: H, frameRate: fps }, audio: audio ? { codec: "aac", numberOfChannels: 2, sampleRate: 48000 } : undefined, fastStart: "in-memory", firstTimestampBehavior: "offset" });
       let failed = null;
@@ -4071,7 +4175,7 @@ window.setStageColor = (el, c) => {
       if (audio) {
         const aenc = new AudioEncoder({ output: (c, m) => muxer.addAudioChunk(c, m), error: (err) => { failed = err; } });
         aenc.configure(audio);
-        const L = voice.buf.getChannelData(0), R = voice.buf.getChannelData(1), n = Math.min(L.length, Math.round(D * 48000)), step = 4800;
+        const L = mixBuf.getChannelData(0), R = mixBuf.getChannelData(1), n = Math.min(L.length, Math.round(D * 48000)), step = 4800;
         for (let i = 0; i < n; i += step) {
           const len = Math.min(step, n - i), pl = new Float32Array(len * 2); pl.set(L.subarray(i, i + len), 0); pl.set(R.subarray(i, i + len), len);
           const ad = new AudioData({ format: "f32-planar", sampleRate: 48000, numberOfFrames: len, numberOfChannels: 2, timestamp: Math.round(i * 1e6 / 48000), data: pl });
@@ -4083,6 +4187,7 @@ window.setStageColor = (el, c) => {
       const fc = mk(W, H), fx = fc.getContext("2d", { willReadFrequently: true });
       for (let i = 0; i < frames; i++) {
         if (job.cancelled || failed) break;
+        if (bgMode === "video" && bgVideo && isFinite(bgVideo.duration) && bgVideo.duration) await seekBg((i + 0.5) / fps);
         renderFrame(fx, W, H, (i + 0.5) / fps);
         const frame = new VideoFrame(E.toI420(fx.getImageData(0, 0, W, H).data, W, H), { format: "I420", codedWidth: W, codedHeight: H, timestamp: i * dur, duration: dur, colorSpace: E.COLOR709 });
         venc.encode(frame, { keyFrame: i % (fps * 2) === 0 }); frame.close();
