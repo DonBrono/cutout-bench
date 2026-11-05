@@ -310,6 +310,8 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
 .kf-tools { grid-column: 2 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
 .kf-tools button { min-height: 32px; padding: 3px 11px; font-size: 12px; box-shadow: var(--sh-xs); }
 .kf-ease { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; }
+.kf-prop select { font-weight: 800; background: var(--lime); }
+.kf-dot { position: absolute; top: 50%; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; transform: rotate(45deg); background: rgba(13,13,15,.28); pointer-events: none; }
 .kf-ease select { min-height: 32px; padding: 3px 8px; font-size: 12px; }
 /* ================= Brutalist theme layer =================
    Layout: same workbench (stage left, tool rail right), restyled as chunky
@@ -1006,6 +1008,12 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
         <div class="kf-track" id="an-kfTrack" title="Keyframes: click to jump, drag a diamond to move it"><div class="kf-play" id="an-kfPlay"></div></div>
         <span class="time" id="an-kfCount">No keyframes</span>
         <div class="kf-tools">
+          <label class="kf-ease kf-prop">Keyframe
+            <select id="an-kfProp" title="Which property this track animates">
+              <option value="pos" selected>Position</option><option value="size">Size</option><option value="rot">Rotation</option>
+              <option value="energy">Move energy</option><option value="blur">Background blur</option><option value="bright">Brightness</option><option value="vig">Vignette</option>
+            </select>
+          </label>
           <button id="an-kfPrev" title="Previous keyframe" aria-label="Previous keyframe">◀ ◆</button>
           <button id="an-kfNext" title="Next keyframe" aria-label="Next keyframe">◆ ▶</button>
           <button id="an-kfDel" title="Delete the keyframe at the playhead">Delete</button>
@@ -1015,7 +1023,7 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
           <button id="an-kfClear" class="ghost" title="Remove all keyframes">Clear all</button>
         </div>
       </div>
-      <p class="hint" id="an-stageHint">Click the character to select it: drag to move, pull a corner to resize, use the round handle to rotate (Shift snaps), or scroll to resize. Press the ◆ button (or K) to add a keyframe; after that, every change you make at the playhead becomes a keyframe. Ctrl + scroll zooms the view, hold Space and drag to pan.</p>
+      <p class="hint" id="an-stageHint">Click the character to select it: drag to move, pull a corner to resize, use the round handle to rotate (Shift snaps), or scroll to resize. Pick what to animate under “Keyframe” (position, size, rotation, move energy, blur, brightness or vignette) and press ◆ (or K); after that, changing that property at the playhead adds a keyframe. Ctrl + scroll zooms the view, hold Space and drag to pan.</p>
     </div>
 
     <aside class="rail an-rail">
@@ -3813,25 +3821,49 @@ window.setStageColor = (el, c) => {
   let flip = false, selected = false, viewZoom = 1;
   // ---------- character transform, with keyframes like an editor's Inspector ----------
   const base = { x: 0.5, y: 1.02, size: 90, rot: 0 };               // used while there are no keyframes
-  let keys = [], kfEase = "smooth";                                  // keys: [{ t, x, y, size, rot }] sorted by time
+  // one keyframe track per property, like the Inspector in an editor: pick which one you animate
+  const KPROPS = {
+    pos:    { label: "Position" },
+    size:   { label: "Size", fmt: (v) => Math.round(v) + "%" },
+    rot:    { label: "Rotation", fmt: (v) => Math.round(v * 180 / Math.PI) + "°" },
+    energy: { label: "Move energy", el: "an-energy", fmt: (v) => Math.round(v) + "%" },
+    blur:   { label: "Background blur", el: "an-blur", fmt: (v) => Math.round(v) + "%" },
+    bright: { label: "Brightness", el: "an-bright", fmt: (v) => Math.round(v) + "%" },
+    vig:    { label: "Vignette", el: "an-vig", fmt: (v) => Math.round(v) + "%" },
+  };
+  KPROPS.pos.fmt = (v) => `${Math.round(v.x * 100)}, ${Math.round(v.y * 100)}`;
+  const tracks = {}, eases = {}; for (const k in KPROPS) { tracks[k] = []; eases[k] = "smooth"; }
+  let kprop = "pos", fxT = 0;                                          // selected track; time used by P() while rendering
   const FR = 30, snapT = (v) => Math.round(v * FR) / FR;
-  function xfAt(tt) {
-    if (!keys.length) return { ...base };
-    if (tt <= keys[0].t) return { ...keys[0] };
-    const last = keys[keys.length - 1]; if (tt >= last.t) return { ...last };
-    let i = 0; while (keys[i + 1].t <= tt) i++;
-    const a = keys[i], b = keys[i + 1]; let u = (tt - a.t) / Math.max(1e-6, b.t - a.t);
-    if (kfEase === "hold") u = 0; else if (kfEase === "smooth") u = u * u * (3 - 2 * u);
-    const l = (p, q) => p + (q - p) * u;
-    return { t: tt, x: l(a.x, b.x), y: l(a.y, b.y), size: l(a.size, b.size), rot: l(a.rot, b.rot) };
+  function baseVal(p) {
+    if (p === "pos") return { x: base.x, y: base.y };
+    if (p === "size" || p === "rot") return base[p];
+    return +$(KPROPS[p].el).value;
   }
-  const keyIndexAt = (tt) => keys.findIndex((k) => Math.abs(k.t - tt) < 0.5 / FR);
-  function putKey(k) { const i = keyIndexAt(k.t); if (i >= 0) keys[i] = k; else { keys.push(k); keys.sort((a, b) => a.t - b.t); } }
-  // change the transform at the playhead: auto-keys once any keyframe exists
+  function valAt(p, tt) {
+    const ks = tracks[p]; if (!ks.length) return baseVal(p);
+    if (tt <= ks[0].t) return ks[0].v;
+    const last = ks[ks.length - 1]; if (tt >= last.t) return last.v;
+    let i = 0; while (ks[i + 1].t <= tt) i++;
+    const a = ks[i], b = ks[i + 1]; let u = (tt - a.t) / Math.max(1e-6, b.t - a.t);
+    if (eases[p] === "hold") u = 0; else if (eases[p] === "smooth") u = u * u * (3 - 2 * u);
+    const l = (q, r) => q + (r - q) * u;
+    return p === "pos" ? { x: l(a.v.x, b.v.x), y: l(a.v.y, b.v.y) } : l(a.v, b.v);
+  }
+  const P = (p) => valAt(p, fxT);
+  function xfAt(tt) { const q = valAt("pos", tt); return { x: q.x, y: q.y, size: valAt("size", tt), rot: valAt("rot", tt) }; }
+  const keyIndexAt = (p, tt) => tracks[p].findIndex((k) => Math.abs(k.t - tt) < 0.5 / FR);
+  function putKey(p, tt, v) { const ks = tracks[p], i = keyIndexAt(p, tt); if (i >= 0) ks[i].v = v; else { ks.push({ t: tt, v }); ks.sort((a, b) => a.t - b.t); } }
+  // change a value at the playhead: a property that has keyframes gets keyed, the others change for the whole video
+  function setProp(p, v) {
+    if (tracks[p].length) { putKey(p, snapT(t), v); renderKeys(); }
+    else if (p === "pos") { base.x = v.x; base.y = v.y; }
+    else if (p === "size" || p === "rot") base[p] = v;
+  }
   function setXf(patch) {
-    const n = { ...xfAt(t), ...patch };
-    if (keys.length) { putKey({ t: snapT(t), x: n.x, y: n.y, size: n.size, rot: n.rot }); renderKeys(); }
-    else Object.assign(base, { x: n.x, y: n.y, size: n.size, rot: n.rot });
+    if ("x" in patch || "y" in patch) { const c = valAt("pos", t); setProp("pos", { x: "x" in patch ? patch.x : c.x, y: "y" in patch ? patch.y : c.y }); }
+    if ("size" in patch) setProp("size", patch.size);
+    if ("rot" in patch) setProp("rot", patch.rot);
   }
   let voice = null;                                                   // { buf, env (Float32Array @100Hz), dur }
   function rng(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -3958,7 +3990,7 @@ window.setStageColor = (el, c) => {
   }
   // background with brightness and blur: even over the whole frame, or only towards the edges
   function paintBg(x, W, H) {
-    const src = bgSource(), blur = +$("an-blur").value / 100 * Math.min(W, H) / 40, br = +$("an-bright").value / 100;
+    const src = bgSource(), blur = P("blur") / 100 * Math.min(W, H) / 40, br = P("bright") / 100;
     x.clearRect(0, 0, W, H);
     if (!src) {
       x.fillStyle = bgMode === "color" ? bgColor : "#1b1b1f"; x.fillRect(0, 0, W, H);
@@ -3982,7 +4014,7 @@ window.setStageColor = (el, c) => {
       const c = bgCanvas && bgCanvas._video && bgCanvas.width === W && bgCanvas.height === H ? bgCanvas : mk(W, H);
       c._video = true; paintBg(c.getContext("2d"), W, H); return (bgCanvas = c);
     }
-    const key = [bgMode, bgColor, W, H, $("an-blur").value, blurType, $("an-bright").value, !!bgImage].join("|");
+    const key = [bgMode, bgColor, W, H, Math.round(P("blur") * 4), blurType, Math.round(P("bright") * 4), !!bgImage].join("|");
     if (bgCanvas && bgCanvas._key === key) return bgCanvas;
     const c = mk(W, H); paintBg(c.getContext("2d"), W, H); c._key = key; return (bgCanvas = c);
   }
@@ -4035,7 +4067,7 @@ window.setStageColor = (el, c) => {
     return Math.min(1, Math.pow(syl, 0.7) * (0.55 + 0.45 * Math.abs(Math.sin(t * 2.3 + r() * 3))) * sens);
   }
   function pose(t, rest) {
-    const e = +$("an-energy").value / 100, sp = +$("an-speed").value / 100, r = rng(seed);
+    const e = valAt("energy", t) / 100, sp = +$("an-speed").value / 100, r = rng(seed);
     const p = { dx: 0, dy: 0, rot: 0, sx: 1, sy: 1, cam: 1, hrot: 0, hdy: 0, hs: 1 };
     if (rest) return { ...p, talk: 0 };
     const talk = moveOn("talk") ? mouthOpen(t) : 0;
@@ -4055,6 +4087,7 @@ window.setStageColor = (el, c) => {
 
   // ---------- one frame ----------
   function renderFrame(ctx, W, H, t, rest) {
+    fxT = t;
     if (!prep) prepare();
     ctx.save();
     const ps = pose(t, rest), X0 = xfAt(t), size = X0.size / 100;
@@ -4086,7 +4119,7 @@ window.setStageColor = (el, c) => {
       face(prep.full, J ? J.body : prep.full);
     }
     ctx.restore();
-    const vg = +$("an-vig").value / 100;
+    const vg = P("vig") / 100;
     if (vg > 0) {
       const size = +$("an-vigSize").value / 100, r1 = Math.hypot(W, H) / 2;
       const g = ctx.createRadialGradient(W / 2, H / 2, r1 * (1 - size) * 0.95, W / 2, H / 2, r1 * 1.02);
@@ -4151,7 +4184,8 @@ window.setStageColor = (el, c) => {
     return l.x >= 0 && l.x <= prep.W && l.y >= 0 && l.y <= prep.H ? { kind: "move", X } : null;
   }
   function setSize(v) { setXf({ size: Math.max(20, Math.min(250, v)) }); }
-  function updateChip() { const X0 = xfAt(t); if (!playing) { $("an-size").value = Math.round(X0.size); $("an-sizeOut").textContent = $("an-size").value + "%"; } let deg = Math.round(X0.rot * 180 / Math.PI) % 360; if (deg > 180) deg -= 360; if (deg < -180) deg += 360; $("an-chip").textContent = `${Math.round(X0.size)}% · ${deg}°${flip ? " · mirrored" : ""}`; }
+  function updateChip() { const X0 = xfAt(t); if (!playing) for (const p of ["energy", "blur", "bright", "vig"]) if (tracks[p].length) { const v = Math.round(valAt(p, t)), el = $(KPROPS[p].el); el.value = v; const o = $(KPROPS[p].el + "Out"); if (o) o.textContent = el.value + "%"; }
+    if (!playing) { $("an-size").value = Math.round(X0.size); $("an-sizeOut").textContent = $("an-size").value + "%"; } let deg = Math.round(X0.rot * 180 / Math.PI) % 360; if (deg > 180) deg -= 360; if (deg < -180) deg += 360; $("an-chip").textContent = `${Math.round(X0.size)}% · ${deg}°${flip ? " · mirrored" : ""}`; }
   function fitPreview() {
     const st = $("an-view"), cs = getComputedStyle(st);
     const aw = st.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), ah = st.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
@@ -4236,24 +4270,30 @@ window.setStageColor = (el, c) => {
   document.addEventListener("keyup", (e) => { if (e.code === "Space") spaceDown = false; });
 
   // ---------- keyframe track ----------
-  function addKey() { setPlaying(false); const c = xfAt(t); putKey({ t: snapT(t), x: c.x, y: c.y, size: c.size, rot: c.rot }); selected = true; renderKeys(); draw(); }
+  function addKey() { setPlaying(false); putKey(kprop, snapT(t), valAt(kprop, t)); if (kprop === "pos" || kprop === "size" || kprop === "rot") selected = true; renderKeys(); draw(); }
   const track = $("an-kfTrack");
   const tOfX = (clientX) => { const r = track.getBoundingClientRect(), u = (clientX - r.left - 11) / Math.max(1, r.width - 22); return Math.max(0, Math.min(1, u)) * duration(); };
   const xOfT = (tt) => `calc(11px + (100% - 22px) * ${Math.max(0, Math.min(1, tt / Math.max(0.001, duration())))})`;
   function renderKeys() {
-    track.querySelectorAll(".kf-key").forEach((el) => el.remove());
-    keys.forEach((k, i) => {
+    track.querySelectorAll(".kf-key, .kf-dot").forEach((el) => el.remove());
+    // faint marks for keys on the other properties, so you can line things up
+    for (const p in tracks) if (p !== kprop) tracks[p].forEach((k) => { const d = document.createElement("i"); d.className = "kf-dot"; d.style.left = xOfT(k.t); track.appendChild(d); });
+    const ks = tracks[kprop], P0 = KPROPS[kprop];
+    ks.forEach((k, i) => {
       const b = document.createElement("button"); b.className = "kf-key"; b.style.left = xOfT(k.t); b.dataset.i = i;
-      b.title = `Keyframe at ${fmt(k.t)}: ${Math.round(k.size)}%, ${Math.round(k.rot * 180 / Math.PI)}°`; b.setAttribute("aria-label", b.title);
+      b.title = `${P0.label} keyframe at ${fmt(k.t)}: ${P0.fmt(k.v)}`; b.setAttribute("aria-label", b.title);
       track.appendChild(b);
     });
-    $("an-kfCount").textContent = keys.length ? `${keys.length} keyframe${keys.length > 1 ? "s" : ""}` : "No keyframes";
-    $("an-kfDel").disabled = keyIndexAt(snapT(t)) < 0; $("an-kfClear").disabled = $("an-kfPrev").disabled = $("an-kfNext").disabled = !keys.length;
+    [...$("an-kfProp").options].forEach((o) => { const n = tracks[o.value].length; o.textContent = KPROPS[o.value].label + (n ? `  ◆${n}` : ""); });
+    $("an-kfCount").textContent = ks.length ? `${ks.length} ${P0.label.toLowerCase()} key${ks.length > 1 ? "s" : ""}` : "No keyframes";
+    $("an-kfClear").disabled = $("an-kfPrev").disabled = $("an-kfNext").disabled = !ks.length;
+    $("an-kfEase").value = eases[kprop];
+    $("an-kfAdd").title = `Add a ${P0.label.toLowerCase()} keyframe at the playhead (K)`;
     syncKeysUI();
   }
   function syncKeysUI() {
     $("an-kfPlay").style.left = xOfT(t);
-    const on = keyIndexAt(snapT(t));
+    const on = keyIndexAt(kprop, snapT(t));
     track.querySelectorAll(".kf-key").forEach((el) => el.classList.toggle("on", +el.dataset.i === on));
     $("an-kfDel").disabled = on < 0;
   }
@@ -4261,7 +4301,7 @@ window.setStageColor = (el, c) => {
   track.addEventListener("pointerdown", (e) => {
     setPlaying(false);
     const el = e.target.closest(".kf-key");
-    if (el) { const k = keys[+el.dataset.i]; t = k.t; kdrag = { k, x: e.clientX, moved: false }; track.setPointerCapture(e.pointerId); }
+    if (el) { const k = tracks[kprop][+el.dataset.i]; t = k.t; kdrag = { k, x: e.clientX, moved: false }; track.setPointerCapture(e.pointerId); }
     else t = tOfX(e.clientX);
     draw();
   });
@@ -4269,18 +4309,26 @@ window.setStageColor = (el, c) => {
     if (!kdrag) return;
     if (Math.abs(e.clientX - kdrag.x) > 3) kdrag.moved = true;
     if (!kdrag.moved) return;
-    const nt = snapT(tOfX(e.clientX));
-    if (keys.some((k) => k !== kdrag.k && Math.abs(k.t - nt) < 0.5 / FR)) return;
-    kdrag.k.t = nt; keys.sort((a, b) => a.t - b.t); t = nt; renderKeys(); draw();
+    const nt = snapT(tOfX(e.clientX)), ks = tracks[kprop];
+    if (ks.some((k) => k !== kdrag.k && Math.abs(k.t - nt) < 0.5 / FR)) return;
+    kdrag.k.t = nt; ks.sort((a, b) => a.t - b.t); t = nt; renderKeys(); draw();
   });
   const endK = () => { kdrag = null; };
   track.addEventListener("pointerup", endK); track.addEventListener("pointercancel", endK);
   $("an-kfAdd").addEventListener("click", addKey);
-  $("an-kfPrev").addEventListener("click", () => { setPlaying(false); const pk = [...keys].reverse().find((k) => k.t < snapT(t) - 1e-6); if (pk) { t = pk.t; draw(); } });
-  $("an-kfNext").addEventListener("click", () => { setPlaying(false); const nk = keys.find((k) => k.t > snapT(t) + 1e-6); if (nk) { t = nk.t; draw(); } });
-  $("an-kfDel").addEventListener("click", () => { const i = keyIndexAt(snapT(t)); if (i < 0) return; if (keys.length === 1) Object.assign(base, xfAt(t)); keys.splice(i, 1); renderKeys(); draw(); });
-  $("an-kfClear").addEventListener("click", () => { Object.assign(base, xfAt(t)); delete base.t; keys = []; renderKeys(); draw(); });
-  $("an-kfEase").addEventListener("change", () => { kfEase = $("an-kfEase").value; draw(); });
+  $("an-kfProp").addEventListener("change", () => { kprop = $("an-kfProp").value; renderKeys(); draw(); });
+  $("an-kfPrev").addEventListener("click", () => { setPlaying(false); const pk = [...tracks[kprop]].reverse().find((k) => k.t < snapT(t) - 1e-6); if (pk) { t = pk.t; draw(); } });
+  $("an-kfNext").addEventListener("click", () => { setPlaying(false); const nk = tracks[kprop].find((k) => k.t > snapT(t) + 1e-6); if (nk) { t = nk.t; draw(); } });
+  // removing the last key keeps the value you see now for the whole video
+  function keepValue(p, v) { if (p === "pos") { base.x = v.x; base.y = v.y; } else if (p === "size" || p === "rot") base[p] = v; else { $(KPROPS[p].el).value = v; $(KPROPS[p].el).dispatchEvent(new Event("input", { bubbles: true })); } }
+  $("an-kfDel").addEventListener("click", () => { const ks = tracks[kprop], i = keyIndexAt(kprop, snapT(t)); if (i < 0) return; const v = valAt(kprop, t); ks.splice(i, 1); if (!ks.length) keepValue(kprop, v); bgCanvas = null; renderKeys(); draw(); });
+  $("an-kfClear").addEventListener("click", () => { const v = valAt(kprop, t); tracks[kprop] = []; keepValue(kprop, v); bgCanvas = null; renderKeys(); draw(); });
+  $("an-kfEase").addEventListener("change", () => { eases[kprop] = $("an-kfEase").value; bgCanvas = null; draw(); });
+  // effect sliders: once that effect has keyframes, moving the slider keys it at the playhead
+  for (const p of ["energy", "blur", "bright", "vig"]) $(KPROPS[p].el).addEventListener("input", (e) => {
+    if (!e.isTrusted || !tracks[p].length) return;
+    setPlaying(false); putKey(p, snapT(t), +e.target.value); bgCanvas = null; renderKeys(); draw();
+  });
   const HINTS = {
     mouth: "Click on the middle of the mouth. The jaw will split along that line.",
     neck: "Click on the neck, just under the chin. Everything above it moves as the head.",
