@@ -284,6 +284,26 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
 .stage-tools button svg { width: 15px; height: 15px; }
 .stage-tools button[aria-pressed="true"] { background: var(--mat); transform: translate(2px, 2px); box-shadow: none; }
 .tool-chip { font-family: var(--font-mono); font-size: 12px; font-weight: 600; background: var(--ink); color: var(--cream); border-radius: 999px; padding: 5px 11px; font-variant-numeric: tabular-nums; }
+
+/* Animate: zoomable view and keyframe track */
+#animate .stage { padding: 0; display: block; }
+.an-view { position: absolute; inset: 0; overflow: auto; display: grid; place-items: safe center; padding: 56px 20px 20px; overscroll-behavior: contain; border-radius: calc(var(--radius) - 3px); }
+.an-view.panning, .an-view.panning canvas { cursor: grabbing !important; }
+.zoom-group { display: inline-flex; gap: 0; }
+.zoom-group button { border-radius: 0; margin-left: -3px; min-width: 36px; padding: 3px 8px; }
+.zoom-group button:first-child { border-radius: 999px 0 0 999px; margin-left: 0; }
+.zoom-group button:last-child { border-radius: 0 999px 999px 0; }
+.kf-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px 10px; align-items: center; }
+.kf-add { background: var(--lime) !important; color: var(--lime); }
+.kf-track { position: relative; height: 30px; border: var(--b2); border-radius: 999px; background: #fff; cursor: pointer; touch-action: none; }
+.kf-play { position: absolute; top: -5px; bottom: -5px; width: 3px; margin-left: -1.5px; background: var(--ink); border-radius: 2px; pointer-events: none; }
+.kf-key { position: absolute; top: 50%; width: 15px; height: 15px; margin: -7.5px 0 0 -7.5px; transform: rotate(45deg); background: var(--lime); border: 2.5px solid var(--ink); border-radius: 3px; cursor: grab; padding: 0; min-height: 0; box-shadow: none; }
+.kf-key:hover { transform: rotate(45deg) scale(1.2); box-shadow: none; }
+.kf-key.on { background: var(--pink); }
+.kf-tools { grid-column: 2 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.kf-tools button { min-height: 32px; padding: 3px 11px; font-size: 12px; box-shadow: var(--sh-xs); }
+.kf-ease { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; }
+.kf-ease select { min-height: 32px; padding: 3px 8px; font-size: 12px; }
 /* ================= Brutalist theme layer =================
    Layout: same workbench (stage left, tool rail right), restyled as chunky
    sticker-like cards: 3px ink outlines, hard offset shadows, pill controls.
@@ -946,10 +966,15 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
         </div>
       </div>
       <div class="stage" id="an-stage">
-        <canvas id="an-preview" width="640" height="360"></canvas>
+        <div class="an-view" id="an-view"><canvas id="an-preview" width="640" height="360"></canvas></div>
         <div class="frame-label" id="an-frameLabel"></div>
         <div class="drop-hint" id="an-dropHint" hidden>Drop the image to load it</div>
         <div class="stage-tools" role="toolbar" aria-label="Character">
+          <span class="zoom-group" role="group" aria-label="View zoom">
+            <button id="an-zOut" title="Zoom out (Ctrl + scroll)" aria-label="Zoom out">−</button>
+            <button id="an-zFit" title="Fit the frame in the view">Fit</button>
+            <button id="an-zIn" title="Zoom in (Ctrl + scroll)" aria-label="Zoom in">+</button>
+          </span>
           <button id="an-flip" aria-pressed="false" title="Mirror the character"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M8 7 3 12l5 5V7zM16 7l5 5-5 5V7z"/></svg>Flip</button>
           <button id="an-tMouth" aria-pressed="false" title="Place the mouth">Mouth</button>
           <button id="an-tNeck" aria-pressed="false" title="Place the neck">Neck</button>
@@ -964,7 +989,21 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
         <input type="range" id="an-scrub" min="0" max="1000" value="0" aria-label="Position">
         <span class="time" id="an-time">0:00.0 / 0:00.0</span>
       </div>
-      <p class="hint" id="an-stageHint">Click the character to select it: drag to move, pull a corner to resize, use the round handle to rotate (hold Shift to snap), or scroll to resize.</p>
+      <div class="kf-row" aria-label="Transform keyframes">
+        <button class="icon kf-add" id="an-kfAdd" title="Add or update a keyframe at the playhead (K)" aria-label="Add keyframe"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3 21 12 12 21 3 12z" fill="currentColor" stroke="#0d0d0f" stroke-width="2" stroke-linejoin="round"/></svg></button>
+        <div class="kf-track" id="an-kfTrack" title="Keyframes: click to jump, drag a diamond to move it"><div class="kf-play" id="an-kfPlay"></div></div>
+        <span class="time" id="an-kfCount">No keyframes</span>
+        <div class="kf-tools">
+          <button id="an-kfPrev" title="Previous keyframe" aria-label="Previous keyframe">◀ ◆</button>
+          <button id="an-kfNext" title="Next keyframe" aria-label="Next keyframe">◆ ▶</button>
+          <button id="an-kfDel" title="Delete the keyframe at the playhead">Delete</button>
+          <label class="kf-ease">Between keys
+            <select id="an-kfEase"><option value="smooth" selected>Smooth</option><option value="linear">Linear</option><option value="hold">Hold</option></select>
+          </label>
+          <button id="an-kfClear" class="ghost" title="Remove all keyframes">Clear all</button>
+        </div>
+      </div>
+      <p class="hint" id="an-stageHint">Click the character to select it: drag to move, pull a corner to resize, use the round handle to rotate (Shift snaps), or scroll to resize. Press the ◆ button (or K) to add a keyframe; after that, every change you make at the playhead becomes a keyframe. Ctrl + scroll zooms the view, hold Space and drag to pan.</p>
     </div>
 
     <aside class="rail an-rail">
@@ -3762,8 +3801,29 @@ window.setStageColor = (el, c) => {
   let photo = null, photoName = "sample-character", subject = null;   // subject: canvas with alpha (the cut-out)
   let mouth = null;                                                   // {x, y} in subject pixels
   let neck = null;                                                    // where the head separates (null = just under the mouth)
-  let pos = { x: 0.5, y: 1.02 };                                      // feet anchor in frame (0..1)
-  let baseRot = 0, flip = false, selected = false;                    // set by dragging on the stage
+  let flip = false, selected = false, viewZoom = 1;
+  // ---------- character transform, with keyframes like an editor's Inspector ----------
+  const base = { x: 0.5, y: 1.02, size: 90, rot: 0 };               // used while there are no keyframes
+  let keys = [], kfEase = "smooth";                                  // keys: [{ t, x, y, size, rot }] sorted by time
+  const FR = 30, snapT = (v) => Math.round(v * FR) / FR;
+  function xfAt(tt) {
+    if (!keys.length) return { ...base };
+    if (tt <= keys[0].t) return { ...keys[0] };
+    const last = keys[keys.length - 1]; if (tt >= last.t) return { ...last };
+    let i = 0; while (keys[i + 1].t <= tt) i++;
+    const a = keys[i], b = keys[i + 1]; let u = (tt - a.t) / Math.max(1e-6, b.t - a.t);
+    if (kfEase === "hold") u = 0; else if (kfEase === "smooth") u = u * u * (3 - 2 * u);
+    const l = (p, q) => p + (q - p) * u;
+    return { t: tt, x: l(a.x, b.x), y: l(a.y, b.y), size: l(a.size, b.size), rot: l(a.rot, b.rot) };
+  }
+  const keyIndexAt = (tt) => keys.findIndex((k) => Math.abs(k.t - tt) < 0.5 / FR);
+  function putKey(k) { const i = keyIndexAt(k.t); if (i >= 0) keys[i] = k; else { keys.push(k); keys.sort((a, b) => a.t - b.t); } }
+  // change the transform at the playhead: auto-keys once any keyframe exists
+  function setXf(patch) {
+    const n = { ...xfAt(t), ...patch };
+    if (keys.length) { putKey({ t: snapT(t), x: n.x, y: n.y, size: n.size, rot: n.rot }); renderKeys(); }
+    else Object.assign(base, { x: n.x, y: n.y, size: n.size, rot: n.rot });
+  }
   let voice = null;                                                   // { buf, env (Float32Array @100Hz), dur }
   function rng(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
   const mk = (w, h) => { const c = document.createElement("canvas"); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; };
@@ -3981,14 +4041,14 @@ window.setStageColor = (el, c) => {
   function renderFrame(ctx, W, H, t, rest) {
     if (!prep) prepare();
     ctx.save();
-    const ps = pose(t, rest), size = +$("an-size").value / 100;
+    const ps = pose(t, rest), X0 = xfAt(t), size = X0.size / 100;
     const scale = H * 0.95 * size / prep.H;
-    const fx = W * pos.x + ps.dx * W, fy = H * pos.y + ps.dy * H;
+    const fx = W * X0.x + ps.dx * W, fy = H * X0.y + ps.dy * H;
     // camera punch-in towards the face
     const faceY = mouth ? fy - (prep.H - (mouth.y - prep.oy)) * scale : fy - prep.H * scale * 0.7;
     if (ps.cam !== 1) { ctx.translate(fx, faceY); ctx.scale(ps.cam, ps.cam); ctx.translate(-fx, -faceY); }
     const bg = background(W, H); ctx.drawImage(bg, -W * 0.02, -H * 0.02, W * 1.04, H * 1.04);
-    ctx.translate(fx, fy); ctx.rotate(ps.rot + baseRot); ctx.scale(scale * ps.sx * (flip ? -1 : 1), scale * ps.sy); ctx.translate(-prep.W / 2, -prep.H);
+    ctx.translate(fx, fy); ctx.rotate(ps.rot + X0.rot); ctx.scale(scale * ps.sx * (flip ? -1 : 1), scale * ps.sy); ctx.translate(-prep.W / 2, -prep.H);
     const sh = $("an-shadow").checked, so0 = prep.W * 0.018 * (flip ? -1 : 1), so1 = prep.H * 0.012, J = prep.jaw;
     const talking = J && moveOn("talk"), drop = talking ? ps.talk * J.jh * 0.42 : 0;
     const face = (withJaw, noJaw) => {
@@ -4021,22 +4081,22 @@ window.setStageColor = (el, c) => {
 
   // ---------- preview & interaction ----------
   let playing = false, t = 0, lastTs = 0, raf = 0, placing = false;
-  function prevSize() { const [W, H] = RATIOS[ratio], k = Math.min(1, 720 / Math.max(W, H)); return [Math.round(W * k), Math.round(H * k)]; }
+  function prevSize() { const [W, H] = RATIOS[ratio], k = Math.min(1, 720 * Math.min(viewZoom, 2.7) / Math.max(W, H)); return [Math.round(W * k), Math.round(H * k)]; }
   function fmt(s) { const m = Math.floor(s / 60); return m + ":" + (s - m * 60).toFixed(1).padStart(4, "0"); }
   function draw() {
     const [w, h] = prevSize();
     if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; bgCanvas = null; fitPreview(); }
     const D = duration(); if (t > D) t = 0;
-    const rest = placing || (!playing && t === 0);
+    const rest = placing || (!playing && (t === 0 || selected));
     syncBgVideo();
     renderFrame(pctx, w, h, t, rest);
     if (rest) drawOverlay(w, h);
-    updateChip();
+    updateChip(); syncKeysUI();
     $("an-time").textContent = `${fmt(t)} / ${fmt(D)}`; $("an-scrub").value = Math.round(t / D * 1000);
   }
   // where the mouth line sits on screen (frame at rest)
   // ---------- on-stage editing: move, resize, rotate, mirror ----------
-  function charXf(w, h) { if (!prep) prepare(); return { cx: w * pos.x, cy: h * pos.y, s: h * 0.95 * (+$("an-size").value / 100) / prep.H, rot: baseRot, f: flip ? -1 : 1 }; }
+  function charXf(w, h) { if (!prep) prepare(); const X0 = xfAt(t); return { cx: w * X0.x, cy: h * X0.y, s: h * 0.95 * (X0.size / 100) / prep.H, rot: X0.rot, f: flip ? -1 : 1 }; }
   function toLocal(p, X) { const dx = p.x - X.cx, dy = p.y - X.cy, c = Math.cos(-X.rot), sn = Math.sin(-X.rot); return { x: (dx * c - dy * sn) / (X.s * X.f) + prep.W / 2, y: (dx * sn + dy * c) / X.s + prep.H }; }
   function toScreen(q, X) { const lx = (q.x - prep.W / 2) * X.s * X.f, ly = (q.y - prep.H) * X.s, c = Math.cos(X.rot), sn = Math.sin(X.rot); return { x: X.cx + lx * c - ly * sn, y: X.cy + lx * sn + ly * c }; }
   const cpx = () => cv.width / Math.max(1, cv.getBoundingClientRect().width);   // canvas pixels per screen pixel
@@ -4074,13 +4134,13 @@ window.setStageColor = (el, c) => {
     const l = toLocal(p, X);
     return l.x >= 0 && l.x <= prep.W && l.y >= 0 && l.y <= prep.H ? { kind: "move", X } : null;
   }
-  function setSize(v) { $("an-size").value = Math.round(Math.max(20, Math.min(250, v))); outs(); }
-  function updateChip() { let deg = Math.round(baseRot * 180 / Math.PI) % 360; if (deg > 180) deg -= 360; if (deg < -180) deg += 360; $("an-chip").textContent = `${$("an-size").value}% · ${deg}°${flip ? " · mirrored" : ""}`; }
+  function setSize(v) { setXf({ size: Math.max(20, Math.min(250, v)) }); }
+  function updateChip() { const X0 = xfAt(t); if (!playing) { $("an-size").value = Math.round(X0.size); $("an-sizeOut").textContent = $("an-size").value + "%"; } let deg = Math.round(X0.rot * 180 / Math.PI) % 360; if (deg > 180) deg -= 360; if (deg < -180) deg += 360; $("an-chip").textContent = `${Math.round(X0.size)}% · ${deg}°${flip ? " · mirrored" : ""}`; }
   function fitPreview() {
-    const st = $("an-stage"), cs = getComputedStyle(st);
+    const st = $("an-view"), cs = getComputedStyle(st);
     const aw = st.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), ah = st.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
     if (aw <= 0 || ah <= 0) return;
-    const [W, H] = RATIOS[ratio], s = Math.min(aw / W, ah / H);
+    const [W, H] = RATIOS[ratio], s = Math.min(aw / W, ah / H) * viewZoom;
     cv.style.width = Math.floor(W * s) + "px"; cv.style.height = Math.floor(H * s) + "px"; $("an-frameLabel").textContent = `${W} × ${H}`;
   }
   new ResizeObserver(fitPreview).observe($("an-stage"));
@@ -4094,12 +4154,14 @@ window.setStageColor = (el, c) => {
       else neck = { x: sx, y: sy };
       setPlacing(false); prep = null; t = 0; draw(); return;
     }
-    setPlaying(false); t = 0;
+    if (spaceDown || e.button === 1) { startPan(e); return; }
+    setPlaying(false);
     const hit = hitTest(p, selected);
     if (!hit) { selected = false; draw(); return; }
     selected = true;
     const X = hit.X;
-    drag = { kind: hit.kind, x: p.x, y: p.y, px: pos.x, py: pos.y, size: +$("an-size").value, rot: baseRot, cx: X.cx, cy: X.cy,
+    const X0 = xfAt(t);
+    drag = { kind: hit.kind, x: p.x, y: p.y, px: X0.x, py: X0.y, size: X0.size, rot: X0.rot, cx: X.cx, cy: X.cy,
              d0: Math.max(1, Math.hypot(p.x - X.cx, p.y - X.cy)), a0: Math.atan2(p.y - X.cy, p.x - X.cx) };
     cv.setPointerCapture(e.pointerId); if (hit.kind === "move") cv.style.cursor = "grabbing"; draw();
   });
@@ -4109,21 +4171,100 @@ window.setStageColor = (el, c) => {
       if (placing) return;
       const h = hitTest(p, selected); cv.style.cursor = !h ? "default" : h.kind === "rotate" ? "alias" : h.kind === "scale" ? "nwse-resize" : "grab"; return;
     }
-    if (drag.kind === "move") { pos.x = drag.px + (p.x - drag.x) / cv.width; pos.y = drag.py + (p.y - drag.y) / cv.height; }
+    if (drag.kind === "move") setXf({ x: drag.px + (p.x - drag.x) / cv.width, y: drag.py + (p.y - drag.y) / cv.height });
     else if (drag.kind === "scale") setSize(drag.size * Math.hypot(p.x - drag.cx, p.y - drag.cy) / drag.d0);
-    else { let a = drag.rot + Math.atan2(p.y - drag.cy, p.x - drag.cx) - drag.a0; if (e.shiftKey) a = Math.round(a / (Math.PI / 12)) * (Math.PI / 12); baseRot = a; }
-    t = 0; draw();
+    else { let a = drag.rot + Math.atan2(p.y - drag.cy, p.x - drag.cx) - drag.a0; if (e.shiftKey) a = Math.round(a / (Math.PI / 12)) * (Math.PI / 12); setXf({ rot: a }); }
+    draw();
   });
   const endDrag = () => { drag = null; cv.style.cursor = placing ? "crosshair" : "grab"; };
   cv.addEventListener("pointerup", endDrag); cv.addEventListener("pointercancel", endDrag);
   cv.addEventListener("wheel", (e) => {
-    if (placing || exporting) return;
-    e.preventDefault(); setPlaying(false); t = 0; selected = true;
-    setSize(+$("an-size").value * (e.deltaY < 0 ? 1.06 : 1 / 1.06)); draw();
+    if (placing || exporting || e.ctrlKey || e.metaKey || !selected) return;   // Ctrl+scroll zooms the view; unselected scrolls normally
+    e.preventDefault(); e.stopPropagation(); setPlaying(false);
+    setSize(xfAt(t).size * (e.deltaY < 0 ? 1.06 : 1 / 1.06)); draw();
   }, { passive: false });
   cv.style.cursor = "grab";
-  $("an-flip").addEventListener("click", () => { flip = !flip; $("an-flip").setAttribute("aria-pressed", flip); setPlaying(false); t = 0; draw(); });
-  $("an-reset").addEventListener("click", () => { pos = { x: 0.5, y: 1.02 }; baseRot = 0; flip = false; $("an-flip").setAttribute("aria-pressed", "false"); setSize(90); setPlaying(false); t = 0; draw(); });
+  $("an-flip").addEventListener("click", () => { flip = !flip; $("an-flip").setAttribute("aria-pressed", flip); setPlaying(false); draw(); });
+  $("an-reset").addEventListener("click", () => { flip = false; $("an-flip").setAttribute("aria-pressed", "false"); setPlaying(false); setXf({ x: 0.5, y: 1.02, size: 90, rot: 0 }); draw(); });
+
+  // ---------- view zoom and pan (only the preview; the video is unchanged) ----------
+  const view = $("an-view");
+  let spaceDown = false, pan = null;
+  function setZoom(z, cx, cy) {
+    const r0 = cv.getBoundingClientRect(), vr = view.getBoundingClientRect();
+    if (cx == null) { cx = vr.left + vr.width / 2; cy = vr.top + vr.height / 2; }
+    const fx = (cx - r0.left) / r0.width, fy = (cy - r0.top) / r0.height;
+    viewZoom = Math.max(1, Math.min(8, z)); draw(); fitPreview();
+    const r1 = cv.getBoundingClientRect();
+    view.scrollLeft += r1.left - (cx - fx * r1.width); view.scrollTop += r1.top - (cy - fy * r1.height);
+    $("an-zFit").textContent = viewZoom === 1 ? "Fit" : Math.round(viewZoom * 100) + "%";
+  }
+  $("an-zIn").addEventListener("click", () => setZoom(viewZoom * 1.5));
+  $("an-zOut").addEventListener("click", () => setZoom(viewZoom / 1.5));
+  $("an-zFit").addEventListener("click", () => setZoom(1));
+  view.addEventListener("wheel", (e) => {
+    if (!(e.ctrlKey || e.metaKey)) return;
+    e.preventDefault(); setZoom(viewZoom * Math.pow(1.0018, -e.deltaY), e.clientX, e.clientY);
+  }, { passive: false });
+  function startPan(e) { pan = { x: e.clientX, y: e.clientY, sl: view.scrollLeft, st: view.scrollTop, id: e.pointerId }; view.classList.add("panning"); view.setPointerCapture(e.pointerId); e.preventDefault(); }
+  view.addEventListener("pointerdown", (e) => { if (e.target === view || spaceDown || e.button === 1) startPan(e); });
+  view.addEventListener("pointermove", (e) => { if (!pan) return; view.scrollLeft = pan.sl - (e.clientX - pan.x); view.scrollTop = pan.st - (e.clientY - pan.y); });
+  const endPan = () => { if (pan) { pan = null; view.classList.remove("panning"); } };
+  view.addEventListener("pointerup", endPan); view.addEventListener("pointercancel", endPan);
+  const typing = (el) => el && (el.matches("input:not([type=range]):not([type=checkbox]), textarea, select") || el.isContentEditable);
+  document.addEventListener("keydown", (e) => {
+    if ($("animate").hidden || typing(e.target)) return;
+    if (e.code === "Space" && !e.repeat && viewZoom > 1) { spaceDown = true; e.preventDefault(); }
+    else if ((e.key === "k" || e.key === "K") && !e.ctrlKey && !e.metaKey) { e.preventDefault(); addKey(); }
+  });
+  document.addEventListener("keyup", (e) => { if (e.code === "Space") spaceDown = false; });
+
+  // ---------- keyframe track ----------
+  function addKey() { setPlaying(false); const c = xfAt(t); putKey({ t: snapT(t), x: c.x, y: c.y, size: c.size, rot: c.rot }); selected = true; renderKeys(); draw(); }
+  const track = $("an-kfTrack");
+  const tOfX = (clientX) => { const r = track.getBoundingClientRect(), u = (clientX - r.left - 11) / Math.max(1, r.width - 22); return Math.max(0, Math.min(1, u)) * duration(); };
+  const xOfT = (tt) => `calc(11px + (100% - 22px) * ${Math.max(0, Math.min(1, tt / Math.max(0.001, duration())))})`;
+  function renderKeys() {
+    track.querySelectorAll(".kf-key").forEach((el) => el.remove());
+    keys.forEach((k, i) => {
+      const b = document.createElement("button"); b.className = "kf-key"; b.style.left = xOfT(k.t); b.dataset.i = i;
+      b.title = `Keyframe at ${fmt(k.t)}: ${Math.round(k.size)}%, ${Math.round(k.rot * 180 / Math.PI)}°`; b.setAttribute("aria-label", b.title);
+      track.appendChild(b);
+    });
+    $("an-kfCount").textContent = keys.length ? `${keys.length} keyframe${keys.length > 1 ? "s" : ""}` : "No keyframes";
+    $("an-kfDel").disabled = keyIndexAt(snapT(t)) < 0; $("an-kfClear").disabled = $("an-kfPrev").disabled = $("an-kfNext").disabled = !keys.length;
+    syncKeysUI();
+  }
+  function syncKeysUI() {
+    $("an-kfPlay").style.left = xOfT(t);
+    const on = keyIndexAt(snapT(t));
+    track.querySelectorAll(".kf-key").forEach((el) => el.classList.toggle("on", +el.dataset.i === on));
+    $("an-kfDel").disabled = on < 0;
+  }
+  let kdrag = null;
+  track.addEventListener("pointerdown", (e) => {
+    setPlaying(false);
+    const el = e.target.closest(".kf-key");
+    if (el) { const k = keys[+el.dataset.i]; t = k.t; kdrag = { k, x: e.clientX, moved: false }; track.setPointerCapture(e.pointerId); }
+    else t = tOfX(e.clientX);
+    draw();
+  });
+  track.addEventListener("pointermove", (e) => {
+    if (!kdrag) return;
+    if (Math.abs(e.clientX - kdrag.x) > 3) kdrag.moved = true;
+    if (!kdrag.moved) return;
+    const nt = snapT(tOfX(e.clientX));
+    if (keys.some((k) => k !== kdrag.k && Math.abs(k.t - nt) < 0.5 / FR)) return;
+    kdrag.k.t = nt; keys.sort((a, b) => a.t - b.t); t = nt; renderKeys(); draw();
+  });
+  const endK = () => { kdrag = null; };
+  track.addEventListener("pointerup", endK); track.addEventListener("pointercancel", endK);
+  $("an-kfAdd").addEventListener("click", addKey);
+  $("an-kfPrev").addEventListener("click", () => { setPlaying(false); const pk = [...keys].reverse().find((k) => k.t < snapT(t) - 1e-6); if (pk) { t = pk.t; draw(); } });
+  $("an-kfNext").addEventListener("click", () => { setPlaying(false); const nk = keys.find((k) => k.t > snapT(t) + 1e-6); if (nk) { t = nk.t; draw(); } });
+  $("an-kfDel").addEventListener("click", () => { const i = keyIndexAt(snapT(t)); if (i < 0) return; if (keys.length === 1) Object.assign(base, xfAt(t)); keys.splice(i, 1); renderKeys(); draw(); });
+  $("an-kfClear").addEventListener("click", () => { Object.assign(base, xfAt(t)); delete base.t; keys = []; renderKeys(); draw(); });
+  $("an-kfEase").addEventListener("change", () => { kfEase = $("an-kfEase").value; draw(); });
   const HINTS = {
     mouth: "Click on the middle of the mouth. The jaw will split along that line.",
     neck: "Click on the neck, just under the chin. Everything above it moves as the head.",
@@ -4196,7 +4337,7 @@ window.setStageColor = (el, c) => {
     if (f.type && !f.type.startsWith("image/")) { note2("an-cutNote", "That file isn't an image. Pick a JPG, PNG or WebP.", "err"); return; }
     try {
       photo = await readImage(f, 2200); photoName = (f.name || "photo").replace(/\.[^.]+$/, "");
-      subject = photo; mouth = null; neck = null; prep = null; bgCanvas = null; pos = { x: 0.5, y: 1.02 }; baseRot = 0; flip = false; $("an-flip").setAttribute("aria-pressed", "false");
+      subject = photo; mouth = null; neck = null; prep = null; bgCanvas = null; Object.assign(base, { x: 0.5, y: 1.02, rot: 0 }); flip = false; $("an-flip").setAttribute("aria-pressed", "false");
       $("an-photoHint").textContent = `${f.name} · ${photo.width} × ${photo.height} px`;
       $("an-cut").disabled = false; nameTouched = false; anDefaultName();
       note2("an-cutNote", "Next: cut out the person, then place the mouth.", "");
@@ -4238,7 +4379,8 @@ window.setStageColor = (el, c) => {
     $("an-lenOut").textContent = (+$("an-len").value).toFixed(1) + " s"; $("an-sensOut").textContent = $("an-sens").value + "%"; $("an-outlineOut").textContent = $("an-outline").value + " px";
   };
   outs();
-  ["an-energy", "an-speed", "an-len", "an-sens", "an-size"].forEach((id) => $(id).addEventListener("input", () => { outs(); draw(); }));
+  ["an-energy", "an-speed", "an-len", "an-sens"].forEach((id) => $(id).addEventListener("input", () => { outs(); draw(); renderKeys(); }));
+  $("an-size").addEventListener("input", () => { setPlaying(false); setXf({ size: +$("an-size").value }); outs(); draw(); });
   ["an-jaw", "an-outline"].forEach((id) => { $(id).addEventListener("input", outs); $(id).addEventListener("change", () => { prep = null; draw(); }); });
   $("an-shadow").addEventListener("change", draw);
   document.querySelectorAll("[data-move]").forEach((b) => b.addEventListener("click", () => { b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") !== "true"); draw(); }));
@@ -4389,7 +4531,7 @@ window.setStageColor = (el, c) => {
   });
   { let first = "person"; try { first = localStorage.getItem("cutout-animate-tab") || first; } catch {} showTab(anTabs.some((b) => b.dataset.antab === first) ? first : "person"); }
   // ---------- start ----------
-  anDefaultName(); draw();
+  anDefaultName(); draw(); renderKeys();
 })();
 </script>
 <script>
