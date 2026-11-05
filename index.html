@@ -4327,7 +4327,7 @@ window.setStageColor = (el, c) => {
   $("an-kfEase").addEventListener("change", () => { eases[kprop] = $("an-kfEase").value; bgCanvas = null; draw(); });
   // effect sliders: once that effect has keyframes, moving the slider keys it at the playhead
   for (const p of ["energy", "blur", "bright", "vig"]) $(KPROPS[p].el).addEventListener("input", (e) => {
-    if (!e.isTrusted || !tracks[p].length) return;
+    if (!tracks[p].length) return;
     setPlaying(false); putKey(p, snapT(t), +e.target.value); bgCanvas = null; renderKeys(); draw();
   });
   const HINTS = {
@@ -4656,6 +4656,13 @@ window.setStageColor = (el, c) => {
   // ---------- start ----------
   anDefaultName(); fitPreview(); draw(); renderKeys();
   requestAnimationFrame(() => { fitPreview(); if (!playing) draw(); });
+  // test hook for the automated test suite (tests/animate.test.js); only present with ?test in the address
+  if (/[?&]test\b/.test(location.search)) window.__an = {
+    valAt, xfAt, mouthOpen, duration, pose, charXf, handles, tracks, base, eases, cv,
+    get t() { return t; }, set t(v) { setPlaying(false); t = v; draw(); },
+    get zoom() { return viewZoom; }, get spaceDown() { return spaceDown; }, get voice() { return voice; },
+    get selected() { return selected; }, set selected(v) { selected = v; draw(); },
+  };
 })();
 </script>
 <script>

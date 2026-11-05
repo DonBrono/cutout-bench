@@ -25,3 +25,16 @@ The background-removal model comes from @imgly/background-removal
 (https://github.com/imgly/background-removal-js), licensed under AGPL-3.0.
 ONNX Runtime Web is MIT-licensed by Microsoft.
 Because the model is AGPL-3.0, keep this repository public and keep this notice.
+
+## Tests
+
+Every new feature ships with 50 automated browser tests: 25 real-use cases and 25 edge cases.
+
+```
+npm i -D playwright && npx playwright install chromium   # once
+node tests/animate.test.js            # run everything
+node tests/animate.test.js keyframe   # run only tests whose name matches
+```
+
+The export test also needs `ffmpeg`/`ffprobe` on your PATH (it is skipped otherwise).
+The app exposes a test hook (`window.__an`) only when the address contains `?test`.
