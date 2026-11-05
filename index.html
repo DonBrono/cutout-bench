@@ -277,6 +277,13 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
 @media (min-width: 881px) {
   .an-rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 108px); max-height: calc(100vh - 124px); overflow-y: auto; padding: 0 8px 12px 0; margin-right: -8px; overscroll-behavior: contain; }
 }
+
+/* Animate: on-stage toolbar */
+.stage-tools { position: absolute; right: 12px; top: 10px; z-index: 2; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px; max-width: calc(100% - 150px); }
+.stage-tools button { min-height: 32px; padding: 3px 11px; font-size: 12px; box-shadow: var(--sh-xs); background: var(--cream); gap: 5px; }
+.stage-tools button svg { width: 15px; height: 15px; }
+.stage-tools button[aria-pressed="true"] { background: var(--mat); transform: translate(2px, 2px); box-shadow: none; }
+.tool-chip { font-family: var(--font-mono); font-size: 12px; font-weight: 600; background: var(--ink); color: var(--cream); border-radius: 999px; padding: 5px 11px; font-variant-numeric: tabular-nums; }
 /* ================= Brutalist theme layer =================
    Layout: same workbench (stage left, tool rail right), restyled as chunky
    sticker-like cards: 3px ink outlines, hard offset shadows, pill controls.
@@ -942,6 +949,13 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
         <canvas id="an-preview" width="640" height="360"></canvas>
         <div class="frame-label" id="an-frameLabel"></div>
         <div class="drop-hint" id="an-dropHint" hidden>Drop the image to load it</div>
+        <div class="stage-tools" role="toolbar" aria-label="Character">
+          <button id="an-flip" aria-pressed="false" title="Mirror the character"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M8 7 3 12l5 5V7zM16 7l5 5-5 5V7z"/></svg>Flip</button>
+          <button id="an-tMouth" aria-pressed="false" title="Place the mouth">Mouth</button>
+          <button id="an-tNeck" aria-pressed="false" title="Place the neck">Neck</button>
+          <button id="an-reset" title="Put the character back: centred, 90%, upright">Reset</button>
+          <span class="tool-chip" id="an-chip" aria-live="polite"></span>
+        </div>
       </div>
       <div class="transport">
         <button class="icon" id="an-play" aria-label="Play">
@@ -950,7 +964,7 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
         <input type="range" id="an-scrub" min="0" max="1000" value="0" aria-label="Position">
         <span class="time" id="an-time">0:00.0 / 0:00.0</span>
       </div>
-      <p class="hint" id="an-stageHint">Drag the character to move it. Use “Place the mouth” and click on the mouth to set where the jaw splits.</p>
+      <p class="hint" id="an-stageHint">Click the character to select it: drag to move, pull a corner to resize, use the round handle to rotate (hold Shift to snap), or scroll to resize.</p>
     </div>
 
     <aside class="rail an-rail">
@@ -975,7 +989,7 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
         <div class="slider"><label for="an-jaw">Jaw width</label><output id="an-jawOut" for="an-jaw"></output>
           <input type="range" id="an-jaw" min="6" max="45" step="1" value="20"></div>
         <div class="slider"><label for="an-size">Character size</label><output id="an-sizeOut" for="an-size"></output>
-          <input type="range" id="an-size" min="30" max="160" step="1" value="90"></div>
+          <input type="range" id="an-size" min="20" max="250" step="1" value="90"></div>
         </div>
       </section>
 
@@ -3749,6 +3763,7 @@ window.setStageColor = (el, c) => {
   let mouth = null;                                                   // {x, y} in subject pixels
   let neck = null;                                                    // where the head separates (null = just under the mouth)
   let pos = { x: 0.5, y: 1.02 };                                      // feet anchor in frame (0..1)
+  let baseRot = 0, flip = false, selected = false;                    // set by dragging on the stage
   let voice = null;                                                   // { buf, env (Float32Array @100Hz), dur }
   function rng(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
   const mk = (w, h) => { const c = document.createElement("canvas"); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; };
@@ -3756,40 +3771,69 @@ window.setStageColor = (el, c) => {
 
   // ---------- sample: an original cartoon presenter on transparent paper, plus a room ----------
   function sampleCharacter() {
+    // flat sticker-style presenter in the app's palette: ink hair, violet jacket, lime tie, sky-blue glasses
     const c = mk(900, 1150), x = c.getContext("2d"); x.lineJoin = "round"; x.lineCap = "round";
-    const out = (fill, lw) => { x.fillStyle = fill; x.fill(); x.lineWidth = lw || 10; x.strokeStyle = INK; x.stroke(); };
-    // body / jacket
-    x.beginPath(); x.moveTo(150, 1150); x.bezierCurveTo(150, 860, 260, 760, 450, 760); x.bezierCurveTo(640, 760, 750, 860, 750, 1150); x.closePath(); out("#8c7ae6");
-    x.beginPath(); x.moveTo(380, 770); x.lineTo(450, 900); x.lineTo(520, 770); x.closePath(); out("#fbf5ea", 8);
-    x.beginPath(); x.moveTo(450, 800); x.lineTo(478, 840); x.lineTo(462, 1000); x.lineTo(450, 1030); x.lineTo(438, 1000); x.lineTo(422, 840); x.closePath(); out("#ff4667", 7);
-    // neck + head
-    x.beginPath(); x.roundRect(395, 640, 110, 150, 30); out("#f2b48c", 9);
-    x.beginPath(); x.ellipse(450, 470, 215, 245, 0, 0, 7); out("#f6c19a");
-    // ears
-    x.beginPath(); x.ellipse(238, 490, 34, 52, 0, 0, 7); out("#f2b48c", 8); x.beginPath(); x.ellipse(662, 490, 34, 52, 0, 0, 7); out("#f2b48c", 8);
-    x.beginPath(); x.ellipse(450, 470, 215, 245, 0, 0, 7); x.fillStyle = "#f6c19a"; x.fill();
-    // hair
-    x.beginPath(); x.moveTo(236, 430); x.bezierCurveTo(220, 250, 330, 190, 450, 196); x.bezierCurveTo(600, 190, 700, 260, 668, 430);
-    x.bezierCurveTo(630, 330, 560, 300, 470, 320); x.bezierCurveTo(390, 335, 300, 330, 236, 430); x.closePath(); out("#2b1d16");
-    x.beginPath(); x.ellipse(450, 470, 215, 245, 0, 0, 7); x.lineWidth = 10; x.strokeStyle = INK; x.stroke();
-    // eyes, brows, nose
-    for (const ex of [370, 530]) { x.beginPath(); x.ellipse(ex, 455, 46, 40, 0, 0, 7); out("#ffffff", 8); x.beginPath(); x.arc(ex + 8, 460, 17, 0, 7); x.fillStyle = INK; x.fill(); x.beginPath(); x.arc(ex + 14, 452, 5, 0, 7); x.fillStyle = "#fff"; x.fill(); }
-    x.lineWidth = 12; x.beginPath(); x.moveTo(325, 392); x.lineTo(410, 382); x.moveTo(490, 382); x.lineTo(575, 392); x.stroke();
-    x.lineWidth = 8; x.beginPath(); x.moveTo(452, 480); x.quadraticCurveTo(430, 545, 470, 548); x.stroke();
-    // mouth line + chin
-    x.lineWidth = 9; x.beginPath(); x.moveTo(385, 600); x.quadraticCurveTo(450, 612, 515, 600); x.stroke();
-    x.fillStyle = "rgba(255,70,103,.25)"; x.beginPath(); x.ellipse(330, 560, 34, 20, 0, 0, 7); x.fill(); x.beginPath(); x.ellipse(570, 560, 34, 20, 0, 0, 7); x.fill();
-    return { c, mouth: { x: 450, y: 600 }, neck: { x: 450, y: 700 } };
+    const out = (fill, lw) => { x.fillStyle = fill; x.fill(); x.lineWidth = lw || 11; x.strokeStyle = INK; x.stroke(); };
+    // jacket, shirt, lapels, tie, pocket square
+    x.beginPath(); x.moveTo(140, 1150); x.bezierCurveTo(140, 860, 250, 755, 450, 755); x.bezierCurveTo(650, 755, 760, 860, 760, 1150); x.closePath(); out("#8c7ae6");
+    x.beginPath(); x.moveTo(372, 762); x.lineTo(450, 920); x.lineTo(528, 762); x.closePath(); out("#fbf5ea", 9);
+    x.beginPath(); x.moveTo(372, 762); x.lineTo(330, 830); x.lineTo(400, 860); x.lineTo(450, 940); x.lineTo(392, 1150); x.lineTo(330, 1150); x.lineTo(300, 880); x.closePath(); out("#7563d8", 9);
+    x.beginPath(); x.moveTo(528, 762); x.lineTo(570, 830); x.lineTo(500, 860); x.lineTo(450, 940); x.lineTo(508, 1150); x.lineTo(570, 1150); x.lineTo(600, 880); x.closePath(); out("#7563d8", 9);
+    x.beginPath(); x.moveTo(450, 800); x.lineTo(480, 838); x.lineTo(466, 1010); x.lineTo(450, 1040); x.lineTo(434, 1010); x.lineTo(420, 838); x.closePath(); out("#d8ff5c", 8);
+    x.beginPath(); x.moveTo(600, 960); x.lineTo(660, 948); x.lineTo(668, 990); x.lineTo(606, 1000); x.closePath(); out("#ff4667", 8);
+    // neck
+    x.beginPath(); x.roundRect(395, 640, 110, 150, 30); out("#f5b48e", 10);
+    // ears and head
+    x.beginPath(); x.ellipse(236, 492, 36, 54, 0, 0, 7); out("#f5b48e", 9); x.beginPath(); x.ellipse(664, 492, 36, 54, 0, 0, 7); out("#f5b48e", 9);
+    x.beginPath(); x.ellipse(450, 470, 215, 245, 0, 0, 7); out("#ffcfae");
+    // chunky ink hair with a quiff
+    x.beginPath(); x.moveTo(234, 450); x.bezierCurveTo(205, 260, 300, 170, 430, 168); x.bezierCurveTo(470, 120, 560, 130, 590, 190);
+    x.bezierCurveTo(690, 230, 700, 340, 666, 450); x.bezierCurveTo(640, 360, 590, 320, 520, 330); x.bezierCurveTo(450, 340, 400, 300, 360, 340);
+    x.bezierCurveTo(300, 360, 260, 400, 234, 450); x.closePath(); out(INK, 8);
+    x.strokeStyle = "rgba(255,255,255,.35)"; x.lineWidth = 9; x.beginPath(); x.moveTo(330, 230); x.quadraticCurveTo(420, 190, 500, 200); x.stroke();
+    x.beginPath(); x.ellipse(450, 470, 215, 245, 0, 0, 7); x.lineWidth = 11; x.strokeStyle = INK; x.stroke();
+    // eyes behind sky-blue glasses
+    for (const ex of [365, 535]) {
+      x.beginPath(); x.ellipse(ex, 462, 40, 36, 0, 0, 7); out("#ffffff", 7);
+      x.beginPath(); x.arc(ex + 6, 466, 16, 0, 7); x.fillStyle = INK; x.fill(); x.beginPath(); x.arc(ex + 12, 459, 5, 0, 7); x.fillStyle = "#fff"; x.fill();
+      x.beginPath(); x.roundRect(ex - 66, 410, 132, 106, 34); x.lineWidth = 15; x.strokeStyle = INK; x.stroke(); x.lineWidth = 8; x.strokeStyle = "#5cc8ff"; x.stroke();
+    }
+    x.lineWidth = 12; x.strokeStyle = INK; x.beginPath(); x.moveTo(431, 450); x.quadraticCurveTo(450, 436, 469, 450); x.stroke();
+    x.lineWidth = 14; x.beginPath(); x.moveTo(318, 380); x.lineTo(408, 372); x.moveTo(492, 372); x.lineTo(582, 380); x.stroke();
+    // nose, blush, mouth
+    x.lineWidth = 8; x.beginPath(); x.moveTo(455, 505); x.quadraticCurveTo(432, 556, 472, 558); x.stroke();
+    x.fillStyle = "rgba(255,70,103,.35)"; x.beginPath(); x.ellipse(318, 566, 34, 20, 0, 0, 7); x.fill(); x.beginPath(); x.ellipse(582, 566, 34, 20, 0, 0, 7); x.fill();
+    x.lineWidth = 10; x.strokeStyle = INK; x.beginPath(); x.moveTo(382, 600); x.quadraticCurveTo(450, 616, 518, 600); x.stroke();
+    return { c, mouth: { x: 450, y: 602 }, neck: { x: 450, y: 702 } };
   }
   function sampleRoom() {
-    const c = mk(1920, 1080), x = c.getContext("2d");
-    x.fillStyle = "#e6e1fb"; x.fillRect(0, 0, 1920, 1080);
-    x.fillStyle = "rgba(13,13,15,.12)"; for (let gx = 30; gx < 1920; gx += 60) for (let gy = 30; gy < 820; gy += 60) { x.beginPath(); x.arc(gx, gy, 3, 0, 7); x.fill(); }
-    x.fillStyle = "#ff4667"; x.fillRect(0, 820, 1920, 260); x.fillStyle = INK; x.fillRect(0, 812, 1920, 12);
-    const frame = (fx, fy, fw, fh, col) => { x.fillStyle = INK; x.fillRect(fx + 14, fy + 14, fw, fh); x.fillStyle = col; x.fillRect(fx, fy, fw, fh); x.lineWidth = 10; x.strokeStyle = INK; x.strokeRect(fx, fy, fw, fh); };
-    frame(170, 170, 360, 260, "#d8ff5c"); frame(1380, 120, 380, 300, "#5cc8ff");
-    x.fillStyle = INK; x.beginPath(); x.moveTo(1440, 380); x.lineTo(1540, 240); x.lineTo(1610, 330); x.lineTo(1660, 280); x.lineTo(1720, 380); x.closePath(); x.fill();
-    x.beginPath(); x.arc(350, 300, 60, 0, 7); x.fillStyle = "#ff4667"; x.fill(); x.lineWidth = 8; x.stroke();
+    // studio set in the app's style: cream dotted wall, lime sun, sky window, violet floor, sticker shapes
+    const W = 1920, H = 1080, c = mk(W, H), x = c.getContext("2d"); x.lineJoin = "round"; x.lineCap = "round";
+    const sticker = (path, fill, lw) => { x.save(); x.translate(14, 14); path(); x.fillStyle = INK; x.fill(); x.restore(); path(); x.fillStyle = fill; x.fill(); x.lineWidth = lw || 10; x.strokeStyle = INK; x.stroke(); };
+    x.fillStyle = "#fbf5ea"; x.fillRect(0, 0, W, H);
+    x.fillStyle = "rgba(13,13,15,.16)"; for (let gx = 30; gx < W; gx += 60) for (let gy = 30; gy < 820; gy += 60) { x.beginPath(); x.arc(gx, gy, 3.2, 0, 7); x.fill(); }
+    // lime sun
+    sticker(() => { x.beginPath(); x.arc(330, 300, 150, 0, 7); }, "#d8ff5c");
+    x.lineWidth = 10; x.strokeStyle = INK; for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2; x.beginPath(); x.moveTo(330 + Math.cos(a) * 185, 300 + Math.sin(a) * 185); x.lineTo(330 + Math.cos(a) * 225, 300 + Math.sin(a) * 225); x.stroke(); }
+    // window with sky panes
+    sticker(() => { x.beginPath(); x.roundRect(1330, 120, 420, 330, 28); }, "#5cc8ff");
+    x.fillStyle = INK; x.fillRect(1534, 120, 12, 330); x.fillRect(1330, 279, 420, 12);
+    x.fillStyle = "rgba(255,255,255,.55)"; x.beginPath(); x.roundRect(1370, 150, 120, 26, 13); x.fill();
+    // pink pill poster and violet triangle
+    sticker(() => { x.beginPath(); x.roundRect(700, 170, 330, 120, 60); }, "#ff4667");
+    x.fillStyle = INK; for (let i = 0; i < 5; i++) { x.beginPath(); x.arc(760 + i * 52, 230, 11, 0, 7); x.fill(); }
+    sticker(() => { x.beginPath(); x.moveTo(1120, 520); x.lineTo(1230, 330); x.lineTo(1340, 520); x.closePath(); }, "#8c7ae6");
+    // sparkles
+    const spark = (cx, cy, r) => { x.beginPath(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, rr = i % 2 ? r * 0.3 : r; x.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); } x.closePath(); x.fillStyle = INK; x.fill(); };
+    spark(620, 520, 38); spark(1630, 600, 30); spark(140, 640, 22); spark(1050, 110, 20);
+    // floor
+    x.fillStyle = "#8c7ae6"; x.fillRect(0, 820, W, H - 820); x.fillStyle = INK; x.fillRect(0, 812, W, 12);
+    x.fillStyle = "rgba(13,13,15,.18)"; for (let gx = 0; gx < W; gx += 120) { x.beginPath(); x.moveTo(gx, 824); x.lineTo(gx - 160, H); x.lineTo(gx - 150, H); x.lineTo(gx + 6, 824); x.fill(); }
+    // potted plant on the right
+    const leaf = (bx, by, len, ang, wid, col) => { x.save(); x.translate(bx, by); x.rotate(ang); x.beginPath(); x.moveTo(0, 0); x.bezierCurveTo(len * 0.25, -wid, len * 0.75, -wid, len, 0); x.bezierCurveTo(len * 0.75, wid, len * 0.25, wid, 0, 0); x.closePath(); x.fillStyle = col; x.fill(); x.lineWidth = 8; x.strokeStyle = INK; x.stroke(); x.restore(); };
+    [[-1.9, 210, 46, "#2fbf71"], [-1.2, 230, 50, "#27a862"], [-1.55, 260, 48, "#3fd683"], [-2.3, 180, 40, "#22955a"], [-0.8, 190, 40, "#36c978"]].forEach(([a, l, w, col]) => leaf(1640, 760, l, a, w, col));
+    sticker(() => { x.beginPath(); x.moveTo(1560, 740); x.lineTo(1720, 740); x.lineTo(1700, 880); x.lineTo(1580, 880); x.closePath(); }, "#ff4667", 9);
+    x.fillStyle = "#fbf5ea"; x.fillRect(1572, 790, 136, 26); x.lineWidth = 6; x.strokeStyle = INK; x.strokeRect(1572, 790, 136, 26);
     return c;
   }
   const S = sampleCharacter(); subject = S.c; mouth = S.mouth; neck = S.neck; photo = sampleRoom();
@@ -3944,8 +3988,8 @@ window.setStageColor = (el, c) => {
     const faceY = mouth ? fy - (prep.H - (mouth.y - prep.oy)) * scale : fy - prep.H * scale * 0.7;
     if (ps.cam !== 1) { ctx.translate(fx, faceY); ctx.scale(ps.cam, ps.cam); ctx.translate(-fx, -faceY); }
     const bg = background(W, H); ctx.drawImage(bg, -W * 0.02, -H * 0.02, W * 1.04, H * 1.04);
-    ctx.translate(fx, fy); ctx.rotate(ps.rot); ctx.scale(scale * ps.sx, scale * ps.sy); ctx.translate(-prep.W / 2, -prep.H);
-    const sh = $("an-shadow").checked, so0 = prep.W * 0.018, so1 = prep.H * 0.012, J = prep.jaw;
+    ctx.translate(fx, fy); ctx.rotate(ps.rot + baseRot); ctx.scale(scale * ps.sx * (flip ? -1 : 1), scale * ps.sy); ctx.translate(-prep.W / 2, -prep.H);
+    const sh = $("an-shadow").checked, so0 = prep.W * 0.018 * (flip ? -1 : 1), so1 = prep.H * 0.012, J = prep.jaw;
     const talking = J && moveOn("talk"), drop = talking ? ps.talk * J.jh * 0.42 : 0;
     const face = (withJaw, noJaw) => {
       if (!talking) { ctx.drawImage(withJaw, 0, 0); return; }
@@ -3986,19 +4030,52 @@ window.setStageColor = (el, c) => {
     const rest = placing || (!playing && t === 0);
     syncBgVideo();
     renderFrame(pctx, w, h, t, rest);
-    if (rest) markMouth(w, h);
+    if (rest) drawOverlay(w, h);
+    updateChip();
     $("an-time").textContent = `${fmt(t)} / ${fmt(D)}`; $("an-scrub").value = Math.round(t / D * 1000);
   }
   // where the mouth line sits on screen (frame at rest)
-  function restTransform(w, h) { if (!prep) prepare(); const scale = h * 0.95 * (+$("an-size").value / 100) / prep.H; return { scale, ox: w * pos.x - prep.W / 2 * scale, oy: h * pos.y - prep.H * scale }; }
-  function markMouth(w, h) {
+  // ---------- on-stage editing: move, resize, rotate, mirror ----------
+  function charXf(w, h) { if (!prep) prepare(); return { cx: w * pos.x, cy: h * pos.y, s: h * 0.95 * (+$("an-size").value / 100) / prep.H, rot: baseRot, f: flip ? -1 : 1 }; }
+  function toLocal(p, X) { const dx = p.x - X.cx, dy = p.y - X.cy, c = Math.cos(-X.rot), sn = Math.sin(-X.rot); return { x: (dx * c - dy * sn) / (X.s * X.f) + prep.W / 2, y: (dx * sn + dy * c) / X.s + prep.H }; }
+  function toScreen(q, X) { const lx = (q.x - prep.W / 2) * X.s * X.f, ly = (q.y - prep.H) * X.s, c = Math.cos(X.rot), sn = Math.sin(X.rot); return { x: X.cx + lx * c - ly * sn, y: X.cy + lx * sn + ly * c }; }
+  const cpx = () => cv.width / Math.max(1, cv.getBoundingClientRect().width);   // canvas pixels per screen pixel
+  function handles(X) {
+    const corners = [{ x: 0, y: 0 }, { x: prep.W, y: 0 }, { x: prep.W, y: prep.H }, { x: 0, y: prep.H }].map((q) => toScreen(q, X));
+    const top = toScreen({ x: prep.W / 2, y: 0 }, X), k = 34 * cpx();
+    return { corners, top, rotate: { x: top.x + Math.sin(X.rot) * k, y: top.y - Math.cos(X.rot) * k } };
+  }
+  function drawOverlay(w, h) {
     if (!prep) return;
-    const T = restTransform(w, h), J = prep.jaw, Hd = prep.head;
-    pctx.save(); pctx.setLineDash([6, 5]); pctx.lineWidth = 2;
-    if (J) { pctx.strokeStyle = placing === "mouth" ? "#ff4667" : "rgba(13,13,15,.55)"; pctx.strokeRect(T.ox + J.jx * T.scale, T.oy + J.jy * T.scale, J.jw * T.scale, J.jh * T.scale); }
-    if (Hd) { const y = T.oy + Hd.py * T.scale, cx = T.ox + Hd.px * T.scale, half = prep.W * T.scale * 0.22; pctx.strokeStyle = placing === "neck" ? "#ff4667" : "rgba(140,122,230,.95)"; pctx.beginPath(); pctx.moveTo(cx - half, y); pctx.lineTo(cx + half, y); pctx.stroke(); pctx.setLineDash([]); pctx.fillStyle = pctx.strokeStyle; pctx.beginPath(); pctx.arc(cx, y, 4, 0, 7); pctx.fill(); }
+    const X = charXf(w, h), J = prep.jaw, Hd = prep.head, u = cpx();
+    pctx.save(); pctx.translate(X.cx, X.cy); pctx.rotate(X.rot); pctx.scale(X.s * X.f, X.s); pctx.translate(-prep.W / 2, -prep.H);
+    const k = u / X.s; pctx.lineWidth = 2 * k; pctx.setLineDash([6 * k, 5 * k]);
+    if (J) { pctx.strokeStyle = placing === "mouth" ? "#ff4667" : "rgba(13,13,15,.55)"; pctx.strokeRect(J.jx, J.jy, J.jw, J.jh); }
+    if (Hd) { const half = prep.W * 0.22; pctx.strokeStyle = placing === "neck" ? "#ff4667" : "rgba(140,122,230,.95)"; pctx.beginPath(); pctx.moveTo(Hd.px - half, Hd.py); pctx.lineTo(Hd.px + half, Hd.py); pctx.stroke(); pctx.setLineDash([]); pctx.fillStyle = pctx.strokeStyle; pctx.beginPath(); pctx.arc(Hd.px, Hd.py, 4 * k, 0, 7); pctx.fill(); }
+    pctx.restore();
+    if (!selected || placing) return;
+    const Hh = handles(X);
+    pctx.save(); pctx.strokeStyle = INK; pctx.lineWidth = 2 * u; pctx.setLineDash([7 * u, 5 * u]);
+    pctx.beginPath(); Hh.corners.forEach((q, i) => (i ? pctx.lineTo(q.x, q.y) : pctx.moveTo(q.x, q.y))); pctx.closePath(); pctx.stroke();
+    pctx.setLineDash([]); pctx.beginPath(); pctx.moveTo(Hh.top.x, Hh.top.y); pctx.lineTo(Hh.rotate.x, Hh.rotate.y); pctx.stroke();
+    pctx.lineWidth = 2.5 * u;
+    for (const q of Hh.corners) { pctx.fillStyle = "#fffdf8"; pctx.beginPath(); pctx.rect(q.x - 7 * u, q.y - 7 * u, 14 * u, 14 * u); pctx.fill(); pctx.stroke(); }
+    pctx.fillStyle = "#5cc8ff"; pctx.beginPath(); pctx.arc(Hh.rotate.x, Hh.rotate.y, 9 * u, 0, 7); pctx.fill(); pctx.stroke();
     pctx.restore();
   }
+  function hitTest(p, withHandles) {
+    if (!prep) prepare();
+    const X = charXf(cv.width, cv.height), r = 13 * cpx();
+    if (withHandles) {
+      const Hh = handles(X);
+      if (Math.hypot(p.x - Hh.rotate.x, p.y - Hh.rotate.y) < r) return { kind: "rotate", X };
+      for (const q of Hh.corners) if (Math.hypot(p.x - q.x, p.y - q.y) < r) return { kind: "scale", X };
+    }
+    const l = toLocal(p, X);
+    return l.x >= 0 && l.x <= prep.W && l.y >= 0 && l.y <= prep.H ? { kind: "move", X } : null;
+  }
+  function setSize(v) { $("an-size").value = Math.round(Math.max(20, Math.min(250, v))); outs(); }
+  function updateChip() { let deg = Math.round(baseRot * 180 / Math.PI) % 360; if (deg > 180) deg -= 360; if (deg < -180) deg += 360; $("an-chip").textContent = `${$("an-size").value}% · ${deg}°${flip ? " · mirrored" : ""}`; }
   function fitPreview() {
     const st = $("an-stage"), cs = getComputedStyle(st);
     const aw = st.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), ah = st.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
@@ -4010,29 +4087,56 @@ window.setStageColor = (el, c) => {
   function toCanvas(e) { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * cv.width / r.width, y: (e.clientY - r.top) * cv.height / r.height }; }
   let drag = null;
   cv.addEventListener("pointerdown", (e) => {
-    const p = toCanvas(e), T = restTransform(cv.width, cv.height);
+    const p = toCanvas(e);
     if (placing) {
-      const sx = (p.x - T.ox) / T.scale + prep.ox, sy = (p.y - T.oy) / T.scale + prep.oy;
+      const l = toLocal(p, charXf(cv.width, cv.height)), sx = l.x + prep.ox, sy = l.y + prep.oy;
       if (placing === "mouth") { mouth = { x: sx, y: sy }; if (!moveOn("talk")) document.querySelector('[data-move="talk"]').setAttribute("aria-pressed", "true"); if (neck && neck.y <= sy) neck = null; }
       else neck = { x: sx, y: sy };
       setPlacing(false); prep = null; t = 0; draw(); return;
     }
-    setPlaying(false); drag = { x: p.x, y: p.y, px: pos.x, py: pos.y }; cv.setPointerCapture(e.pointerId); cv.style.cursor = "grabbing";
+    setPlaying(false); t = 0;
+    const hit = hitTest(p, selected);
+    if (!hit) { selected = false; draw(); return; }
+    selected = true;
+    const X = hit.X;
+    drag = { kind: hit.kind, x: p.x, y: p.y, px: pos.x, py: pos.y, size: +$("an-size").value, rot: baseRot, cx: X.cx, cy: X.cy,
+             d0: Math.max(1, Math.hypot(p.x - X.cx, p.y - X.cy)), a0: Math.atan2(p.y - X.cy, p.x - X.cx) };
+    cv.setPointerCapture(e.pointerId); if (hit.kind === "move") cv.style.cursor = "grabbing"; draw();
   });
-  cv.addEventListener("pointermove", (e) => { if (!drag) return; const p = toCanvas(e); pos.x = drag.px + (p.x - drag.x) / cv.width; pos.y = drag.py + (p.y - drag.y) / cv.height; t = 0; draw(); });
+  cv.addEventListener("pointermove", (e) => {
+    const p = toCanvas(e);
+    if (!drag) {
+      if (placing) return;
+      const h = hitTest(p, selected); cv.style.cursor = !h ? "default" : h.kind === "rotate" ? "alias" : h.kind === "scale" ? "nwse-resize" : "grab"; return;
+    }
+    if (drag.kind === "move") { pos.x = drag.px + (p.x - drag.x) / cv.width; pos.y = drag.py + (p.y - drag.y) / cv.height; }
+    else if (drag.kind === "scale") setSize(drag.size * Math.hypot(p.x - drag.cx, p.y - drag.cy) / drag.d0);
+    else { let a = drag.rot + Math.atan2(p.y - drag.cy, p.x - drag.cx) - drag.a0; if (e.shiftKey) a = Math.round(a / (Math.PI / 12)) * (Math.PI / 12); baseRot = a; }
+    t = 0; draw();
+  });
   const endDrag = () => { drag = null; cv.style.cursor = placing ? "crosshair" : "grab"; };
   cv.addEventListener("pointerup", endDrag); cv.addEventListener("pointercancel", endDrag);
+  cv.addEventListener("wheel", (e) => {
+    if (placing || exporting) return;
+    e.preventDefault(); setPlaying(false); t = 0; selected = true;
+    setSize(+$("an-size").value * (e.deltaY < 0 ? 1.06 : 1 / 1.06)); draw();
+  }, { passive: false });
   cv.style.cursor = "grab";
+  $("an-flip").addEventListener("click", () => { flip = !flip; $("an-flip").setAttribute("aria-pressed", flip); setPlaying(false); t = 0; draw(); });
+  $("an-reset").addEventListener("click", () => { pos = { x: 0.5, y: 1.02 }; baseRot = 0; flip = false; $("an-flip").setAttribute("aria-pressed", "false"); setSize(90); setPlaying(false); t = 0; draw(); });
   const HINTS = {
     mouth: "Click on the middle of the mouth. The jaw will split along that line.",
     neck: "Click on the neck, just under the chin. Everything above it moves as the head.",
-    none: "Drag the character to move it. Place the mouth for the jaw, and the neck for head moves (it's set just under the mouth until you do)."
+    none: "Click the character to select it: drag to move, pull a corner to resize, use the round handle to rotate (hold Shift to snap), or scroll to resize."
   };
   function setPlacing(m) {
     placing = m; $("an-mouthBtn").setAttribute("aria-pressed", m === "mouth"); $("an-neckBtn").setAttribute("aria-pressed", m === "neck");
+    $("an-tMouth").setAttribute("aria-pressed", m === "mouth"); $("an-tNeck").setAttribute("aria-pressed", m === "neck");
     cv.style.cursor = m ? "crosshair" : "grab"; $("an-stageHint").textContent = HINTS[m || "none"];
   }
   $("an-mouthBtn").addEventListener("click", () => { setPlaying(false); t = 0; setPlacing(placing === "mouth" ? false : "mouth"); draw(); });
+  $("an-tMouth").addEventListener("click", () => $("an-mouthBtn").click());
+  $("an-tNeck").addEventListener("click", () => $("an-neckBtn").click());
   $("an-neckBtn").addEventListener("click", () => { setPlaying(false); t = 0; setPlacing(placing === "neck" ? false : "neck"); draw(); });
 
   // ---------- audio: playback and voice-driven mouth ----------
@@ -4092,7 +4196,7 @@ window.setStageColor = (el, c) => {
     if (f.type && !f.type.startsWith("image/")) { note2("an-cutNote", "That file isn't an image. Pick a JPG, PNG or WebP.", "err"); return; }
     try {
       photo = await readImage(f, 2200); photoName = (f.name || "photo").replace(/\.[^.]+$/, "");
-      subject = photo; mouth = null; neck = null; prep = null; bgCanvas = null; pos = { x: 0.5, y: 1.02 };
+      subject = photo; mouth = null; neck = null; prep = null; bgCanvas = null; pos = { x: 0.5, y: 1.02 }; baseRot = 0; flip = false; $("an-flip").setAttribute("aria-pressed", "false");
       $("an-photoHint").textContent = `${f.name} · ${photo.width} × ${photo.height} px`;
       $("an-cut").disabled = false; nameTouched = false; anDefaultName();
       note2("an-cutNote", "Next: cut out the person, then place the mouth.", "");
