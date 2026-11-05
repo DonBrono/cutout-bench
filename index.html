@@ -262,6 +262,21 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
 .namebar-actions .progress .row > * { flex: 0 0 auto; }
 .namebar-actions .progress .row > button { min-height: 34px; padding: 4px 14px; }
 .namebar-actions .note { flex-basis: 100%; margin: 0; }
+
+/* Animate: tabbed settings rail that stays beside the preview */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.rail-tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; position: sticky; top: 0; z-index: 3; background: var(--cream); padding: 2px 6px 8px 0; }
+.rail-tabs button { flex-direction: column; gap: 3px; min-height: 52px; padding: 6px 2px; font-size: 11.5px; font-weight: 800; border-radius: 14px; box-shadow: var(--sh-xs); }
+.rail-tabs button svg { width: 18px; height: 18px; }
+.rail-tabs button[aria-selected="true"] { background: var(--mat); transform: translate(2px, 2px); box-shadow: none; }
+.rail-tabs button[aria-selected="true"]:hover { transform: translate(2px, 2px); box-shadow: none; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 14px; }
+.grid2 .slider { min-width: 0; }
+.grid2-mid { align-items: end; }
+.check-mid { padding-bottom: 4px; }
+@media (min-width: 881px) {
+  .an-rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 108px); max-height: calc(100vh - 124px); overflow-y: auto; padding: 0 8px 12px 0; margin-right: -8px; overscroll-behavior: contain; }
+}
 /* ================= Brutalist theme layer =================
    Layout: same workbench (stage left, tool rail right), restyled as chunky
    sticker-like cards: 3px ink outlines, hard offset shadows, pill controls.
@@ -938,9 +953,16 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
       <p class="hint" id="an-stageHint">Drag the character to move it. Use “Place the mouth” and click on the mouth to set where the jaw splits.</p>
     </div>
 
-    <aside class="rail">
-      <section class="card" aria-labelledby="an-h-photo">
-        <h2 id="an-h-photo">Character</h2>
+    <aside class="rail an-rail">
+      <div class="rail-tabs" role="tablist" aria-label="Animate settings">
+        <button role="tab" id="an-tab-person" data-antab="person" aria-controls="an-panel-person" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M5 21c.6-4 3.4-6.5 7-6.5s6.4 2.5 7 6.5"/></svg>Person</button>
+        <button role="tab" id="an-tab-moves" data-antab="moves" aria-controls="an-panel-moves" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 17c3-6 5 4 8-2s5 4 8-2"/><path d="M4 9c3-4 5 2 8-1s5 2 8-1"/></svg>Moves</button>
+        <button role="tab" id="an-tab-voice" data-antab="voice" aria-controls="an-panel-voice" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>Voice</button>
+        <button role="tab" id="an-tab-scene" data-antab="scene" aria-controls="an-panel-scene" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="16" cy="9" r="1.6"/></svg>Scene</button>
+        <button role="tab" id="an-tab-output" data-antab="output" aria-controls="an-panel-output" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Output</button>
+      </div>
+      <section class="card" id="an-panel-person" data-panel="person" role="tabpanel" aria-labelledby="an-tab-person">
+        <h2 id="an-h-photo" class="sr-only">Character</h2>
         <label class="filebtn primary" for="an-file">Open photo<input type="file" id="an-file" accept="image/*"></label>
         <p class="hint" id="an-photoHint">Showing a sample character. Open a photo of a person, or drop it on the stage.</p>
         <button id="an-cut" disabled>Cut out the person (AI)</button>
@@ -949,14 +971,16 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
           <button id="an-mouthBtn" aria-pressed="false">Place the mouth</button>
           <button id="an-neckBtn" aria-pressed="false">Place the neck</button>
         </div>
+        <div class="grid2">
         <div class="slider"><label for="an-jaw">Jaw width</label><output id="an-jawOut" for="an-jaw"></output>
           <input type="range" id="an-jaw" min="6" max="45" step="1" value="20"></div>
         <div class="slider"><label for="an-size">Character size</label><output id="an-sizeOut" for="an-size"></output>
           <input type="range" id="an-size" min="30" max="160" step="1" value="90"></div>
+        </div>
       </section>
 
-      <section class="card" aria-labelledby="an-h-moves">
-        <h2 id="an-h-moves">Moves</h2>
+      <section class="card" id="an-panel-moves" data-panel="moves" role="tabpanel" aria-labelledby="an-tab-moves" hidden>
+        <h2 id="an-h-moves" class="sr-only">Moves</h2>
         <div class="chipset" role="group" aria-label="Moves">
           <button data-move="talk" aria-pressed="true">Talk</button>
           <button data-move="headbob" aria-pressed="true">Head bob</button>
@@ -969,31 +993,30 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
           <button data-move="slide" aria-pressed="true">Slide in</button>
           <button data-move="zoom" aria-pressed="true">Zoom punch</button>
         </div>
+        <div class="grid2">
         <div class="slider"><label for="an-energy">Energy</label><output id="an-energyOut" for="an-energy"></output>
           <input type="range" id="an-energy" min="10" max="200" step="5" value="100"></div>
         <div class="slider"><label for="an-speed">Speed</label><output id="an-speedOut" for="an-speed"></output>
           <input type="range" id="an-speed" min="40" max="250" step="5" value="100"></div>
+        </div>
         <button id="an-shuffle">Shuffle the timing</button>
       </section>
 
-      <section class="card" aria-labelledby="an-h-voice">
-        <h2 id="an-h-voice">Voice</h2>
+      <section class="card" id="an-panel-voice" data-panel="voice" role="tabpanel" aria-labelledby="an-tab-voice" hidden>
+        <h2 id="an-h-voice" class="sr-only">Voice</h2>
         <label class="filebtn" for="an-audio">Add voice clip<input type="file" id="an-audio" accept="audio/*,video/*"></label>
         <p class="hint" id="an-audioHint">No voice clip: the mouth does a made-up talking pattern. Add an MP3, WAV or M4A and the mouth follows the voice.</p>
         <button id="an-audioClear" hidden>Remove voice clip</button>
+        <div class="grid2">
         <div class="slider" id="an-lenRow"><label for="an-len">Length</label><output id="an-lenOut" for="an-len"></output>
           <input type="range" id="an-len" min="2" max="30" step="0.5" value="6"></div>
         <div class="slider"><label for="an-sens">Mouth sensitivity</label><output id="an-sensOut" for="an-sens"></output>
           <input type="range" id="an-sens" min="20" max="200" step="5" value="100"></div>
+        </div>
       </section>
 
-      <section class="card" aria-labelledby="an-h-look">
-        <h2 id="an-h-look">Look</h2>
-        <div class="seg3" role="group" aria-label="Aspect ratio">
-          <button data-anratio="16:9" aria-pressed="true">16:9<small>YouTube</small></button>
-          <button data-anratio="9:16" aria-pressed="false">9:16<small>Shorts · TikTok</small></button>
-          <button data-anratio="1:1" aria-pressed="false">1:1<small>Square</small></button>
-        </div>
+      <section class="card" id="an-panel-scene" data-panel="scene" role="tabpanel" aria-labelledby="an-tab-scene" hidden>
+        <h2 id="an-h-look" class="sr-only">Look</h2>
         <div class="field"><span>Background</span>
           <div class="seg2" role="group" aria-label="Background">
             <button data-anbg="photo" aria-pressed="true">Photo</button>
@@ -1017,26 +1040,37 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
           <label class="check" for="an-bgSound"><input type="checkbox" id="an-bgSound"> Include the video's sound</label>
         </div>
         <div id="an-bgFx" class="wand-opts">
-          <div class="slider"><label for="an-blur">Background blur</label><output id="an-blurOut" for="an-blur"></output>
-            <input type="range" id="an-blur" min="0" max="100" step="5" value="40"></div>
           <div class="seg2" role="group" aria-label="Blur style">
             <button data-blurtype="even" aria-pressed="true">Even blur</button>
             <button data-blurtype="edges" aria-pressed="false">Edges only</button>
           </div>
+          <div class="grid2">
+          <div class="slider"><label for="an-blur">Background blur</label><output id="an-blurOut" for="an-blur"></output>
+            <input type="range" id="an-blur" min="0" max="100" step="5" value="40"></div>
           <div class="slider"><label for="an-bright">Background brightness</label><output id="an-brightOut" for="an-bright"></output>
             <input type="range" id="an-bright" min="40" max="130" step="5" value="90"></div>
+          </div>
         </div>
+        <div class="grid2">
         <div class="slider"><label for="an-vig">Vignette</label><output id="an-vigOut" for="an-vig"></output>
           <input type="range" id="an-vig" min="0" max="100" step="5" value="35"></div>
         <div class="slider"><label for="an-vigSize">Vignette size</label><output id="an-vigSizeOut" for="an-vigSize"></output>
           <input type="range" id="an-vigSize" min="10" max="100" step="5" value="55"></div>
+        </div>
+        <div class="grid2 grid2-mid">
         <div class="slider"><label for="an-outline">Paper edge</label><output id="an-outlineOut" for="an-outline"></output>
           <input type="range" id="an-outline" min="0" max="40" step="1" value="14"></div>
-        <label class="check" for="an-shadow"><input type="checkbox" id="an-shadow" checked> Drop shadow</label>
+        <label class="check check-mid" for="an-shadow"><input type="checkbox" id="an-shadow" checked> Drop shadow</label>
+        </div>
       </section>
 
-      <section class="card" aria-labelledby="an-h-out">
-        <h2 id="an-h-out">Export</h2>
+      <section class="card" id="an-panel-output" data-panel="output" role="tabpanel" aria-labelledby="an-tab-output" hidden>
+        <h2 id="an-h-out" class="sr-only">Export</h2>
+        <div class="seg3" role="group" aria-label="Aspect ratio">
+          <button data-anratio="16:9" aria-pressed="true">16:9<small>YouTube</small></button>
+          <button data-anratio="9:16" aria-pressed="false">9:16<small>Shorts · TikTok</small></button>
+          <button data-anratio="1:1" aria-pressed="false">1:1<small>Square</small></button>
+        </div>
         <div class="two">
           <label class="field">Frame rate
             <select id="an-fps"><option value="24">24 fps</option><option value="30" selected>30 fps</option><option value="60">60 fps</option></select>
@@ -4207,7 +4241,7 @@ window.setStageColor = (el, c) => {
       if (mov) E.setBrand(bytes, "qt  ");
       resultBlob = new Blob([bytes], { type: mov ? "video/quicktime" : "video/mp4" }); resultName = `${clean($("an-fname").value, anAuto())}.${mov ? "mov" : "mp4"}`;
       const rv = $("an-resultVideo"); if (rv.src) URL.revokeObjectURL(rv.src); rv.src = URL.createObjectURL(resultBlob);
-      $("an-result").hidden = false; $("an-saveHint").hidden = true; $("an-saveBtn").hidden = false;
+      $("an-result").hidden = false; $("an-saveHint").hidden = true; $("an-saveBtn").hidden = false; showTab("output");
       note2("an-outNote", `Ready: ${resultName}, ${(resultBlob.size / 1048576).toFixed(1)} MB, ${D.toFixed(1)} s.${audioNote}`, "ok");
     } catch (err) { console.error(err); note2("an-outNote", "The export stopped with an error (" + String(err && err.message || err).slice(0, 120) + "). Try a lower frame rate.", "err"); }
     finally { exporting = null; bgCanvas = savedBg; $("an-exportBtn").disabled = false; $("an-progress").hidden = true; draw(); }
@@ -4234,6 +4268,22 @@ window.setStageColor = (el, c) => {
     $("an-saveHint").hidden = false; $("an-saveBtn").hidden = true;
   });
 
+
+  // ---------- settings tabs ----------
+  const anTabs = [...document.querySelectorAll("[data-antab]")];
+  function showTab(name) {
+    anTabs.forEach((b) => { const on = b.dataset.antab === name; b.setAttribute("aria-selected", on); b.tabIndex = on ? 0 : -1; });
+    document.querySelectorAll("#animate [data-panel]").forEach((pnl) => { pnl.hidden = pnl.dataset.panel !== name; });
+    try { localStorage.setItem("cutout-animate-tab", name); } catch {}
+  }
+  anTabs.forEach((b, i) => {
+    b.addEventListener("click", () => showTab(b.dataset.antab));
+    b.addEventListener("keydown", (e) => {
+      const d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0; if (!d) return;
+      e.preventDefault(); const nb = anTabs[(i + d + anTabs.length) % anTabs.length]; showTab(nb.dataset.antab); nb.focus();
+    });
+  });
+  { let first = "person"; try { first = localStorage.getItem("cutout-animate-tab") || first; } catch {} showTab(anTabs.some((b) => b.dataset.antab === first) ? first : "person"); }
   // ---------- start ----------
   anDefaultName(); draw();
 })();
