@@ -12,7 +12,7 @@
 <title>Cutout Bench</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Archivo+Black&family=Inter:wght@400;500;600;700;800&family=Old+Standard+TT:wght@400;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,700&family=Roboto:wght@400;700&family=Playfair+Display:wght@400;700&family=Special+Elite&family=Courier+Prime&family=Caveat:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Archivo+Black&family=Inter:wght@400;500;600;700;800&family=Old+Standard+TT:wght@400;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,700&family=Roboto:wght@400;700&family=Playfair+Display:wght@400;700&family=Special+Elite&family=Courier+Prime&family=Caveat:wght@400;600&display=swap">
 <style>
 /* Layout: a workbench — large stage on a cutting-mat grid, tool rail on the right, stacking under the stage on phones */
 :root {
@@ -483,6 +483,17 @@ footer a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pin
   .nav a { flex: 1 1 auto; justify-content: center; padding: 6px 10px; font-size: 13px; }
   .tag::before { display: flex; width: max-content; margin: 0 0 6px; }
 }
+
+/* Poppins Bold across the whole interface */
+:root {
+  --font-display: "Poppins", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Poppins", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Poppins", "Segoe UI", system-ui, sans-serif;
+}
+body, button, input, select, textarea, output, label, .subhead { font-family: var(--font-body) !important; }
+body *:not(svg):not(svg *) { font-weight: 700 !important; }
+h1, .appbar h1, .card h2, .subhead, .drop-hint, .tool-chip, button.primary, .filebtn.primary { font-weight: 800 !important; }
+.appbar h1 { letter-spacing: -0.02em; }
 </style>
 
 </head>
@@ -2447,7 +2458,7 @@ window.setStageColor = (el, c) => {
     x.fillStyle = "rgba(255,255,255,.7)"; x.beginPath(); x.arc(bx - 16, by - 18, 12, 0, 7); x.fill();
     // stickers: edges and timecode
     const sticker = (txt, sx, sy, col, fg, align) => {
-      x.font = "800 24px Inter, 'IBM Plex Sans', sans-serif"; const tw = x.measureText(txt).width + 32, th = 44;
+      x.font = "800 24px Poppins, Inter, sans-serif"; const tw = x.measureText(txt).width + 32, th = 44;
       const left = align === "right" ? sx - tw : sx;
       x.fillStyle = INK; x.beginPath(); x.roundRect(left + 5, sy + 5, tw, th, 22); x.fill();
       x.fillStyle = col; x.beginPath(); x.roundRect(left, sy, tw, th, 22); x.fill(); x.lineWidth = 4; x.strokeStyle = INK; x.stroke();
@@ -2456,7 +2467,7 @@ window.setStageColor = (el, c) => {
     sticker("LEFT EDGE", 24, h - 76, "#d8ff5c", INK, "left");
     sticker("RIGHT EDGE", w - 24, 34, "#ff4667", INK, "right");
     sticker("9:16 KEEPS THIS", cx0 + 14, h - 76, "#8c7ae6", INK, "left");
-    x.font = "600 30px 'IBM Plex Mono', monospace"; const tc = fmtTime(t, true), tw = x.measureText(tc).width + 36;
+    x.font = "700 30px Poppins, sans-serif"; const tc = fmtTime(t, true), tw = x.measureText(tc).width + 36;
     x.fillStyle = INK; x.beginPath(); x.roundRect(w - 24 - tw, h - 76, tw, 48, 24); x.fill();
     x.fillStyle = "#fbf5ea"; x.textAlign = "right"; x.textBaseline = "middle"; x.fillText(tc, w - 42, h - 51); x.textBaseline = "alphabetic"; x.textAlign = "left";
   }
