@@ -2145,32 +2145,52 @@ window.setStageColor = (el, c) => {
     patches((p) => seen[p] && dist(p) <= tIn && a[p] >= 0.85, (l) => { if (l.length < minKeep) for (const p of l) a[p] = 0; });
     comp.fill(-1);
     // 2. enclosed background-colored areas (letter holes, white parts of a design): clear or keep each one whole
+    const minFill = Math.max(48, N * 0.0004);
+    // does this patch surround other artwork (like a badge's inner disc around a logo)? then it's a backing, not a hole
+    const framesArt = (l) => {
+      let x0 = W, y0 = H, x1 = 0, y1 = 0; for (const p of l) { const x = p % W, y = (p / W) | 0; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+      const bw2 = x1 - x0 + 1, bh2 = y1 - y0 + 1; if (bw2 < 8 || bh2 < 8) return false;
+      const inP = new Uint8Array(bw2 * bh2), out = new Uint8Array(bw2 * bh2); for (const p of l) inP[(((p / W) | 0) - y0) * bw2 + (p % W) - x0] = 1;
+      const st = []; for (let x = 0; x < bw2; x++) for (const y of [0, bh2 - 1]) { const k = y * bw2 + x; if (!inP[k] && !out[k]) { out[k] = 1; st.push(k); } }
+      for (let y = 0; y < bh2; y++) for (const x of [0, bw2 - 1]) { const k = y * bw2 + x; if (!inP[k] && !out[k]) { out[k] = 1; st.push(k); } }
+      while (st.length) { const k = st.pop(), x = k % bw2; for (const c of [x > 0 ? k - 1 : -1, x < bw2 - 1 ? k + 1 : -1, k - bw2, k + bw2]) if (c >= 0 && c < bw2 * bh2 && !inP[c] && !out[c]) { out[c] = 1; st.push(c); } }
+      let art = 0; for (let k = 0; k < bw2 * bh2; k++) if (!inP[k] && !out[k] && dist((y0 + ((k / bw2) | 0)) * W + x0 + (k % bw2)) > tIn) art++;
+      return art >= minFill;
+    };
     patches((p) => !seen[p] && dist(p) <= tIn, (l) => {
-      let s = 0; for (const p of l) s += a[p]; const keep = s / l.length >= 0.5;
+      let s = 0; for (const p of l) s += a[p]; const keep = s / l.length >= 0.5 || framesArt(l);
       for (const p of l) a[p] = keep ? 1 : 0;
       // the patch's anti-aliased rim (a little further from the background color) follows the same decision
       for (const p of l) { const x = p % W; for (const c of [x > 0 ? p - 1 : -1, x < W - 1 ? p + 1 : -1, p - W, p + W, x > 1 ? p - 2 : -1, x < W - 2 ? p + 2 : -1, p - 2 * W, p + 2 * W]) {
         if (c < 0 || c >= N || seen[c] || comp[c] >= 0) continue; const d = Math.min(dist(c), distRaw(c)); if (d >= tSoft) continue;
         const k = Math.min(1, (tSoft - d) / (tSoft - tIn)); a[c] = keep ? Math.max(a[c], k) : (a[c] < 0.85 ? Math.min(a[c], 1 - k) : a[c]); } }
     });
-    // 3. flat-colored fills inside the subject that the model was half-sure about (light colors often come out
-    //    see-through): in a graphic, a flat area of the subject is solid, so make the whole area solid
+    // 3. artwork enclosed inside the subject (not background-colored, not touching the background or the picture
+    //    edge) is part of the design: make it solid even where the model thought otherwise (light fills that came out
+    //    see-through, a logo inside a badge it dropped). Areas reaching the background (soft shadows) stay as they were.
+    const decided = new Uint8Array(N); for (let p = 0; p < N; p++) if (comp[p] >= 0) decided[p] = 1;   // step-2 patches
     comp.fill(-1);
-    const minFill = Math.max(48, N * 0.0004), tFill = 14;
+    const tFill = 14;
     // keep away from the subject's outline: pixels within 2 px of the background keep their soft edge
     const nearBg = new Uint8Array(N);
     for (let p = 0; p < N; p++) if (seen[p]) { const x = p % W, y = (p / W) | 0;
       for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const xx = x + dx, yy = y + dy; if (xx >= 0 && yy >= 0 && xx < W && yy < H) nearBg[yy * W + xx] = 1; } }
     for (let p0 = 0; p0 < N; p0++) {
-      if (comp[p0] >= 0 || seen[p0] || nearBg[p0] || a[p0] <= 0.02 || a[p0] >= 0.999) continue;
-      const r0 = ch[0][p0], g0 = ch[1][p0], b0 = ch[2][p0];
-      const same = (c) => { const dr = ch[0][c] - r0, dg = ch[1][c] - g0, db = ch[2][c] - b0; return dr * dr + dg * dg + db * db <= tFill * tFill * 3; };
-      let top = 0; stack[top++] = p0; comp[p0] = p0; const list = []; let sum = 0, edge = false;
-      while (top) { const p = stack[--top]; list.push(p); sum += a[p]; const x = p % W, y = (p / W) | 0; if (x === 0 || y === 0 || x === W - 1 || y === H - 1) edge = true;
-        for (const c of [x > 0 ? p - 1 : -1, x < W - 1 ? p + 1 : -1, p - W, p + W]) { if (c < 0 || c >= N) continue; if (nearBg[c] && same(c)) edge = true;
-          if (comp[c] < 0 && !seen[c] && !nearBg[c] && a[c] > 0.02 && same(c)) { comp[c] = p0; stack[top++] = c; } } }
-      // only fills enclosed by the subject: an area that reaches the background or the picture edge (a soft shadow, say) stays as it was
-      if (!edge && list.length >= minFill && sum / list.length >= 0.5) for (const p of list) a[p] = 1;
+      if (comp[p0] >= 0 || seen[p0] || nearBg[p0] || decided[p0] || dist(p0) <= tIn) continue;
+      // small neighbour-to-neighbour steps (follows JPEG noise) and never far from where it started (no drifting
+      // through gradual shades into other parts of the drawing)
+      const r0 = ch[0][p0], g0 = ch[1][p0], b0 = ch[2][p0], tDrift = 36;
+      const same = (p, c) => { const dr = ch[0][c] - ch[0][p], dg = ch[1][c] - ch[1][p], db = ch[2][c] - ch[2][p], er = ch[0][c] - r0, eg = ch[1][c] - g0, eb = ch[2][c] - b0;
+        return dr * dr + dg * dg + db * db <= tFill * tFill * 3 && er * er + eg * eg + eb * eb <= tDrift * tDrift * 3; };
+      let top = 0; stack[top++] = p0; comp[p0] = p0; const list = []; let edge = false;
+      while (top) { const p = stack[--top]; list.push(p); const x = p % W, y = (p / W) | 0; if (x === 0 || y === 0 || x === W - 1 || y === H - 1) edge = true;
+        for (const c of [x > 0 ? p - 1 : -1, x < W - 1 ? p + 1 : -1, p - W, p + W]) { if (c < 0 || c >= N) continue; if (nearBg[c] && same(p, c)) edge = true;
+          if (comp[c] < 0 && !seen[c] && !nearBg[c] && !decided[c] && dist(c) > tIn && same(p, c)) { comp[c] = p0; stack[top++] = c; } } }
+      if (edge || list.length < minFill) continue;
+      for (const p of list) a[p] = 1;
+      // its anti-aliased rim: as visible as it is unlike the background color
+      for (const p of list) { const x = p % W; for (const c of [x > 0 ? p - 1 : -1, x < W - 1 ? p + 1 : -1, p - W, p + W]) {
+        if (c < 0 || c >= N || seen[c] || comp[c] === p0) continue; const k = Math.max(0, Math.min(1, (dist(c) - tIn) / (tSoft - tIn))); if (k > a[c]) a[c] = k; } }
     }
     return true;
   }

@@ -523,9 +523,9 @@ edge("GE01 A border of three different colors is left alone", async (pg) => {
   const r = await flat(pg, 300, 300, `x.fillStyle="#f00";x.fillRect(0,0,w,100);x.fillStyle="#0f0";x.fillRect(0,100,w,100);x.fillStyle="#00f";x.fillRect(0,200,w,100);`, `return 0.4;`);
   assert(!r.ret, "applied on three colors");
 });
-edge("GE02 A fill the AI mostly ruled out (40%) is left as it was", async (pg) => {
+edge("GE02 Enclosed artwork the AI mostly ruled out (40%) is kept solid", async (pg) => {
   await flat(pg, 400, 300, `x.fillStyle="#fff";x.fillRect(0,0,w,h);x.fillStyle="#123";x.fillRect(120,60,160,180);x.fillStyle="#9cf";x.fillRect(130,140,140,30);`, `return X>=120&&X<280&&y>=60&&y<240?((y>=140&&y<170&&X>=130&&X<270)?0.4:1):0.3;`);
-  assert(Math.abs(await meanA(pg, [132, 142, 268, 168]) - 0.4) < 1e-6, "fill changed");
+  assert(await meanA(pg, [132, 142, 268, 168]) === 1, "enclosed artwork not kept");
 });
 edge("GE03 A tiny fill below the size limit is left as it was", async (pg) => {
   await flat(pg, 400, 300, `x.fillStyle="#fff";x.fillRect(0,0,w,h);x.fillStyle="#123";x.fillRect(120,60,160,180);x.fillStyle="#9cf";x.fillRect(150,100,4,4);`, `return X>=120&&X<280&&y>=60&&y<240?((X>=150&&X<154&&y>=100&&y<104)?0.7:1):0.3;`);
@@ -539,6 +539,65 @@ edge("GE05 Running it twice with fills and two colors gives the same result", as
   await flat(pg, 400, 300, `x.fillStyle="#d8ff5c";x.fillRect(0,0,w,h);x.fillStyle="#8c7ae6";x.fillRect(0,220,w,80);x.fillStyle="#ff4667";x.fillRect(150,80,100,180);x.fillStyle="#fbf5ea";x.fillRect(160,150,80,20);`, `return X>=150&&X<250&&y>=80&&y<260?((y>=150&&y<170&&X>=160&&X<240)?0.7:1):0.4;`);
   const same = await pg.evaluate(() => { const F = window.F, a2 = F.a.slice(); window.__bench.flatBackdrop(a2, F.g, F.w, F.h); for (let i = 0; i < a2.length; i++) if (Math.abs(a2[i] - F.a[i]) > 1e-6) return false; return true; });
   assert(same, "not idempotent");
+});
+
+// =====================================================================
+// Fix: keep enclosed artwork in graphics (regression tests)
+// =====================================================================
+FEATURE = "AI: keep enclosed artwork (fix)";
+const PICS = {
+ badge:`x.fillStyle="#f6f1e7";x.fillRect(0,0,w,h);x.fillStyle="#1d3557";x.beginPath();x.arc(400,240,170,0,7);x.fill();x.fillStyle="#f1faee";x.beginPath();x.arc(400,240,130,0,7);x.fill();x.fillStyle="#e63946";x.beginPath();x.moveTo(400,140);x.lineTo(470,300);x.lineTo(330,300);x.closePath();x.fill();x.fillStyle="#1d3557";x.font="900 40px Arial Black,Arial";x.textAlign="center";x.fillText("PEAK",400,350);`,
+ icon:`x.fillStyle="#2b6cb0";x.fillRect(0,0,w,h);x.fillStyle="#1e4e8c";x.fillRect(0,330,w,150);x.fillStyle="#fff";x.beginPath();x.roundRect(260,90,280,280,60);x.fill();x.fillStyle="#ffd166";x.beginPath();x.arc(400,200,60,0,7);x.fill();x.fillStyle="#fde9b5";x.fillRect(300,290,200,40);x.strokeStyle="#222";x.lineWidth=8;x.beginPath();x.roundRect(260,90,280,280,60);x.stroke();`,
+ sticker:`x.fillStyle="#ffffff";x.fillRect(0,0,w,h);x.fillStyle="#7b2cbf";x.beginPath();x.ellipse(400,250,200,150,0.2,0,7);x.fill();x.fillStyle="#e0aaff";x.beginPath();x.ellipse(400,250,120,70,0.2,0,7);x.fill();x.strokeStyle="#000";x.lineWidth=10;x.beginPath();x.ellipse(400,250,200,150,0.2,0,7);x.stroke();x.fillStyle="#000";x.font="900 70px Arial Black,Arial";x.textAlign="center";x.fillText("POP",400,275);`
+};
+const aiPic = async (pg, name) => {
+  const url = await pg.evaluate(async (body) => { const c = document.createElement("canvas"); c.width = 800; c.height = 480; const x = c.getContext("2d"); new Function("x", "w", "h", body)(x, 800, 480);
+    const d = x.getImageData(0, 0, 800, 480); let s = 5; for (let i = 0; i < d.data.length; i += 4) { s = (s * 16807) % 2147483647; const n = (s / 2147483647 - 0.5) * 12; for (let k = 0; k < 3; k++) d.data[i + k] = Math.max(0, Math.min(255, d.data[i + k] + n)); } x.putImageData(d, 0, 0);
+    return c.toDataURL("image/jpeg", 0.35); }, PICS[name]);
+  await aiRun(pg, url);
+};
+const alphaBox = (pg, r) => pg.evaluate(([x0, y0, x1, y1]) => { const B = window.__bench, w = B.src.width, a = B.alpha(); let s = 0, n = 0, mn = 255; for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) { const v = a[(y * w + x) * 4 + 3]; s += v; n++; mn = Math.min(mn, v); } return { mean: s / n, min: mn }; }, r);
+real("K01 A badge through the AI keeps its inner disc, the logo inside it and every letter", async (pg) => {
+  await aiPic(pg, "badge"); const disc = await alphaBox(pg, [300, 160, 330, 200]), tri = await alphaBox(pg, [385, 230, 415, 280]), text = await alphaBox(pg, [345, 322, 455, 352]);
+  assert(disc.mean > 250 && tri.min > 240 && text.mean > 120, `disc ${disc.mean.toFixed(0)}, triangle min ${tri.min}, text ${text.mean.toFixed(0)}`);
+});
+real("K02 An app icon on a two-tone background comes out clean and solid", async (pg) => {
+  await aiPic(pg, "icon"); const bg = await alphaBox(pg, [0, 0, 200, 480]), bg2 = await alphaBox(pg, [600, 0, 800, 480]), card = await alphaBox(pg, [300, 120, 500, 360]);
+  assert(bg.mean < 3 && bg2.mean < 3 && card.min > 240, `bg ${bg.mean.toFixed(1)}/${bg2.mean.toFixed(1)}, card min ${card.min}`);
+});
+real("K03 A sticker on white comes out with no haze around it", async (pg) => {
+  await aiPic(pg, "sticker"); const around = await alphaBox(pg, [0, 0, 800, 70]), body = await alphaBox(pg, [330, 200, 470, 300]);
+  assert(around.mean < 2 && body.min > 240, `around ${around.mean.toFixed(1)}, body min ${body.min}`);
+});
+real("K04 A small noisy JPEG letter inside a badge is kept whole", async (pg) => {
+  await flat(pg, 400, 300, `x.fillStyle="#f6f1e7";x.fillRect(0,0,w,h);x.fillStyle="#1d3557";x.beginPath();x.arc(200,150,120,0,7);x.fill();x.fillStyle="#f1faee";x.beginPath();x.arc(200,150,90,0,7);x.fill();x.fillStyle="#1d3557";x.fillRect(180,120,8,60);x.fillRect(180,120,30,8);x.fillRect(180,145,30,8);x.fillRect(202,120,8,33);` + noise(14), `return ((X-200)**2+(y-150)**2<120*120)?((X>=180&&X<210&&y>=120&&y<180)?0.1:((X-200)**2+(y-150)**2<90*90?0.2:1)):0.3;`);
+  assert(await meanA(pg, [181, 122, 187, 178]) > 0.95, "letter lost");
+});
+real("K05 A product's soft shadow is still left as the AI made it", async (pg) => {
+  await flat(pg, 400, 300, `x.fillStyle="#f2f2f2";x.fillRect(0,0,w,h);x.fillStyle="#b0b0b0";x.beginPath();x.ellipse(200,250,120,18,0,0,7);x.fill();x.fillStyle="#24f";x.fillRect(140,80,120,160);`,
+    `if(X>=140&&X<260&&y>=80&&y<240) return 1; if(((X-200)**2/14400+(y-250)**2/324)<1) return 0.5; return 0.2;`);
+  assert(Math.abs(await meanA(pg, [150, 246, 250, 254]) - 0.5) < 0.05, "shadow changed");
+});
+edge("KE01 A plain ring (donut) with nothing inside keeps the AI's see-through middle", async (pg) => {
+  await flat(pg, 400, 300, `x.fillStyle="#fff";x.fillRect(0,0,w,h);x.fillStyle="#1d3557";x.beginPath();x.arc(200,150,120,0,7);x.fill();x.fillStyle="#fff";x.beginPath();x.arc(200,150,80,0,7);x.fill();`, `return ((X-200)**2+(y-150)**2<120*120)&&((X-200)**2+(y-150)**2>=80*80)?1:0.2;`);
+  assert(await meanA(pg, [180, 130, 220, 170]) === 0, "donut hole filled");
+});
+edge("KE02 A big subject drawn in gentle shades doesn't merge into one area that blocks fills", async (pg) => {
+  await flat(pg, 400, 300, `x.fillStyle="#d8ff5c";x.fillRect(0,0,w,h);const g=x.createLinearGradient(100,0,300,0);g.addColorStop(0,"#2fbf71");g.addColorStop(1,"#1d6b44");x.fillStyle=g;x.fillRect(100,40,200,220);x.fillStyle="#0d0d0f";x.fillRect(120,120,160,4);x.fillRect(120,156,160,4);x.fillStyle="#fbf5ea";x.fillRect(120,124,160,32);`,
+    `return X>=100&&X<300&&y>=40&&y<260?((y>=124&&y<156&&X>=120&&X<280)?0.7:1):0.3;`);
+  assert(await meanA(pg, [122, 126, 278, 154]) === 1, "cream fill inside a shaded subject not solid");
+});
+edge("KE03 Artwork touching the picture edge isn't forced solid", async (pg) => {
+  await flat(pg, 400, 300, `x.fillStyle="#fff";x.fillRect(0,0,w,h);x.fillStyle="#e33";x.fillRect(0,100,80,100);`, `return X<80&&y>=100&&y<200?0.4:0.2;`);
+  assert(Math.abs(await meanA(pg, [5, 110, 75, 190]) - 0.4) < 1e-6, "edge artwork forced solid");
+});
+edge("KE04 Tiny specks of color inside the subject aren't blown up", async (pg) => {
+  await flat(pg, 400, 300, `x.fillStyle="#fff";x.fillRect(0,0,w,h);x.fillStyle="#123";x.fillRect(100,60,200,180);x.fillStyle="#f80";x.fillRect(190,140,5,5);`, `return X>=100&&X<300&&y>=60&&y<240?((X>=190&&X<195&&y>=140&&y<145)?0.3:1):0.2;`);
+  assert(Math.abs(await meanA(pg, [190, 140, 195, 145]) - 0.3) < 1e-6, "tiny speck changed");
+});
+edge("KE05 Still quick on a 2048×1536 graphic with lots of enclosed shapes", async (pg) => {
+  const r = await flat(pg, 2048, 1536, `x.fillStyle="#fff";x.fillRect(0,0,w,h);x.fillStyle="#123";x.fillRect(300,200,1400,1100);for(let i=0;i<60;i++){x.fillStyle=["#f80","#0c6","#fe3","#c3f"][i%4];x.fillRect(340+(i%10)*130,240+Math.floor(i/10)*170,90,110);}`, `return X>=300&&X<1700&&y>=200&&y<1300?0.6:0.2;`);
+  assert(r.ms < 3500, r.ms.toFixed(0) + " ms");
 });
 
 (async () => {
