@@ -419,8 +419,8 @@ edge("FE01 A 1×1 picture is skipped safely", async (pg) => { const r = await fl
 edge("FE02 A picture that is all background color", async (pg) => {
   const r = await flat(pg, 200, 150, `x.fillStyle="#fff";x.fillRect(0,0,w,h);`, `return 0.4;`); assert(r.ret && await meanA(pg, [0, 0, 200, 150]) === 0, "not cleared");
 });
-edge("FE03 Border only 70% one color: left alone", async (pg) => {
-  const r = await flat(pg, 400, 300, `x.fillStyle="#fff";x.fillRect(0,0,w,h);x.fillStyle="#c33";x.fillRect(0,0,w,90);`, `return 0.4;`); assert(!r.ret && await countA(pg, "return v!==b;") === 0, "applied");
+edge("FE03 Border only 70% one color, the rest not flat: left alone", async (pg) => {
+  const r = await flat(pg, 400, 300, `x.fillStyle="#fff";x.fillRect(0,0,w,h);const g=x.createLinearGradient(0,0,w,0);g.addColorStop(0,"#c33");g.addColorStop(.5,"#3c3");g.addColorStop(1,"#33c");x.fillStyle=g;x.fillRect(0,0,w,90);`, `return 0.4;`); assert(!r.ret && await countA(pg, "return v!==b;") === 0, "applied");
 });
 edge("FE04 Border about 80% one color: cleaned", async (pg) => {
   const r = await flat(pg, 400, 300, `x.fillStyle="#fff";x.fillRect(0,0,w,h);x.fillStyle="#c33";x.fillRect(0,0,130,20);`, `return 0.4;`); assert(r.ret, "not applied");
@@ -490,6 +490,55 @@ edge("FE24 Option off: applying the AI result skips the clean-up", async (pg) =>
 edge("FE25 A gradient that is flat along the border but not inside is handled safely", async (pg) => {
   await flat(pg, 400, 300, `x.fillStyle="#fff";x.fillRect(0,0,w,h);const g=x.createRadialGradient(200,150,10,200,150,120);g.addColorStop(0,"#246");g.addColorStop(1,"#fff");x.fillStyle=g;x.fillRect(60,30,280,240);`, `const d=Math.hypot(X-200,y-150);return d<60?1:0.3;`);
   assert(await meanA(pg, [180, 130, 220, 170]) === 1, "centre damaged");
+});
+
+// =====================================================================
+// Fix: two-color backgrounds and see-through flat fills (regression tests)
+// =====================================================================
+FEATURE = "AI: two-color backgrounds + solid fills (fix)";
+real("G01 The plant sample through the AI: the cream band on the pot comes out fully solid", async (pg) => {
+  const ok = await pg.evaluate(() => !!window.ort); if (!ok) throw new Skip("AI runtime not reachable");
+  await pg.click("#aiBtn"); const done = await pg.waitForFunction(() => window.__bench.alpha()[3] < 128, null, { timeout: 240000 }).then(() => true).catch(() => false);
+  if (!done) throw new Skip("AI model did not finish here"); await pg.waitForTimeout(500);
+  const min = await pg.evaluate(() => { const B = window.__bench, w = B.src.width, a = B.alpha(); let m = 255; for (let y = 592; y < 624; y++) for (let x = 500; x < 700; x++) m = Math.min(m, a[(y * w + x) * 4 + 3]); return m; });
+  assert(min === 255, "cream band see-through, min alpha " + min);
+});
+real("G02 A wall + floor background (two flat colors) is cleared", async (pg) => {
+  const r = await flat(pg, 400, 300, `x.fillStyle="#d8ff5c";x.fillRect(0,0,w,h);x.fillStyle="#8c7ae6";x.fillRect(0,220,w,80);x.fillStyle="#ff4667";x.fillRect(150,80,100,180);`, `return X>=150&&X<250&&y>=80&&y<260?1:0.4;`);
+  assert(r.ret && await meanA(pg, [0, 0, 400, 60]) === 0 && await meanA(pg, [0, 270, 400, 300]) === 0, "wall or floor left");
+});
+real("G03 A light flat fill the AI made half see-through becomes solid", async (pg) => {
+  await flat(pg, 400, 300, `x.fillStyle="#fff";x.fillRect(0,0,w,h);x.fillStyle="#ff4667";x.fillRect(120,60,160,180);x.fillStyle="#fbf5ea";x.fillRect(130,140,140,30);`, `return X>=120&&X<280&&y>=60&&y<240?((y>=140&&y<170&&X>=130&&X<270)?0.7:1):0.3;`);
+  assert(await meanA(pg, [132, 142, 268, 168]) === 1, "fill not solid");
+});
+real("G04 A normal photo is still left exactly as the AI made it", async (pg) => {
+  const r = await flat(pg, 400, 300, `const g=x.createLinearGradient(0,0,w,h);g.addColorStop(0,"#335");g.addColorStop(.5,"#c84");g.addColorStop(1,"#4a7");x.fillStyle=g;x.fillRect(0,0,w,h);`, `return ((X*7+y*3)%100)/100;`);
+  assert(!r.ret && await countA(pg, "return v!==b;") === 0, "photo changed");
+});
+real("G05 A flat-colored subject touching the bottom edge isn't mistaken for a second background", async (pg) => {
+  await flat(pg, 400, 300, `x.fillStyle="#fff";x.fillRect(0,0,w,h);x.fillStyle="#c22";x.fillRect(100,150,200,150);`, `return X>=100&&X<300&&y>=150?0.97:0.3;`);
+  assert(await meanA(pg, [110, 160, 290, 300]) > 0.95, "subject cleared");
+});
+edge("GE01 A border of three different colors is left alone", async (pg) => {
+  const r = await flat(pg, 300, 300, `x.fillStyle="#f00";x.fillRect(0,0,w,100);x.fillStyle="#0f0";x.fillRect(0,100,w,100);x.fillStyle="#00f";x.fillRect(0,200,w,100);`, `return 0.4;`);
+  assert(!r.ret, "applied on three colors");
+});
+edge("GE02 A fill the AI mostly ruled out (40%) is left as it was", async (pg) => {
+  await flat(pg, 400, 300, `x.fillStyle="#fff";x.fillRect(0,0,w,h);x.fillStyle="#123";x.fillRect(120,60,160,180);x.fillStyle="#9cf";x.fillRect(130,140,140,30);`, `return X>=120&&X<280&&y>=60&&y<240?((y>=140&&y<170&&X>=130&&X<270)?0.4:1):0.3;`);
+  assert(Math.abs(await meanA(pg, [132, 142, 268, 168]) - 0.4) < 1e-6, "fill changed");
+});
+edge("GE03 A tiny fill below the size limit is left as it was", async (pg) => {
+  await flat(pg, 400, 300, `x.fillStyle="#fff";x.fillRect(0,0,w,h);x.fillStyle="#123";x.fillRect(120,60,160,180);x.fillStyle="#9cf";x.fillRect(150,100,4,4);`, `return X>=120&&X<280&&y>=60&&y<240?((X>=150&&X<154&&y>=100&&y<104)?0.7:1):0.3;`);
+  assert(Math.abs(await meanA(pg, [150, 100, 154, 104]) - 0.7) < 1e-6, "tiny fill changed");
+});
+edge("GE04 A second border color covering under 10% is treated as noise, not background", async (pg) => {
+  const r = await flat(pg, 400, 300, `x.fillStyle="#fff";x.fillRect(0,0,w,h);x.fillStyle="#00f";x.fillRect(0,0,60,8);x.fillStyle="#c22";x.fillRect(150,80,100,140);`, `return X>=150&&X<250&&y>=80&&y<220?1:(X<60&&y<8?0.5:0.3);`);
+  assert(r.ret && await meanA(pg, [0, 0, 60, 8]) === 0.5, "small blue strip treated as background");
+});
+edge("GE05 Running it twice with fills and two colors gives the same result", async (pg) => {
+  await flat(pg, 400, 300, `x.fillStyle="#d8ff5c";x.fillRect(0,0,w,h);x.fillStyle="#8c7ae6";x.fillRect(0,220,w,80);x.fillStyle="#ff4667";x.fillRect(150,80,100,180);x.fillStyle="#fbf5ea";x.fillRect(160,150,80,20);`, `return X>=150&&X<250&&y>=80&&y<260?((y>=150&&y<170&&X>=160&&X<240)?0.7:1):0.4;`);
+  const same = await pg.evaluate(() => { const F = window.F, a2 = F.a.slice(); window.__bench.flatBackdrop(a2, F.g, F.w, F.h); for (let i = 0; i < a2.length; i++) if (Math.abs(a2[i] - F.a[i]) > 1e-6) return false; return true; });
+  assert(same, "not idempotent");
 });
 
 (async () => {

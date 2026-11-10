@@ -2094,20 +2094,30 @@ window.setStageColor = (el, c) => {
     const bw = Math.max(1, Math.round(Math.min(W, H) * 0.01)), tIn = 24, tSoft = 40;
     const ring = (o) => { const out = []; if (W <= 2 * (o + bw) || H <= 2 * (o + bw)) return out;
       for (let y = o; y < H - o; y++) for (let x = o; x < W - o; x++) if (x < o + bw || y < o + bw || x >= W - o - bw || y >= H - o - bw) out.push(y * W + x); return out; };
-    let R0 = 0, G0 = 0, B0 = 0, border = null;
-    const dist = (p) => { const r = ch[0][p], rm = (r + R0) / 2, dr = r - R0, dg = ch[1][p] - G0, db = ch[2][p] - B0; return Math.sqrt(((2 + rm / 256) * dr * dr + 4 * dg * dg + (2 + (255 - rm) / 256) * db * db) / 3); };
+    // background colors: one flat color, or two (e.g. a studio wall and floor) that together cover the border
+    let cols = [], border = null;
+    const dc = (r, gg, b, c) => { const rm = (r + c[0]) / 2, dr = r - c[0], dg = gg - c[1], db = b - c[2]; return Math.sqrt(((2 + rm / 256) * dr * dr + 4 * dg * dg + (2 + (255 - rm) / 256) * db * db) / 3); };
+    const dmin = (r, gg, b) => { let m = Infinity; for (const c of cols) { const d = dc(r, gg, b, c); if (d < m) m = d; } return m; };
+    const dist = (p) => dmin(ch[0][p], ch[1][p], ch[2][p]);
     // the pixel's own (unblurred) color: used for the 1–2 px rim, where blurring mixes in the neighbouring color
-    const distRaw = (p) => { const i = p * 4, r = g[i], rm = (r + R0) / 2, dr = r - R0, dg = g[i + 1] - G0, db = g[i + 2] - B0; return Math.sqrt(((2 + rm / 256) * dr * dr + 4 * dg * dg + (2 + (255 - rm) / 256) * db * db) / 3); };
+    const distRaw = (p) => { const i = p * 4; return dmin(g[i], g[i + 1], g[i + 2]); };
     let best = -1;
     for (const o of [0, bw + 1]) {                                   // the outer edge, and just inside it (pictures with a thin frame)
       const b = ring(o); if (!b.length) continue;
-      const med = (c) => { const v = b.map((p) => ch[c][p]).sort((x, y) => x - y); return v[v.length >> 1]; };
-      const r0 = med(0), g0 = med(1), b0 = med(2); [R0, G0, B0] = [r0, g0, b0];
-      let near = 0; for (const p of b) if (dist(p) <= tIn) near++;
-      const fr = near / b.length; if (fr > best) { best = fr; border = { b, r0, g0, b0 }; }
+      const med = (ps) => [0, 1, 2].map((c) => { const v = ps.map((p) => ch[c][p]).sort((x, y) => x - y); return v[v.length >> 1]; });
+      const c1 = med(b); cols = [c1];
+      const rest = b.filter((p) => dist(p) > tIn);
+      let fr1 = 1 - rest.length / b.length, cand = { b, cols: [c1], fr: fr1 >= 0.75 ? fr1 : -1 };
+      if (rest.length > b.length * 0.1) {                            // try a second flat color
+        const c2 = med(rest); cols = [c1, c2];
+        let near = 0; for (const p of b) if (dist(p) <= tIn) near++;
+        const fr2 = near / b.length, share2 = rest.filter((p) => dc(ch[0][p], ch[1][p], ch[2][p], c2) <= tIn).length / b.length;
+        if (fr2 >= 0.85 && share2 >= 0.1 && fr2 > cand.fr) cand = { b, cols: [c1, c2], fr: fr2 };
+      }
+      if (cand.fr > best) { best = cand.fr; border = cand; }
     }
-    if (!border || best < 0.75) return false;                        // border isn't one flat color: leave the model's result alone
-    [R0, G0, B0] = [border.r0, border.g0, border.b0]; border = border.b;
+    if (!border || best < 0) return false;                           // border isn't flat: leave the model's result alone
+    cols = border.cols; border = border.b;
     const seen = new Uint8Array(N), q = new Int32Array(N); let head = 0, tail = 0;
     const clear = (p, d) => { if (a[p] < 0.85) a[p] = Math.min(a[p], d <= tIn ? 0 : (d - tIn) / (tSoft - tIn)); };
     for (const p of border) { if (seen[p]) continue; seen[p] = 1; const d = dist(p); if (d <= tIn) { q[tail++] = p; clear(p, d); } }
@@ -2143,6 +2153,25 @@ window.setStageColor = (el, c) => {
         if (c < 0 || c >= N || seen[c] || comp[c] >= 0) continue; const d = Math.min(dist(c), distRaw(c)); if (d >= tSoft) continue;
         const k = Math.min(1, (tSoft - d) / (tSoft - tIn)); a[c] = keep ? Math.max(a[c], k) : (a[c] < 0.85 ? Math.min(a[c], 1 - k) : a[c]); } }
     });
+    // 3. flat-colored fills inside the subject that the model was half-sure about (light colors often come out
+    //    see-through): in a graphic, a flat area of the subject is solid, so make the whole area solid
+    comp.fill(-1);
+    const minFill = Math.max(48, N * 0.0004), tFill = 14;
+    // keep away from the subject's outline: pixels within 2 px of the background keep their soft edge
+    const nearBg = new Uint8Array(N);
+    for (let p = 0; p < N; p++) if (seen[p]) { const x = p % W, y = (p / W) | 0;
+      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const xx = x + dx, yy = y + dy; if (xx >= 0 && yy >= 0 && xx < W && yy < H) nearBg[yy * W + xx] = 1; } }
+    for (let p0 = 0; p0 < N; p0++) {
+      if (comp[p0] >= 0 || seen[p0] || nearBg[p0] || a[p0] <= 0.02 || a[p0] >= 0.999) continue;
+      const r0 = ch[0][p0], g0 = ch[1][p0], b0 = ch[2][p0];
+      const same = (c) => { const dr = ch[0][c] - r0, dg = ch[1][c] - g0, db = ch[2][c] - b0; return dr * dr + dg * dg + db * db <= tFill * tFill * 3; };
+      let top = 0; stack[top++] = p0; comp[p0] = p0; const list = []; let sum = 0, edge = false;
+      while (top) { const p = stack[--top]; list.push(p); sum += a[p]; const x = p % W, y = (p / W) | 0; if (x === 0 || y === 0 || x === W - 1 || y === H - 1) edge = true;
+        for (const c of [x > 0 ? p - 1 : -1, x < W - 1 ? p + 1 : -1, p - W, p + W]) { if (c < 0 || c >= N) continue; if (nearBg[c] && same(c)) edge = true;
+          if (comp[c] < 0 && !seen[c] && !nearBg[c] && a[c] > 0.02 && same(c)) { comp[c] = p0; stack[top++] = c; } } }
+      // only fills enclosed by the subject: an area that reaches the background or the picture edge (a soft shadow, say) stays as it was
+      if (!edge && list.length >= minFill && sum / list.length >= 0.5) for (const p of list) a[p] = 1;
+    }
     return true;
   }
   function refineMask(raw, R, W, H, guide, firm) {
