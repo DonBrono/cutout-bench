@@ -559,6 +559,7 @@ h1, .appbar h1, .card h2, .subhead, .drop-hint, .tool-chip, button.primary, .fil
             <input type="range" id="firm" min="0" max="100" value="50">
             <span class="scale-ends"><span>Fine detail</span><span>Solid</span></span>
           </div>
+          <label class="check" for="flatBg" title="When the picture has a plain one-color background (logos, graphics, product shots), clear it completely so no cloudy haze is left."><input type="checkbox" id="flatBg" checked> Clean flat backgrounds (logos, graphics)</label>
           <label class="check" for="decon"><input type="checkbox" id="decon" checked> Clean color fringes on the edges</label>
           <p class="hint">Moving the slider redoes the automatic cutout, replacing touch-ups made after it. Undo brings them back.</p>
         </div>
@@ -1890,7 +1891,7 @@ window.setStageColor = (el, c) => {
   });
   // test hook for tests/bench.test.js; only with ?test in the address
   if (/[?&]test\b/.test(location.search)) window.__bench = {
-    get src() { return src; }, get mask() { return mask; }, magicRegion, cleanLeftovers,
+    get src() { return src; }, get mask() { return mask; }, magicRegion, cleanLeftovers, flatBackdrop,
     load: (f) => loadFile(f), undo: () => undo(),
     click: (x, y, mode) => { pushUndo(); magic(x, y, mode || "erase"); lastMagic = { x, y, mode: mode || "erase", base: undoStack[undoStack.length - 1] }; render(); },
     alpha: () => mctx.getImageData(0, 0, mask.width, mask.height).data,
@@ -2029,7 +2030,8 @@ window.setStageColor = (el, c) => {
         const k = Math.min(1, 1600 / Math.max(img.width, img.height)), W = Math.max(1, Math.round(img.width * k)), H = Math.max(1, Math.round(img.height * k));
         const g = makeCanvas(W, H), gx = g.getContext("2d", { willReadFrequently: true }); gx.drawImage(img, 0, 0, W, H);
         onStatus && onStatus("Cleaning up the edges…");
-        const { a } = refineMask(raw, R, W, H, gx.getImageData(0, 0, W, H).data, 0.55);
+        const gd = gx.getImageData(0, 0, W, H).data, { a } = refineMask(raw, R, W, H, gd, 0.55);
+        flatBackdrop(a, gd, W, H);
         return { a, W, H };
       } finally { window.__cutoutBusy = null; setBusy(null); }
     }
@@ -2080,6 +2082,69 @@ window.setStageColor = (el, c) => {
     }
   }
   // raw: model output (R×R, 0..1). guide: RGBA pixels of the photo at W×H. firm: 0 (soft) .. 1 (solid).
+  // Flat backgrounds (logos, graphics, studio walls): the model often leaves a cloudy, half-visible haze there.
+  // If the picture's border is mostly one color, find the background area connected to the border (compared on
+  // a lightly blurred copy so JPEG noise doesn't break it up) and clear it, with a soft anti-aliased edge.
+  // Only pixels the model was unsure about (< 85%) are cleared, so a white shirt on a white wall stays.
+  // Returns true when it found a flat background.
+  function flatBackdrop(a, g, W, H) {
+    const N = W * H;
+    if (N < 16) return false;
+    const ch = [0, 1, 2].map((c) => { const s = new Float32Array(N), o = new Float32Array(N), t = new Float32Array(N); for (let i = 0; i < N; i++) s[i] = g[i * 4 + c]; boxBlur(s, W, H, 1, o, t); return o; });
+    const bw = Math.max(1, Math.round(Math.min(W, H) * 0.01)), tIn = 24, tSoft = 40;
+    const ring = (o) => { const out = []; if (W <= 2 * (o + bw) || H <= 2 * (o + bw)) return out;
+      for (let y = o; y < H - o; y++) for (let x = o; x < W - o; x++) if (x < o + bw || y < o + bw || x >= W - o - bw || y >= H - o - bw) out.push(y * W + x); return out; };
+    let R0 = 0, G0 = 0, B0 = 0, border = null;
+    const dist = (p) => { const r = ch[0][p], rm = (r + R0) / 2, dr = r - R0, dg = ch[1][p] - G0, db = ch[2][p] - B0; return Math.sqrt(((2 + rm / 256) * dr * dr + 4 * dg * dg + (2 + (255 - rm) / 256) * db * db) / 3); };
+    // the pixel's own (unblurred) color: used for the 1–2 px rim, where blurring mixes in the neighbouring color
+    const distRaw = (p) => { const i = p * 4, r = g[i], rm = (r + R0) / 2, dr = r - R0, dg = g[i + 1] - G0, db = g[i + 2] - B0; return Math.sqrt(((2 + rm / 256) * dr * dr + 4 * dg * dg + (2 + (255 - rm) / 256) * db * db) / 3); };
+    let best = -1;
+    for (const o of [0, bw + 1]) {                                   // the outer edge, and just inside it (pictures with a thin frame)
+      const b = ring(o); if (!b.length) continue;
+      const med = (c) => { const v = b.map((p) => ch[c][p]).sort((x, y) => x - y); return v[v.length >> 1]; };
+      const r0 = med(0), g0 = med(1), b0 = med(2); [R0, G0, B0] = [r0, g0, b0];
+      let near = 0; for (const p of b) if (dist(p) <= tIn) near++;
+      const fr = near / b.length; if (fr > best) { best = fr; border = { b, r0, g0, b0 }; }
+    }
+    if (!border || best < 0.75) return false;                        // border isn't one flat color: leave the model's result alone
+    [R0, G0, B0] = [border.r0, border.g0, border.b0]; border = border.b;
+    const seen = new Uint8Array(N), q = new Int32Array(N); let head = 0, tail = 0;
+    const clear = (p, d) => { if (a[p] < 0.85) a[p] = Math.min(a[p], d <= tIn ? 0 : (d - tIn) / (tSoft - tIn)); };
+    for (const p of border) { if (seen[p]) continue; seen[p] = 1; const d = dist(p); if (d <= tIn) { q[tail++] = p; clear(p, d); } }
+    while (head < tail) {
+      const p = q[head++], x = p % W;
+      for (const c of [x > 0 ? p - 1 : -1, x < W - 1 ? p + 1 : -1, p - W, p + W]) {
+        if (c < 0 || c >= N || seen[c]) continue; seen[c] = 1;
+        const d = dist(c); if (d <= tIn) { q[tail++] = c; clear(c, d); } else if (d < tSoft) clear(c, d);
+      }
+    }
+    // connected patches, decided as a whole (pixel-by-pixel decisions look speckled)
+    const comp = new Int32Array(N).fill(-1), stack = new Int32Array(N);
+    const patches = (inside, fn) => {
+      let id = 0;
+      for (let p0 = 0; p0 < N; p0++) {
+        if (comp[p0] >= 0 || !inside(p0)) continue;
+        let top = 0; stack[top++] = p0; comp[p0] = id; const list = [];
+        while (top) { const p = stack[--top]; list.push(p); const x = p % W;
+          for (const c of [x > 0 ? p - 1 : -1, x < W - 1 ? p + 1 : -1, p - W, p + W]) if (c >= 0 && c < N && comp[c] < 0 && inside(c)) { comp[c] = id; stack[top++] = c; } }
+        fn(list); id++;
+      }
+    };
+    // 1. small confident islands left in the border-connected background: noise, clear them
+    const minKeep = Math.max(64, N * 0.002);
+    patches((p) => seen[p] && dist(p) <= tIn && a[p] >= 0.85, (l) => { if (l.length < minKeep) for (const p of l) a[p] = 0; });
+    comp.fill(-1);
+    // 2. enclosed background-colored areas (letter holes, white parts of a design): clear or keep each one whole
+    patches((p) => !seen[p] && dist(p) <= tIn, (l) => {
+      let s = 0; for (const p of l) s += a[p]; const keep = s / l.length >= 0.5;
+      for (const p of l) a[p] = keep ? 1 : 0;
+      // the patch's anti-aliased rim (a little further from the background color) follows the same decision
+      for (const p of l) { const x = p % W; for (const c of [x > 0 ? p - 1 : -1, x < W - 1 ? p + 1 : -1, p - W, p + W, x > 1 ? p - 2 : -1, x < W - 2 ? p + 2 : -1, p - 2 * W, p + 2 * W]) {
+        if (c < 0 || c >= N || seen[c] || comp[c] >= 0) continue; const d = Math.min(dist(c), distRaw(c)); if (d >= tSoft) continue;
+        const k = Math.min(1, (tSoft - d) / (tSoft - tIn)); a[c] = keep ? Math.max(a[c], k) : (a[c] < 0.85 ? Math.min(a[c], 1 - k) : a[c]); } }
+    });
+    return true;
+  }
   function refineMask(raw, R, W, H, guide, firm) {
     const N = W * H;
     // 1. Upscale the prediction (bilinear)
@@ -2310,6 +2375,7 @@ window.setStageColor = (el, c) => {
     gx.imageSmoothingQuality = "high"; gx.drawImage(src, 0, 0, W, H);
     const guide = gx.getImageData(0, 0, W, H).data;
     const { a, F } = refineMask(aiRaw, 1024, W, H, guide, +$("firm").value / 100);
+    if ($("flatBg").checked) flatBackdrop(a, guide, W, H);
     const id = gx.createImageData(W, H), dd = id.data;
     for (let i = 0, j = 0; i < W * H; i++, j += 4) { dd[j] = dd[j + 1] = dd[j + 2] = 255; dd[j + 3] = Math.round(a[i] * 255); }
     gx.putImageData(id, 0, 0);
@@ -2336,6 +2402,7 @@ window.setStageColor = (el, c) => {
     fg = makeCanvas(FW, FH); fg.getContext("2d").putImageData(outImg, 0, 0);
     setBusy(null); render();
   }
+  $("flatBg").addEventListener("change", () => { if (aiRaw) applyAI(); });
   const firmOut = () => { const v = +$("firm").value; $("firmOut").textContent = v < 34 ? "Fine detail" : v > 66 ? "Solid" : "Balanced"; };
   firmOut();
   $("firm").addEventListener("input", firmOut);
